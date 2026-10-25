@@ -48,9 +48,21 @@ function segments(text: string, spans: Span[] | null) {
   return out;
 }
 
-/** Instagram DM composer: dark pill, blue camera button, icons that swap to a blue "Send". */
+/** Message composer with attachment preview and contextual rewrite highlights. */
 export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
-  { value, onChangeText, highlights, sendLabel, sending, onSend, reply, onCancelReply, attachment, onPickPhoto, onRemoveAttachment },
+  {
+    value,
+    onChangeText,
+    highlights,
+    sendLabel,
+    sending,
+    onSend,
+    reply,
+    onCancelReply,
+    attachment,
+    onPickPhoto,
+    onRemoveAttachment,
+  },
   ref,
 ) {
   const hasText = value.trim().length > 0;
@@ -87,9 +99,10 @@ export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
         style={[
           styles.box,
           {
-            borderColor: glow.interpolate({ inputRange: [0, 1], outputRange: ['rgba(160,51,255,0)', 'rgba(160,51,255,0.9)'] }),
+            borderColor: glow.interpolate({ inputRange: [0, 1], outputRange: [colors.separator, colors.blue] }),
           },
-        ]}>
+        ]}
+      >
         {attachment ? (
           <View style={styles.attachment}>
             <Image
@@ -104,21 +117,21 @@ export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
           </View>
         ) : null}
         <View style={styles.row}>
-          <Pressable style={styles.camera} accessibilityLabel="Camera">
-            <Icon name={hasText ? 'magnifyingglass' : 'camera.fill'} size={18} color="white" />
+          <Pressable onPress={onPickPhoto} style={styles.camera} accessibilityRole="button" accessibilityLabel="Attach a photo">
+            <Icon name="plus" size={20} color={colors.blue} />
           </Pressable>
           <View style={styles.inputWrap}>
             <TextInput
               ref={ref}
               value={value}
               onChangeText={onChangeText}
-              placeholder={attachment ? 'Add a caption...' : 'Message...'}
+              placeholder={attachment ? 'Add a little context…' : 'Say something…'}
               placeholderTextColor={colors.textSecondary}
               style={[styles.input, { height: inputHeight }]}
               onContentSizeChange={(e) => setContentHeight(e.nativeEvent.contentSize.height)}
               scrollEnabled={contentHeight > 120}
               multiline
-              keyboardAppearance="dark"
+              keyboardAppearance="light"
               selectionColor={colors.blue}
             />
             {highlights ? (
@@ -128,21 +141,23 @@ export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
             ) : null}
           </View>
           {canSend ? (
-            <Pressable onPress={onSend} disabled={sending} hitSlop={8} style={styles.sendBtn} accessibilityRole="button">
+            <Pressable
+              onPress={onSend}
+              disabled={sending}
+              hitSlop={8}
+              style={styles.sendBtn}
+              accessibilityRole="button"
+              accessibilityLabel={sendLabel}
+            >
               {sending ? (
-                <ActivityIndicator size="small" color={colors.blue} />
+                <ActivityIndicator size="small" color="white" />
               ) : (
-                <Text style={styles.send}>{sendLabel}</Text>
+                <Icon name="arrow.up" size={18} weight="bold" color="white" />
               )}
             </Pressable>
           ) : (
-            <View style={styles.icons}>
-              <Icon name="mic" size={24} />
-              <Pressable onPress={onPickPhoto} hitSlop={6} accessibilityLabel="Send a photo">
-                <Icon name="photo" size={24} />
-              </Pressable>
-              <Icon name="face.smiling" size={24} />
-              <Icon name="plus.circle" size={25} />
+            <View style={styles.icons} pointerEvents="none">
+              <Icon name="bubble.left" size={19} color={colors.textTertiary} />
             </View>
           )}
         </View>
@@ -152,7 +167,7 @@ export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
 });
 
 const styles = StyleSheet.create({
-  outer: { paddingHorizontal: 10, paddingBottom: 6 },
+  outer: { paddingHorizontal: 16, paddingBottom: 10, paddingTop: 8 },
   reply: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -163,8 +178,8 @@ const styles = StyleSheet.create({
   },
   replyTitle: { color: colors.text, fontSize: 13 },
   replyText: { color: colors.textSecondary, fontSize: 13, marginTop: 1 },
-  box: { backgroundColor: colors.surfaceAlt, borderRadius: 26, borderWidth: 1.5 },
-  row: { flexDirection: 'row', alignItems: 'flex-end', minHeight: 48, paddingLeft: 5, paddingRight: 14, paddingVertical: 5 },
+  box: { backgroundColor: colors.surfaceAlt, borderRadius: 22, borderWidth: 1 },
+  row: { flexDirection: 'row', alignItems: 'flex-end', minHeight: 54, paddingLeft: 7, paddingRight: 8, paddingVertical: 7 },
   attachment: { alignSelf: 'flex-start', marginTop: 10, marginLeft: 10 },
   thumb: { height: 150, borderRadius: 16, backgroundColor: colors.surface },
   thumbClose: {
@@ -181,15 +196,15 @@ const styles = StyleSheet.create({
   camera: {
     width: 38,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.blue,
+    borderRadius: 14,
+    backgroundColor: colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   inputWrap: { flex: 1 },
   input: {
     color: colors.text,
-    fontSize: 17,
+    fontSize: 16,
     lineHeight: LINE,
     paddingHorizontal: 10,
     paddingTop: PAD_V,
@@ -197,8 +212,15 @@ const styles = StyleSheet.create({
     maxHeight: 120,
   },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, color: 'transparent' },
-  icons: { flexDirection: 'row', alignItems: 'center', gap: 14, height: 38 },
-  sendBtn: { height: 38, justifyContent: 'center', paddingLeft: 4 },
+  icons: { alignItems: 'center', justifyContent: 'center', width: 38, height: 38 },
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.action,
+  },
   send: { color: colors.blue, fontSize: 16, fontWeight: '700' },
-  highlight: { backgroundColor: colors.highlight, color: '#FFFFFF', borderRadius: 4 },
+  highlight: { backgroundColor: colors.highlight, color: colors.text, borderRadius: 4 },
 });

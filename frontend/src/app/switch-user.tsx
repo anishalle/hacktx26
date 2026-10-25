@@ -25,17 +25,14 @@ export default function SwitchUserSheet() {
               Haptics.selectionAsync();
               setMe(u.id);
               router.back();
-            }}>
-            <Avatar uri={u.avatar_url} size={48} />
+            }}
+          >
+            <Avatar uri={u.avatar_url} name={u.display_name} size={48} />
             <View style={styles.body}>
               <Text style={styles.username}>{u.username}</Text>
               <Text style={styles.name}>{u.display_name}</Text>
             </View>
-            {active ? (
-              <Icon name="checkmark.circle.fill" size={24} color={colors.blue} />
-            ) : (
-              <View style={styles.radio} />
-            )}
+            {active ? <Icon name="checkmark.circle.fill" size={24} color={colors.blue} /> : <View style={styles.radio} />}
           </Pressable>
         );
       })}

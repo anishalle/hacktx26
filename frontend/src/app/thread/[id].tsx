@@ -45,7 +45,7 @@ import { colors, mixHex } from '@/theme';
 const CATCHUP_MIN = 50;
 const GAP_FOR_SEPARATOR_MS = 60 * 60 * 1000;
 
-// Instagram's outgoing gradient runs blue (bottom of the screen) → violet → purple (top).
+// A subtle blue shift separates outgoing messages from the dark chat surface.
 function tintFor(rowsFromBottom: number) {
   const t = Math.max(0, Math.min(1, rowsFromBottom / 12));
   return t < 0.5 ? mixHex(colors.gradBottom, colors.gradMid, t * 2) : mixHex(colors.gradMid, colors.gradTop, (t - 0.5) * 2);
@@ -207,7 +207,9 @@ export default function ThreadScreen() {
     const newest = [...asc].reverse().find((m) => m.id > 0 && m.kind !== 'system');
     if (newest && members && !t.hasMoreAfter) {
       const seen = members
-        .filter((mem) => mem.user.id !== me.id && mem.user.id !== newest.sender_id && (mem.last_read_message_id ?? 0) >= newest.id)
+        .filter(
+          (mem) => mem.user.id !== me.id && mem.user.id !== newest.sender_id && (mem.last_read_message_id ?? 0) >= newest.id,
+        )
         .map((mem) => mem.user);
       if (seen.length) out.push({ type: 'seen', key: 'seen', users: seen });
     }
@@ -407,9 +409,15 @@ export default function ThreadScreen() {
 
   const intro = group ? (
     <View style={[styles.intro, { paddingTop: headerHeight + (pillVisible ? 60 : 24) + (activeCall ? 56 : 0) }]}>
-      {group.is_dm || group.avatar_url ? <Avatar uri={group.avatar_url} size={92} /> : <GroupAvatar uris={[null, null]} size={92} />}
+      {group.is_dm || group.avatar_url ? (
+        <Avatar uri={group.avatar_url} size={92} />
+      ) : (
+        <GroupAvatar uris={[null, null]} size={92} />
+      )}
       <Text style={styles.introTitle}>{group.name}</Text>
-      <Text style={styles.introSub}>{group.is_dm ? 'Instagram' : `${group.member_count} members`}</Text>
+      <Text style={styles.introSub}>
+        {group.is_dm ? 'A conversation, just between you.' : `${group.member_count} people. One shared space.`}
+      </Text>
     </View>
   ) : null;
 
@@ -423,7 +431,10 @@ export default function ThreadScreen() {
           </View>
         ) : t.status === 'error' ? (
           <View style={styles.center}>
-            <Text style={styles.errorText}>Couldn’t load this chat.{'\n'}{t.error}</Text>
+            <Text style={styles.errorText}>
+              Couldn’t load this chat.{'\n'}
+              {t.error}
+            </Text>
           </View>
         ) : (
           <FlatList
@@ -520,7 +531,7 @@ export default function ThreadScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#18191C' },
+  screen: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   errorText: { color: colors.textSecondary, textAlign: 'center', fontSize: 15 },
   intro: { alignItems: 'center', paddingBottom: 24, gap: 6 },

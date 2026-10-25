@@ -1,35 +1,37 @@
-// Instagram iOS dark mode palette and type scale (SF Pro via the system font).
+// Shared surfaces and accents for conversations, context sheets and calls.
 export const colors = {
-  bg: '#0C1014',
-  surface: '#262A30',
-  surfaceAlt: '#1C1F24',
-  searchBg: '#25292E',
-  bubbleIn: '#26292E',
-  bubbleInPressed: '#33373D',
-  text: '#F5F5F5',
-  textSecondary: '#A8A8A8',
-  textTertiary: '#737373',
-  separator: '#2B2F35',
-  blue: '#3797F0',
-  blueDot: '#4D66F5',
-  red: '#FF3040',
-  silhouetteBg: '#DBDBDB',
-  silhouette: '#FFFFFF',
-  sheetBg: '#1C1F24',
-  sparkle: '#B79CFF',
-  highlight: 'rgba(124, 92, 255, 0.45)',
-  // Outgoing bubbles are tinted along Instagram's purple → blue gradient by position.
-  gradTop: '#A033FF',
-  gradMid: '#6E46F5',
-  gradBottom: '#3B7CF6',
+  bg: '#F5F5F7',
+  surface: '#FFFFFF',
+  surfaceAlt: '#EFEFF3',
+  searchBg: '#EDEDF1',
+  bubbleIn: '#E9E9ED',
+  bubbleInPressed: '#DEDEE5',
+  text: '#1D1D1F',
+  textSecondary: '#6E6E73',
+  textTertiary: '#85858C',
+  separator: '#E1E1E6',
+  blue: '#007AFF',
+  action: '#0068D9',
+  blueDot: '#007AFF',
+  red: '#D83B52',
+  silhouetteBg: '#E4ECF9',
+  silhouette: '#3768A6',
+  sheetBg: '#F9F9FB',
+  sparkle: '#0068D9',
+  highlight: 'rgba(0, 122, 255, 0.15)',
+  gradTop: '#1C70DE',
+  gradMid: '#166BD7',
+  gradBottom: '#1267D0',
+  accentSoft: '#E7F0FF',
+  mint: '#267B61',
 };
 
 export const type = {
-  title: { fontSize: 22, fontWeight: '700' as const, letterSpacing: -0.4 },
+  title: { fontSize: 30, fontWeight: '700' as const, letterSpacing: -1 },
   headline: { fontSize: 17, fontWeight: '600' as const },
-  body: { fontSize: 17, fontWeight: '400' as const, letterSpacing: -0.2 },
-  rowName: { fontSize: 15, fontWeight: '400' as const },
-  rowPreview: { fontSize: 15, fontWeight: '400' as const },
+  body: { fontSize: 16, fontWeight: '400' as const, letterSpacing: -0.2 },
+  rowName: { fontSize: 16, fontWeight: '600' as const },
+  rowPreview: { fontSize: 14, fontWeight: '400' as const },
   footnote: { fontSize: 13, fontWeight: '400' as const },
   caption: { fontSize: 12, fontWeight: '400' as const },
 };
@@ -40,3 +42,17 @@ export function mixHex(a: string, b: string, t: number) {
   const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
   return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`;
 }
+
+// Video calls keep dark chrome so controls stay readable over camera feeds.
+export const callColors = {
+  ...colors,
+  bg: '#080B10',
+  surface: '#242830',
+  surfaceAlt: '#171D26',
+  text: '#F5F7FC',
+  textSecondary: '#AAB4C3',
+  textTertiary: '#8F9BAE',
+  separator: '#343D4A',
+  blue: '#8DB1FF',
+  sparkle: '#B6CCFF',
+};

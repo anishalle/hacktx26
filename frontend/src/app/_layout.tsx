@@ -1,6 +1,6 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Appearance, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { API_URL } from '@/api';
 import { AsksProvider } from '@/state/asks';
@@ -9,9 +9,11 @@ import { RealtimeProvider } from '@/state/realtime';
 import { SessionProvider, useSession } from '@/state/session';
 import { colors } from '@/theme';
 
+Appearance.setColorScheme('light');
+
 const theme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: colors.bg, card: colors.bg, primary: colors.blue, text: colors.text },
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, background: colors.bg, card: colors.bg, primary: colors.blue, text: colors.text },
 };
 
 const sheet = {
@@ -45,17 +47,20 @@ function Gate() {
   return (
     <RealtimeProvider userId={me.id}>
       <InboxProvider key={me.id} userId={me.id}>
-      <AsksProvider key={me.id} userId={me.id}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="thread/[id]" />
-        <Stack.Screen name="catchup" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
-        <Stack.Screen name="explain" options={{ ...sheet, sheetAllowedDetents: [0.55, 1], sheetCornerRadius: 28 }} />
-        <Stack.Screen name="requests" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
-        <Stack.Screen name="call/[groupId]" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#000' } }} />
-        <Stack.Screen name="switch-user" options={{ ...sheet, sheetAllowedDetents: [0.6, 1] }} />
-      </Stack>
-      </AsksProvider>
+        <AsksProvider key={me.id} userId={me.id}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="thread/[id]" />
+            <Stack.Screen name="catchup" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
+            <Stack.Screen name="explain" options={{ ...sheet, sheetAllowedDetents: [0.55, 1], sheetCornerRadius: 28 }} />
+            <Stack.Screen name="requests" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
+            <Stack.Screen
+              name="call/[groupId]"
+              options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#000' }, statusBarStyle: 'light' }}
+            />
+            <Stack.Screen name="switch-user" options={{ ...sheet, sheetAllowedDetents: [0.6, 1] }} />
+          </Stack>
+        </AsksProvider>
       </InboxProvider>
     </RealtimeProvider>
   );
@@ -64,7 +69,7 @@ function Gate() {
 export default function RootLayout() {
   return (
     <ThemeProvider value={theme}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <SessionProvider>
         <Gate />
       </SessionProvider>
@@ -77,6 +82,6 @@ const styles = StyleSheet.create({
   errTitle: { color: colors.text, fontSize: 20, fontWeight: '700', marginBottom: 4 },
   errBody: { color: colors.textSecondary, fontSize: 14, textAlign: 'center' },
   errHint: { color: colors.textTertiary, fontSize: 13, textAlign: 'center', marginTop: 8 },
-  retry: { marginTop: 16, backgroundColor: colors.blue, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
+  retry: { marginTop: 16, backgroundColor: colors.action, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
   retryText: { color: 'white', fontWeight: '600', fontSize: 15 },
 });

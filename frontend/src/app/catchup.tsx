@@ -12,7 +12,11 @@ import { catchupMarkRead, threadJump } from '@/state/bus';
 import { useMe } from '@/state/session';
 import { colors } from '@/theme';
 
-const SECTIONS: { key: CatchupSection; title: string; icon: 'bubble.left.and.bubble.right' | 'checkmark.seal' | 'questionmark.bubble' }[] = [
+const SECTIONS: {
+  key: CatchupSection;
+  title: string;
+  icon: 'bubble.left.and.bubble.right' | 'checkmark.seal' | 'questionmark.bubble';
+}[] = [
   { key: 'happened', title: 'What happened', icon: 'bubble.left.and.bubble.right' },
   { key: 'decisions', title: 'Decided', icon: 'checkmark.seal' },
   { key: 'open', title: 'Still open', icon: 'questionmark.bubble' },
@@ -83,9 +87,15 @@ export default function CatchupSheet() {
       style={styles.sheet}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets>
+      automaticallyAdjustKeyboardInsets
+    >
       <View style={styles.header}>
-        <LinearGradient colors={['#A033FF', '#5B51F5', '#3797F0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerIcon}>
+        <LinearGradient
+          colors={['#007AFF', '#0875E8', '#116DD6']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerIcon}
+        >
           <Icon name="sparkles" size={18} color="white" weight="semibold" />
         </LinearGradient>
         <View style={{ flex: 1 }}>
@@ -112,7 +122,8 @@ export default function CatchupSheet() {
               setError(null);
               setAttempt((n) => n + 1);
             }}
-            style={styles.retry}>
+            style={styles.retry}
+          >
             <Text style={styles.retryText}>Try again</Text>
           </Pressable>
         </View>
@@ -146,7 +157,8 @@ export default function CatchupSheet() {
               <Pressable
                 key={term.term}
                 onPress={() => onExplain({ groupId, term: term.term })}
-                style={({ pressed }) => [styles.chip, pressed && { opacity: 0.6 }]}>
+                style={({ pressed }) => [styles.chip, pressed && { opacity: 0.6 }]}
+              >
                 <Text style={styles.chipText}>{term.term}</Text>
                 <Icon name="questionmark.circle" size={13} color={colors.sparkle} />
               </Pressable>
@@ -166,7 +178,8 @@ export default function CatchupSheet() {
             catchupMarkRead.emit({ groupId });
             router.back();
           }}
-          hitSlop={8}>
+          hitSlop={8}
+        >
           <Text style={styles.markRead}>Mark as read</Text>
         </Pressable>
       </View>
@@ -181,8 +194,12 @@ function BulletRow({ bullet, onPress }: { bullet: CatchupBullet; onPress: () => 
   }, [anim]);
   return (
     <Animated.View
-      style={{ opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.bullet, pressed && { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+      style={{ opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}
+    >
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [styles.bullet, pressed && { backgroundColor: 'rgba(255,255,255,0.06)' }]}
+      >
         <View style={styles.dot} />
         <Text style={styles.bulletText}>{bullet.text}</Text>
         <Icon name="arrow.up.forward" size={12} color={colors.textTertiary} style={{ marginTop: 4 }} />
@@ -234,7 +251,12 @@ function Ask({
     setBusy(true);
     setErr(null);
     try {
-      const res = await api.catchupAsk({ group_id: groupId, user_id: userId, question, ...(since ? { since_message_id: since } : {}) });
+      const res = await api.catchupAsk({
+        group_id: groupId,
+        user_id: userId,
+        question,
+        ...(since ? { since_message_id: since } : {}),
+      });
       setAnswer({ ...res, question });
       setQ('');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -272,11 +294,15 @@ function Ask({
           style={styles.askInput}
           returnKeyType="send"
           onSubmitEditing={submit}
-          keyboardAppearance="dark"
+          keyboardAppearance="light"
           editable={!busy}
         />
         <Pressable onPress={submit} disabled={!q.trim() || busy} style={[styles.askGo, (!q.trim() || busy) && { opacity: 0.4 }]}>
-          {busy ? <ActivityIndicator size="small" color="white" /> : <Icon name="arrow.up" size={15} weight="bold" color="white" />}
+          {busy ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Icon name="arrow.up" size={15} weight="bold" color="white" />
+          )}
         </Pressable>
       </View>
       {err ? <Text style={styles.errorText}>{err}</Text> : null}
@@ -297,7 +323,7 @@ const styles = StyleSheet.create({
   bullet: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 10 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.sparkle, marginTop: 8 },
   bulletText: { flex: 1, color: colors.text, fontSize: 16, lineHeight: 22 },
-  skel: { height: 12, borderRadius: 6, backgroundColor: '#3A3D44' },
+  skel: { height: 12, borderRadius: 6, backgroundColor: colors.separator },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row',
@@ -306,9 +332,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(124, 92, 255, 0.16)',
+    backgroundColor: 'rgba(0,122,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(160, 130, 255, 0.35)',
+    borderColor: 'rgba(0,122,255,0.16)',
   },
   chipText: { color: colors.text, fontSize: 14, fontWeight: '600' },
   answer: { backgroundColor: colors.surface, borderRadius: 16, padding: 14, marginBottom: 12 },
@@ -326,7 +352,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
   },
-  askGo: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
+  askGo: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.action,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footer: { marginTop: 28, alignItems: 'center', gap: 10 },
   footerNote: { color: colors.textTertiary, fontSize: 12 },
   markRead: { color: colors.blue, fontSize: 15, fontWeight: '600' },

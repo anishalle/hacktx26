@@ -6,17 +6,31 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'rea
 const liquid = isLiquidGlassAvailable();
 
 /** Liquid-glass surface on iOS 26, blur fallback elsewhere. */
-export function Glass({ style, children, interactive }: { style?: StyleProp<ViewStyle>; children?: ReactNode; interactive?: boolean }) {
+export function Glass({
+  style,
+  children,
+  interactive,
+  dark = false,
+}: {
+  style?: StyleProp<ViewStyle>;
+  children?: ReactNode;
+  interactive?: boolean;
+  dark?: boolean;
+}) {
   if (liquid) {
     return (
-      <GlassView style={style} glassEffectStyle="regular" colorScheme="dark" isInteractive={interactive}>
+      <GlassView style={style} glassEffectStyle="regular" colorScheme={dark ? 'dark' : 'light'} isInteractive={interactive}>
         {children}
       </GlassView>
     );
   }
   return (
     <View style={[style, styles.clip]}>
-      <BlurView tint="systemChromeMaterialDark" intensity={80} style={StyleSheet.absoluteFill} />
+      <BlurView
+        tint={dark ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+        intensity={80}
+        style={StyleSheet.absoluteFill}
+      />
       {children}
     </View>
   );

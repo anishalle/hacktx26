@@ -22,16 +22,20 @@ export default function RequestsSheet() {
       style={styles.sheet}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets>
+      automaticallyAdjustKeyboardInsets
+    >
       <View style={styles.header}>
-        <LinearGradient colors={['#A033FF', '#5B51F5', '#3797F0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerIcon}>
+        <LinearGradient
+          colors={['#007AFF', '#0875E8', '#116DD6']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerIcon}
+        >
           <Icon name="questionmark.bubble.fill" size={17} color="white" />
         </LinearGradient>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Requests</Text>
-          <Text style={styles.subtitle}>
-            {pending.length ? `${pending.length} waiting on you` : 'Nobody is waiting on you'}
-          </Text>
+          <Text style={styles.subtitle}>{pending.length ? `${pending.length} waiting on you` : 'Nobody is waiting on you'}</Text>
         </View>
       </View>
 
@@ -126,12 +130,16 @@ function PendingAsk({ ask }: { ask: MemberAsk }) {
         placeholderTextColor={colors.textSecondary}
         style={styles.input}
         multiline
-        keyboardAppearance="dark"
+        keyboardAppearance="light"
         editable={!busy}
       />
       <View style={styles.actions}>
         <Pressable onPress={() => respond('private')} disabled={!canSend} style={[styles.primary, !canSend && { opacity: 0.4 }]}>
-          {busy === 'private' ? <ActivityIndicator size="small" color="white" /> : <Icon name="lock.fill" size={12} color="white" />}
+          {busy === 'private' ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Icon name="lock.fill" size={12} color="white" />
+          )}
           <Text style={styles.primaryText}>Send privately</Text>
         </Pressable>
         <Pressable onPress={() => respond('chat')} disabled={!canSend} style={[styles.secondary, !canSend && { opacity: 0.4 }]}>
@@ -179,7 +187,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.blue,
+    backgroundColor: colors.action,
     paddingHorizontal: 14,
     height: 34,
     borderRadius: 17,
@@ -189,7 +197,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#3A3D44',
+    backgroundColor: colors.separator,
     paddingHorizontal: 14,
     height: 34,
     borderRadius: 17,
