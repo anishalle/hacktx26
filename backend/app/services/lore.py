@@ -25,7 +25,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import case, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
@@ -191,8 +191,12 @@ async def detail(
     )
 
 
-async def _require(session: AsyncSession, lore_id: int, user_id: str) -> Lore:
-    lore = await session.get(Lore, lore_id)
+async def _require(
+    session: AsyncSession, lore_id: int, user_id: str, lock: bool = False
+) -> Lore:
+    lore = await session.get(
+        Lore, lore_id, with_for_update=lock or None, populate_existing=lock
+    )
     if lore is None:
         raise HTTPException(404, "Lore not found")
     await require_member(session, lore.group_id, user_id)
@@ -270,23 +274,47 @@ async def _announce(
 
 async def keep(session: AsyncSession, lore_id: int, user_id: str) -> schemas.Lore:
     """Suggested → kept, first tap wins. A call replay that matches existing kept lore
-    is attached to it, and that lore is returned."""
-    lore = await _require(session, lore_id, user_id)
+    is attached to it, and that lore is returned. The row is locked, so simultaneous
+    taps resolve one after the other."""
+    lore = await _require(session, lore_id, user_id, lock=True)
     if lore.status == "kept":
+        await session.commit()
         return await view(session, lore, user_id)
+    if lore.status == "dismissed" and lore.kept_by and lore.replay_ids:
+        # Someone kept it a moment ago and it was folded into existing lore.
+        folded = await session.scalar(
+            select(Lore).where(
+                Lore.group_id == lore.group_id,
+                Lore.status == "kept",
+                Lore.replay_ids.contains(lore.replay_ids),
+            )
+        )
+        await session.commit()
+        if folded is not None:
+            return await view(session, folded, user_id)
     if lore.status != "suggested":
+        await session.commit()
         raise HTTPException(409, "This moment was already dismissed")
     target = None
     if lore.source == "call":
-        target = await _similar(
+        found = await _similar(
             session, lore.group_id, lore.embedding, list(lore.terms), exclude=lore.id
         )
+        if found is not None:
+            target = await session.get(
+                Lore, found.id, with_for_update=True, populate_existing=True
+            )
     if target is not None:
-        target.replay_ids = [*target.replay_ids, *lore.replay_ids]
+        target.replay_ids = list(dict.fromkeys([*target.replay_ids, *lore.replay_ids]))
         target.people = list(dict.fromkeys([*target.people, *lore.people]))
         target.terms = _terms(list(target.terms), list(lore.terms))
         target.ended_at = max(target.ended_at, lore.ended_at)
-        lore.status = "dismissed"  # folded into `target`
+        # Folded into `target`; kept_by marks it as kept rather than passed on.
+        lore.status, lore.kept_by, lore.kept_at = (
+            "dismissed",
+            user_id,
+            datetime.now(UTC),
+        )
         await session.commit()
         await _announce(session, lore)
         await _announce(session, target)
@@ -317,21 +345,33 @@ async def remove(session: AsyncSession, lore_id: int, user_id: str) -> schemas.L
 
 
 async def for_explanation(
-    session: AsyncSession, group_id: int, term: str | None, message_ids: list[int]
+    session: AsyncSession,
+    group_id: int,
+    term: str | None,
+    pressed_id: int | None,
+    source_ids: list[int],
 ) -> list[schemas.Lore]:
-    """Kept lore an explanation belongs to: same term, or one of its messages."""
-    conds = []
+    """Kept lore an explanation belongs to, best first: lore about the explained term,
+    then lore containing the pressed message, then lore sharing one of its sources."""
+    ranks = []
     if term:
-        conds.append(text(":term ILIKE ANY (lore.terms)").bindparams(term=term))
-    ids = [i for i in message_ids if i]
+        ranks.append((text(":term ILIKE ANY (lore.terms)").bindparams(term=term), 0))
+    if pressed_id:
+        ranks.append((Lore.message_ids.contains([pressed_id]), 1))
+    ids = [i for i in source_ids if i and i != pressed_id]
     if ids:
-        conds.append(Lore.message_ids.overlap(ids))
-    if not conds:
+        ranks.append((Lore.message_ids.overlap(ids), 2))
+    if not ranks:
         return []
+    rank = case(*ranks, else_=3)
     rows = await session.scalars(
         select(Lore)
-        .where(Lore.group_id == group_id, Lore.status == "kept", or_(*conds))
-        .order_by(Lore.score.desc(), Lore.id)
+        .where(
+            Lore.group_id == group_id,
+            Lore.status == "kept",
+            or_(*(c for c, _ in ranks)),
+        )
+        .order_by(rank, Lore.score.desc(), Lore.id)
         .limit(2)
     )
     return [await view(session, r) for r in rows]

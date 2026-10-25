@@ -1,4 +1,5 @@
 import array
+import asyncio
 import io
 import re
 import wave
@@ -13,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models import Lore, LoreReplay
 from app.seed import LoadedFixture
-from app.services import llm, lore, nudge, replays
+from app.services import embeddings, llm, lore, nudge, replays
 from tests.conftest import WsConnect
 from tests.test_calls import _join, _mic
 
@@ -198,6 +199,54 @@ async def test_keep_dismiss_remove(
     assert (await client.get(f"{URL}/users/priya/lore")).json()["items"] == []
 
 
+async def test_simultaneous_keeps_fold_a_replay_once(
+    client: AsyncClient, session: AsyncSession, sample: LoadedFixture
+) -> None:
+    gid = sample.group_id("volleyball")
+    call_id = (await _join(client, gid, "jordan"))["call"]["id"]
+    replay = LoreReplay(
+        call_id=call_id,
+        group_id=gid,
+        audio_path="0" * 32 + ".wav",
+        duration_ms=30000,
+        started_at=sample.now,
+        signal="phrase",
+    )
+    session.add(replay)
+    await session.flush()
+    vector = await embeddings.embed("Kobe serve flies into the bleachers")
+    common = {
+        "group_id": gid,
+        "story": "Kobe's serve went into the bleachers.",
+        "started_at": sample.now,
+        "ended_at": sample.now,
+        "terms": ["serve"],
+        "embedding": vector,
+    }
+    target = Lore(title="Kobe's serve", status="kept", source="chat", **common)
+    suggested = Lore(
+        title="The serve again",
+        status="suggested",
+        source="call",
+        call_id=call_id,
+        replay_ids=[replay.id],
+        **common,
+    )
+    session.add_all([target, suggested])
+    await session.commit()
+
+    taps = await asyncio.gather(
+        *(
+            client.post(f"{URL}/lore/{suggested.id}/keep", json={"user_id": u})
+            for u in ("priya", "maya")
+        )
+    )
+    assert [t.status_code for t in taps] == [200, 200]
+    assert {t.json()["id"] for t in taps} == {target.id}
+    await session.refresh(target)
+    assert target.replay_ids == [replay.id]
+
+
 # ------------------------------------------------------------- live detection
 
 
@@ -297,6 +346,48 @@ async def test_explanations_link_their_lore(
         )
     ).json()
     assert [entry["title"] for entry in out["lore"]] == ["Grandma's is born"]
+
+
+async def test_explanation_lore_ranks_term_then_pressed_then_sources(
+    client: AsyncClient,
+    session: AsyncSession,
+    sample: LoadedFixture,
+    fake_llm: llm.FakeLLM,
+) -> None:
+    await _backfill(
+        session,
+        sample,
+        fake_llm,
+        [
+            moment(sample, "Mike's alarm night", [10, 12, 13], score=0.95),
+            moment(sample, "Birth of procs", [20, 21], score=0.7, terms=["procs"]),
+            moment(sample, "Tuesday tacos plan", [34, 36], score=0.8),
+        ],
+    )
+    fake_llm.handler = None
+    fake_llm.queue(
+        {
+            "term": "procs",
+            "meaning": "**procs** are roasts back to back.",
+            "kind": "slang",
+            "confidence": 0.9,
+            "source_message_ids": [sample.msg("volleyball", 13)],
+        }
+    )
+    out = (
+        await client.post(
+            f"{URL}/explain",
+            json={
+                "group_id": sample.group_id("volleyball"),
+                "user_id": "priya",
+                "message_id": sample.msg("volleyball", 36),
+            },
+        )
+    ).json()
+    assert [entry["title"] for entry in out["lore"]] == [
+        "Birth of procs",
+        "Tuesday tacos plan",
+    ]
 
 
 # ------------------------------------------------------------------- replays

@@ -714,6 +714,7 @@ async def answer(
             session,
             ctx.group_id,
             g.term if g.status in ("explained", "general") else None,
-            [ctx.message_id or 0, *(s.id for s in sources)],
+            ctx.message_id,
+            [s.id for s in sources],
         ),
     )
