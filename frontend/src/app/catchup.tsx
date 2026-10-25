@@ -286,7 +286,7 @@ function Ask({
 
 const styles = StyleSheet.create({
   sheet: { flex: 1, backgroundColor: colors.sheetBg },
-  content: { paddingTop: 26, paddingHorizontal: 18, paddingBottom: 48 },
+  content: { paddingTop: 26, paddingHorizontal: 18, paddingBottom: 72 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
   headerIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   title: { color: colors.text, fontSize: 20, fontWeight: '700' },

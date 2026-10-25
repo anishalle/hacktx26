@@ -101,8 +101,8 @@ export default function InboxScreen() {
             }}
           />
         }
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentInsetAdjustmentBehavior="never"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
       />
     </View>
   );

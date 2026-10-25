@@ -307,14 +307,19 @@ export default function ThreadScreen() {
   const [openedAt] = useState(() => Date.now());
   const subtitle = useMemo(() => {
     if (!group) return '';
-    const lastOther = [...t.messages].reverse().find((m) => m.kind === 'text' && m.sender_id && m.sender_id !== me.id);
+    // Prefer the live window; when viewing history (after a jump) fall back to the inbox's latest message.
+    const latestInbox = inbox.items.find((it) => it.group.id === groupId)?.last_message;
+    const fromWindow = t.hasMoreAfter
+      ? undefined
+      : [...t.messages].reverse().find((m) => m.kind === 'text' && m.sender_id && m.sender_id !== me.id);
+    const lastOther = fromWindow ?? (latestInbox && latestInbox.sender_id !== me.id ? latestInbox : undefined);
     if (group.is_dm) return lastOther ? `Active ${shortAge(lastOther.ts)} ago` : 'Instagram';
     if (lastOther && openedAt - new Date(lastOther.ts).getTime() < 24 * 3600 * 1000) {
       const who = userById(lastOther.sender_id);
       return `${who ? firstName(who.display_name) : 'Someone'} was active ${shortAge(lastOther.ts)} ago`;
     }
     return `${group.member_count} members`;
-  }, [group, t.messages, me.id, userById, openedAt]);
+  }, [group, t.messages, t.hasMoreAfter, inbox.items, groupId, me.id, userById, openedAt]);
 
   const headerHeight = insets.top + 2 + HEADER_ROW;
 
