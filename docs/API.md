@@ -58,7 +58,7 @@ type GroupDetail = Group & { members: Member[] };
 type InboxItem = {
   group: Group;
   last_message: Message | null;
-  unread_count: number;       // messages after the viewer's last_read_message_id
+  unread_count: number;       // others' messages after the viewer's last_read_message_id (own messages never count)
   last_read_message_id: number | null;
 };
 
@@ -76,6 +76,20 @@ type FlaggedTerm = {
 type GlossaryKind = "nickname" | "place" | "event" | "slang" | "person" | "inside_joke";
 
 type Span = { start: number; end: number }; // char offsets into the text it belongs to
+
+type GlossaryEntry = {
+  id: number;
+  group_id: number;
+  term: string;
+  aliases: string[];
+  meaning: string;
+  kind: GlossaryKind;
+  confidence: number;
+  source: "seed" | "auto" | "human";
+  first_seen_ts: string;
+  last_explained_ts: string | null;
+  source_message_ids: number[];
+};
 ```
 
 ## Users and inbox
@@ -92,7 +106,7 @@ type Span = { start: number; end: number }; // char offsets into the text it bel
 | GET | `/groups/{group_id}` | `?user_id=` | `GroupDetail` |
 | GET | `/groups/{group_id}/messages` | `?before=&after=&around=&limit=50` (max 200) | `{ messages: Message[], has_more_before: boolean, has_more_after: boolean }` |
 | POST | `/groups/{group_id}/messages` | `{ sender_id, text, reply_to? }` | `Message` (201); fans out `message.new` |
-| POST | `/groups/{group_id}/messages/{message_id}/reactions` | `{ user_id, emoji }` | `Message`; toggles that user's emoji; fans out `reaction.updated` |
+| POST | `/groups/{group_id}/messages/{message_id}/reactions` | `{ user_id, emoji }` | `Message`; one reaction per user (same emoji removes it, a different one replaces it); fans out `reaction.updated` |
 | POST | `/groups/{group_id}/read` | `{ user_id, message_id }` | `204`; fans out `read.updated` |
 | GET | `/groups/{group_id}/glossary` | | `GlossaryEntry[]` (debug and feature 1) |
 
@@ -102,7 +116,7 @@ uses for "jump to where this happened".
 
 ## Realtime
 
-`WS /ws?user_id={user_id}`. The server pushes JSON frames `{ "type": string, "data": object }` for
+`WS /api/v1/ws?user_id={user_id}` (under the same `/api/v1` prefix as everything else). The server pushes JSON frames `{ "type": string, "data": object }` for
 every group the user is in:
 
 | type | data |

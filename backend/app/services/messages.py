@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import HTTPException
-from sqlalchemy import exists, select
+from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
@@ -132,6 +132,12 @@ async def toggle_reaction(
     if existing is not None:
         await session.delete(existing)
     else:
+        # one reaction per user, like Instagram: a new emoji replaces the old one
+        await session.execute(
+            delete(Reaction).where(
+                Reaction.message_id == message_id, Reaction.user_id == body.user_id
+            )
+        )
         session.add(
             Reaction(message_id=message_id, user_id=body.user_id, emoji=body.emoji)
         )
