@@ -47,7 +47,8 @@ Do not share the host's call token. Preserve a participant's existing session
 while reconnecting instead of calling join on every component render.
 
 Chime is a native dependency in React Native: use an Expo development build and
-a bridge exposing both meeting audio/video and transcript events. The web Chime
+the local bridge in `frontend/modules/chime-call`, which exposes meeting audio/video
+and transcript events. See `VIDEO_CALL_HANDOFF.md` for build status. The web Chime
 JavaScript SDK's callback sample below is not a drop-in React Native SDK.
 
 ## 2. Start live transcription

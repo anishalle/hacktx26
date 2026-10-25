@@ -67,7 +67,13 @@ class TranscriptBatch(BaseModel):
 
 class ExplainCall(BaseModel):
     at_ms: Millis
+    follow_up: str | None = Field(default=None, min_length=1, max_length=1000)
     pending_results: list[TranscriptResult] = Field(default_factory=list, max_length=20)
+
+
+class SuggestCall(BaseModel):
+    at_ms: Millis
+    silence_duration_ms: int = Field(ge=0, le=86_400_000)
 
 
 class Explanation(BaseModel):

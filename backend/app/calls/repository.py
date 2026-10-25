@@ -131,6 +131,13 @@ class CallRepository:
         )
         return [{**row, "items": json.loads(row["items"])} for row in reversed(rows)]
 
+    def members(self, call_id):
+        return self.execute(
+            "SELECT attendee_id,user_id,is_host "
+            "FROM video_call_members WHERE call_id=:id",
+            id=call_id,
+        )
+
     def end(self, call_id):
         self.execute(
             "UPDATE video_calls SET ended_at=COALESCE(ended_at,now()) WHERE id=:id",

@@ -249,6 +249,22 @@ Resources:
                 - !Sub 'arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/${GenerationModelId}'
                 - !Sub 'arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/${EmbeddingModelId}'
       Events:
+        LegacyExplain:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/v1/explain/call
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        LegacySuggest:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/v1/suggest/call
+            Method: POST
+            Auth:
+              Authorizer: NONE
         CreateCall:
           Type: HttpApi
           Properties:

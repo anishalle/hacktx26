@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+process.env.EXPO_PUBLIC_CALLS_DEMO_KEY = 'test-demo-key';
+const { registerCallSession, explainCall, askCallQuestion, getSilenceSuggestions, storeTranscriptUtterance } = await import('./src/services/api.ts');
+const callId = '136fd4bf-1a44-466d-a087-990ac7f06a7f';
+registerCallSession({ call_id: callId, call_token: 'test-call-token', is_host: true, meeting: {}, attendee: { AttendeeId: 'sam', ExternalUserId: 'sam', JoinToken: 'test-join-token' } });
+const transcript = [{ speakerId: 'sam', speakerName: 'Sam', text: 'Meet at seven.', startMs: 1, endMs: 2, id: 'result-1', timestamp: new Date(2) }];
+const base = { callId, userId: 'me', transcript, atMs: 2 };
+globalThis.fetch = async () => { throw new Error('offline'); };
+await assert.rejects(explainCall(base), /Could not reach/);
+await assert.rejects(askCallQuestion({ ...base, question: 'When?' }), /Could not reach/);
+await assert.rejects(getSilenceSuggestions({ ...base, silenceDurationMs: 45000 }), /Could not reach/);
+globalThis.fetch = async () => new Response(JSON.stringify({ accepted_results: 0 }), { status: 200 });
+await assert.rejects(storeTranscriptUtterance({ ...transcript[0], callId }), /could not be saved/);
+globalThis.fetch = async (url, options) => {
+  assert.ok(url.endsWith(`/calls/${callId}/explain`));
+  assert.equal(options.headers['X-Call-Token'], 'test-call-token');
+  const body = JSON.parse(options.body);
+  assert.equal(body.at_ms, 2);
+  assert.equal(body.pending_results[0].resultId, 'result-1');
+  assert.equal(body.pending_results[0].alternatives[0].transcript, 'Meet at seven.');
+  assert.equal(body.recent_transcript, undefined);
+  return new Response(JSON.stringify({ answer: 'Meet at seven.', status: 'explained', source: 'conversation', source_result_ids: ['result-1'] }), { status: 200 });
+};
+assert.equal((await explainCall(base)).answer, 'Meet at seven.');
+globalThis.fetch = async (url, options) => {
+  assert.ok(url.endsWith(`/calls/${callId}/transcripts`));
+  assert.equal(JSON.parse(options.body).results[0].resultId, 'result-1');
+  return new Response(JSON.stringify({ accepted_results: 1 }), { status: 200 });
+};
+await storeTranscriptUtterance({ ...transcript[0], callId });
+console.log('PASS: merged API client contract, auth, stable transcript IDs and explicit failures.');

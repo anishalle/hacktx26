@@ -8,3 +8,6 @@ dist/
 *.egg-info/
 infra/.build/
 .aws-sam/
+.env.local
+frontend/ios/
+frontend/android/

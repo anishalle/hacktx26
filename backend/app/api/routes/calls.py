@@ -13,9 +13,11 @@ from app.calls.schemas import (
     ExplainCall,
     Explanation,
     JoinCall,
+    SuggestCall,
     TranscriptBatch,
 )
 from app.calls.service import CallService
+from app.core.bedrock import BudgetExceededError
 from app.core.config import settings
 
 router = APIRouter(prefix="/calls", tags=["calls"])
@@ -41,6 +43,8 @@ def require_demo_key(x_demo_key: Annotated[str, Header()] = ""):
 def aws_operation(operation):
     try:
         return operation()
+    except BudgetExceededError as exc:
+        raise HTTPException(429, str(exc)) from None
     except ClientError as exc:
         code = exc.response.get("Error", {}).get("Code", "Unknown")
         logger.error("Call AWS operation failed: %s", code)
@@ -118,3 +122,15 @@ def explain_call(
 @router.post("/{call_id}/end")
 def end_call(call_id: UUID, service: Service, x_call_token: CallToken = ""):
     return aws_operation(lambda: service.end(str(call_id), x_call_token))
+
+
+@router.get("/{call_id}/members")
+def members(call_id: UUID, service: Service, x_call_token: CallToken = ""):
+    return aws_operation(lambda: service.members(str(call_id), x_call_token))
+
+
+@router.post("/{call_id}/suggest")
+def suggest(
+    call_id: UUID, body: SuggestCall, service: Service, x_call_token: CallToken = ""
+):
+    return aws_operation(lambda: service.suggest(str(call_id), x_call_token, body))

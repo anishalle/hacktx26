@@ -7,7 +7,13 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hacktx.newcomer",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Use your microphone for group calls and live transcription.",
+        "NSCameraUsageDescription": "Share video with people in your group call."
+      },
+      "appleTeamId": "DSKYZ73U6U"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +25,17 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "scheme": "hacktx26",
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "root": "src/app"
+        }
+      ]
+    ]
   }
 }
