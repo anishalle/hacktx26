@@ -9,6 +9,8 @@ globalThis.fetch = async () => { throw new Error('offline'); };
 await assert.rejects(explainCall(base), /Could not reach/);
 await assert.rejects(askCallQuestion({ ...base, question: 'When?' }), /Could not reach/);
 await assert.rejects(getSilenceSuggestions({ ...base, silenceDurationMs: 45000 }), /Could not reach/);
+globalThis.fetch = async () => new Response(JSON.stringify({ detail: [{ loc: ['body', 'pending_results', 0], msg: 'Value error, Word timestamps must be inside the result' }] }), { status: 422 });
+await assert.rejects(explainCall(base), /body.pending_results.0: Value error, Word timestamps must be inside the result/);
 globalThis.fetch = async () => new Response(JSON.stringify({ accepted_results: 0 }), { status: 200 });
 await assert.rejects(storeTranscriptUtterance({ ...transcript[0], callId }), /could not be saved/);
 globalThis.fetch = async (url, options) => {

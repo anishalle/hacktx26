@@ -22,7 +22,12 @@ async function request<T>(path: string, body?: unknown, callId?: string, demo = 
     });
   } catch { throw new Error('Could not reach the call backend. Check your connection and try again.'); }
   const payload = await response.json();
-  if (!response.ok) throw new Error(typeof payload.detail === 'string' ? payload.detail : `Call API error: ${response.status}`);
+  if (!response.ok) {
+    const detail = typeof payload.detail === 'string' ? payload.detail
+      : Array.isArray(payload.detail) ? payload.detail.map((error: { loc?: (string | number)[]; msg?: string }) => `${error.loc?.join('.') || 'request'}: ${error.msg || 'Invalid value'}`).join('; ')
+      : `Call API error: ${response.status}`;
+    throw new Error(detail);
+  }
   return payload as T;
 }
 
