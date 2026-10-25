@@ -19,6 +19,7 @@ Background work opens its own session via `app.core.db.SessionLocal()`.
 import asyncio
 import logging
 import math
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -41,8 +42,13 @@ log = logging.getLogger(__name__)
 KEEP_SCORE = 0.6  # backfill keeps candidates at least this memorable
 BACKFILL_KEEP = 8  # ... and at most this many per group
 SUGGEST_SCORE = 0.6  # live detection suggests at least this memorable
-MERGE_SIMILARITY = 0.86  # a candidate this close to existing lore is attached to it
+# Same moment (Titan embeddings): the same story told twice scores ~0.6-0.75, different
+# moments of one running joke ~0.5, unrelated moments < 0.4.
+MERGE_SIMILARITY = 0.6
+MERGE_WITH_TERM = 0.45  # ... or this close and sharing an inside term
 MAX_KEY_MESSAGES = 8
+MAX_EVIDENCE = 16  # messages kept per lore, however many moments merge into it
+MAX_TERMS = 5
 CONCURRENCY = 6
 # live triggers on messages since the last scan
 BURST_MESSAGES = 30
@@ -272,11 +278,13 @@ async def keep(session: AsyncSession, lore_id: int, user_id: str) -> schemas.Lor
         raise HTTPException(409, "This moment was already dismissed")
     target = None
     if lore.source == "call":
-        target = await _similar(session, lore.group_id, lore.embedding, exclude=lore.id)
+        target = await _similar(
+            session, lore.group_id, lore.embedding, list(lore.terms), exclude=lore.id
+        )
     if target is not None:
         target.replay_ids = [*target.replay_ids, *lore.replay_ids]
         target.people = list(dict.fromkeys([*target.people, *lore.people]))
-        target.terms = list(dict.fromkeys([*target.terms, *lore.terms]))
+        target.terms = _terms(list(target.terms), list(lore.terms))
         target.ended_at = max(target.ended_at, lore.ended_at)
         lore.status = "dismissed"  # folded into `target`
         await session.commit()
@@ -345,6 +353,7 @@ class Candidate:
     started_at: datetime | None = None
     ended_at: datetime | None = None
     embedding: list[float] | None = None
+    photos: set[int] = field(default_factory=set)
 
     @property
     def text(self) -> str:
@@ -401,22 +410,53 @@ async def _detect(lines: list[Line]) -> list[Candidate]:
 async def _fill(session: AsyncSession, group_id: int, c: Candidate) -> Candidate:
     """People, times and photos for a candidate, from its messages."""
     messages = await _messages(session, c.message_ids)
-    photos = await session.scalars(
-        select(Message.id).where(
-            Message.group_id == group_id,
-            Message.kind == "photo",
-            Message.id.between(c.start_id, c.end_id),
+    photos_ = list(
+        await session.scalars(
+            select(Message.id).where(
+                Message.group_id == group_id,
+                Message.kind == "photo",
+                Message.id.between(c.start_id, c.end_id),
+            )
         )
     )
-    c.message_ids = sorted({*c.message_ids, *photos})
+    c.message_ids = _evidence(c.message_ids, photos_, set(photos_))
     c.people = list(dict.fromkeys(m.sender_id for m in messages if m.sender_id))
     if messages:
         c.started_at, c.ended_at = messages[0].ts, messages[-1].ts
     index = await nudge.glossary_index(session, group_id)
     found = [mt.term.term for m in messages for mt in index.find(m.text or "")]
-    c.terms = list(dict.fromkeys([*c.terms, *found]))[:6]
+    c.terms = _terms(found, c.terms)  # glossary spellings first
+    c.photos = set(photos_)
     c.embedding = await embeddings.embed(c.text)
     return c
+
+
+def _term_key(term: str) -> str:
+    key = re.sub(r"[^\w' ]", "", term.lower().replace("’", "'")).strip()
+    return key.removesuffix("'s")
+
+
+def _terms(*groups: list[str]) -> list[str]:
+    """Merge term lists, case- and punctuation-insensitively, first spelling wins."""
+    seen: dict[str, str] = {}
+    for t in (t for g in groups for t in g):
+        if (k := _term_key(t)) and k not in seen:
+            seen[k] = t
+    return list(seen.values())[:MAX_TERMS]
+
+
+def _evidence(first: list[int], more: list[int], photos: set[int]) -> list[int]:
+    """At most MAX_EVIDENCE message ids: photos, then the original story, then more."""
+    ids = list(dict.fromkeys([*sorted(photos & {*first, *more}), *first, *more]))
+    return sorted(ids[:MAX_EVIDENCE])
+
+
+def same_moment(a_vec: Any, a_terms: list[str], b_vec: Any, b_terms: list[str]) -> bool:
+    if a_vec is None or b_vec is None:
+        return False
+    sim = _cosine(list(a_vec), b_vec)
+    shared = {_term_key(t) for t in a_terms} & {_term_key(t) for t in b_terms}
+    return sim >= MERGE_SIMILARITY or (bool(shared) and sim >= MERGE_WITH_TERM)
 
 
 def _cosine(a: list[float], b: Any) -> float:
@@ -428,9 +468,13 @@ def _cosine(a: list[float], b: Any) -> float:
 
 
 async def _similar(
-    session: AsyncSession, group_id: int, vector: Any, exclude: int | None = None
+    session: AsyncSession,
+    group_id: int,
+    vector: Any,
+    terms: list[str],
+    exclude: int | None = None,
 ) -> Lore | None:
-    """The kept lore this embedding matches closely enough to merge into."""
+    """The kept lore this moment matches closely enough to merge into."""
     if vector is None:
         return None
     stmt = select(Lore).where(
@@ -438,18 +482,19 @@ async def _similar(
     )
     if exclude is not None:
         stmt = stmt.where(Lore.id != exclude)
-    best = await session.scalar(
-        stmt.order_by(Lore.embedding.cosine_distance(vector)).limit(1)
+    near = await session.scalars(
+        stmt.order_by(Lore.embedding.cosine_distance(vector)).limit(3)
     )
-    if best is None or _cosine(list(vector), best.embedding) < MERGE_SIMILARITY:
-        return None
-    return best
+    return next(
+        (r for r in near if same_moment(vector, terms, r.embedding, list(r.terms))),
+        None,
+    )
 
 
 def _merge_into(target: Lore, c: Candidate) -> None:
-    target.message_ids = sorted({*target.message_ids, *c.message_ids})
+    target.message_ids = _evidence(list(target.message_ids), c.message_ids, c.photos)
     target.people = list(dict.fromkeys([*target.people, *c.people]))
-    target.terms = list(dict.fromkeys([*target.terms, *c.terms]))[:8]
+    target.terms = _terms(list(target.terms), c.terms)
     if c.started_at and c.started_at < target.started_at:
         target.started_at = c.started_at
     if c.ended_at and c.ended_at > target.ended_at:
@@ -504,22 +549,21 @@ async def backfill_group(
             (
                 p
                 for p in picked
-                if c.embedding
-                and p.embedding
-                and _cosine(c.embedding, p.embedding) >= MERGE_SIMILARITY
+                if same_moment(c.embedding, c.terms, p.embedding, p.terms)
             ),
             None,
         )
         if twin:
-            twin.message_ids = sorted({*twin.message_ids, *c.message_ids})
+            twin.photos |= c.photos
+            twin.message_ids = _evidence(twin.message_ids, c.message_ids, twin.photos)
             twin.people = list(dict.fromkeys([*twin.people, *c.people]))
-            twin.terms = list(dict.fromkeys([*twin.terms, *c.terms]))[:8]
+            twin.terms = _terms(twin.terms, c.terms)
             continue
         if len(picked) < keep_top:
             picked.append(c)
     kept = []
     for c in picked:
-        target = await _similar(session, group_id, c.embedding)
+        target = await _similar(session, group_id, c.embedding, c.terms)
         if target is not None:
             _merge_into(target, c)
             kept.append(target)
@@ -637,7 +681,7 @@ async def detect_recent(session: AsyncSession, group_id: int) -> Lore | None:
     if not found:
         return None
     c = await _fill(session, group_id, max(found, key=lambda c: c.score))
-    target = await _similar(session, group_id, c.embedding)
+    target = await _similar(session, group_id, c.embedding, c.terms)
     if target is not None:
         _merge_into(target, c)
         await session.commit()
