@@ -1,4 +1,4 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -10,8 +10,8 @@ import { SessionProvider, useSession } from '@/state/session';
 import { colors } from '@/theme';
 
 const theme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: colors.bg, card: colors.bg, primary: colors.blue, text: colors.text },
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, background: colors.bg, card: colors.bg, primary: colors.blue, text: colors.text },
 };
 
 const sheet = {
@@ -50,7 +50,7 @@ function Gate() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="thread/[id]" />
         <Stack.Screen name="catchup" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
-        <Stack.Screen name="explain" options={{ ...sheet, sheetAllowedDetents: [0.55, 1], sheetCornerRadius: 28 }} />
+        <Stack.Screen name="explain" options={{ presentation: 'card', animation: 'fade', animationDuration: 240 }} />
         <Stack.Screen name="requests" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
         <Stack.Screen name="call/[groupId]" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#000' } }} />
         <Stack.Screen name="switch-user" options={{ ...sheet, sheetAllowedDetents: [0.6, 1] }} />
@@ -64,7 +64,7 @@ function Gate() {
 export default function RootLayout() {
   return (
     <ThemeProvider value={theme}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <SessionProvider>
         <Gate />
       </SessionProvider>

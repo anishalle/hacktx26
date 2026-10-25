@@ -31,7 +31,7 @@ export const InboxRow = memo(function InboxRow({ item, meId, userById, onPress }
   const m = item.last_message;
   const sentByMe = m?.sender_id === meId;
   return (
-    <Pressable onPress={() => onPress(item)} style={({ pressed }) => [styles.row, pressed && { backgroundColor: '#15191E' }]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={'Open conversation ' + item.group.name} onPress={() => onPress(item)} style={({ pressed }) => [styles.row, pressed && { backgroundColor: '#ffffffcc' }]}>
       {item.group.is_dm || item.group.avatar_url ? (
         <Avatar uri={item.group.avatar_url} size={56} />
       ) : (
@@ -62,7 +62,7 @@ export const InboxRow = memo(function InboxRow({ item, meId, userById, onPress }
 });
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, minHeight: 72 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, minHeight: 84, marginHorizontal: 18, marginBottom: 8, borderRadius: 24, backgroundColor: '#ffffff80', borderWidth: 1, borderColor: '#ffffff99' },
   body: { flex: 1, marginLeft: 12, marginRight: 12, justifyContent: 'center' },
   name: { color: colors.text, fontSize: 15, letterSpacing: -0.1 },
   bold: { fontWeight: '600' },

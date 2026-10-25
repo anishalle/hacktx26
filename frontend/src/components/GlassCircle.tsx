@@ -9,14 +9,14 @@ const liquid = isLiquidGlassAvailable();
 export function Glass({ style, children, interactive }: { style?: StyleProp<ViewStyle>; children?: ReactNode; interactive?: boolean }) {
   if (liquid) {
     return (
-      <GlassView style={style} glassEffectStyle="regular" colorScheme="dark" isInteractive={interactive}>
+      <GlassView style={style} glassEffectStyle="regular" colorScheme="light" isInteractive={interactive}>
         {children}
       </GlassView>
     );
   }
   return (
     <View style={[style, styles.clip]}>
-      <BlurView tint="systemChromeMaterialDark" intensity={80} style={StyleSheet.absoluteFill} />
+      <BlurView tint="systemChromeMaterialLight" intensity={80} style={StyleSheet.absoluteFill} />
       {children}
     </View>
   );

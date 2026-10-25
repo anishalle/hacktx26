@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
-/** Cold starts in a dev or release build open `/`; the app starts on the inbox. */
+/** Cold starts open Connect, between the calls and messages tabs. */
 export default function Index() {
-  return <Redirect href="/inbox" />;
+  return <Redirect href="/home" />;
 }

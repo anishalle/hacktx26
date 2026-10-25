@@ -6,6 +6,7 @@ import type { Message, Reaction, User } from '@/api';
 import { colors } from '@/theme';
 
 import { Avatar } from '../Avatar';
+import { InlineExplanation } from './InlineExplanation';
 import { MessageMenu } from './MessageMenu';
 
 export const AVATAR = 28;
@@ -47,6 +48,10 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
   const { message: m, mine, run } = p;
   const [flash] = useState(() => new Animated.Value(0));
   const lastTap = useRef(0);
+  const [explaining, setExplaining] = useState(false);
+  const [actionsVisible, setActionsVisible] = useState(false);
+  const [press] = useState(() => new Animated.Value(0));
+  const pressTo = (toValue: number) => Animated.timing(press, { toValue, duration: toValue ? 420 : 220, useNativeDriver: true }).start();
 
   useEffect(() => {
     if (!p.highlighted) return;
@@ -68,24 +73,30 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
 
   const textBubble = (
     <Pressable
+      onLongPress={() => { if (m.id > 0) setExplaining(true); }}
+      delayLongPress={450}
+      onPressIn={() => pressTo(1)}
+      onPressOut={() => pressTo(0)}
       onPress={() => {
         const now = Date.now();
         if (now - lastTap.current < 280) p.onReact(m, '❤️');
         lastTap.current = now;
       }}>
-      <View
+      <Animated.View
         style={[
+          { transform: [{ scale: press.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] }) }] },
           emojiOnly ? styles.emojiWrap : styles.bubble,
           { maxWidth: maxBubble },
           !emojiOnly && corners(run, mine),
           !emojiOnly && { backgroundColor: mine ? p.tint : colors.bubbleIn },
           pending && { opacity: 0.7 },
         ]}>
+        {!emojiOnly && <Animated.View pointerEvents="none" style={[styles.ripple, { opacity: press.interpolate({ inputRange: [0, 1], outputRange: [0, 0.18] }), transform: [{ scale: press.interpolate({ inputRange: [0, 1], outputRange: [0, 4] }) }] }]} />}
         <Text style={emojiOnly ? styles.emoji : styles.text}>{m.text}</Text>
         {!emojiOnly ? (
           <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, corners(run, mine), styles.flash, { opacity: flash }]} />
         ) : null}
-      </View>
+      </Animated.View>
     </Pressable>
   );
 
@@ -96,7 +107,7 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
     const w = Math.min(width * 0.65, 320 * aspect);
     bubble = (
       <View style={{ alignItems: mine ? 'flex-end' : 'flex-start', gap: 2 }}>
-        <Pressable onPress={() => p.onOpenPhoto(m)} accessibilityRole="imagebutton" accessibilityLabel={m.image_description ?? 'Photo'}>
+        <Pressable onLongPress={() => { if (m.id > 0) setExplaining(true); }} delayLongPress={450} onPress={() => p.onOpenPhoto(m)} accessibilityRole="imagebutton" accessibilityLabel={m.image_description ?? 'Photo'}>
           <Image
             source={{ uri: photo.url }}
             style={[styles.photo, { width: w, height: w / aspect }, pending && { opacity: 0.7 }]}
@@ -129,11 +140,14 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
             </View>
           </View>
         ) : null}
+        {explaining && <InlineExplanation message={m} onOpen={() => p.onExplain(m)} onClose={() => setExplaining(false)} onMore={() => setActionsVisible(true)} />}
         <MessageMenu
+          actionsVisible={actionsVisible}
+          onCloseActions={() => setActionsVisible(false)}
           onReact={(e) => p.onReact(m, e)}
           onReply={() => p.onReply(m)}
           onCopy={() => p.onCopy(m)}
-          onExplain={() => p.onExplain(m)}>
+          onExplain={() => { if (m.id > 0) setExplaining(true); }}>
           {bubble}
         </MessageMenu>
         {m.reactions.length ? (
@@ -219,7 +233,8 @@ const styles = StyleSheet.create({
   col: { maxWidth: '76%' },
   name: { color: colors.textSecondary, fontSize: 12, marginLeft: 14, marginBottom: 4, marginTop: 6 },
   bubble: { paddingHorizontal: 14, paddingVertical: 9, overflow: 'hidden' },
-  text: { color: '#FFFFFF', fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
+  ripple: { position: 'absolute', width: 90, height: 90, borderRadius: 45, backgroundColor: '#b98baa', left: '35%', top: -25 },
+  text: { color: colors.text, fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
   emojiWrap: { paddingHorizontal: 2 },
   emoji: { fontSize: 40, lineHeight: 48 },
   flash: { backgroundColor: 'rgba(255,255,255,0.28)' },
@@ -231,7 +246,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bubbleIn,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#18191C',
+    borderColor: colors.bg,
     paddingHorizontal: 6,
     height: 26,
     marginTop: -5,
@@ -241,7 +256,7 @@ const styles = StyleSheet.create({
   pillCount: { color: colors.textSecondary, fontSize: 12, marginLeft: 4 },
   quote: { marginBottom: -10, paddingBottom: 12, marginTop: 4 },
   quoteLabel: { color: colors.textSecondary, fontSize: 12, marginBottom: 4, marginHorizontal: 12 },
-  quoteBubble: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, paddingBottom: 16 },
+  quoteBubble: { backgroundColor: 'rgba(255,255,255,0.55)', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, paddingBottom: 16 },
   quoteText: { color: colors.textSecondary, fontSize: 14 },
   sep: {
     color: colors.textSecondary,

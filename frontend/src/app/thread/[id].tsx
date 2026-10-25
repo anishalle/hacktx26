@@ -520,7 +520,7 @@ export default function ThreadScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#18191C' },
+  screen: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   errorText: { color: colors.textSecondary, textAlign: 'center', fontSize: 15 },
   intro: { alignItems: 'center', paddingBottom: 24, gap: 6 },

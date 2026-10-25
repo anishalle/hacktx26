@@ -24,7 +24,7 @@ export function ThreadHeader({ title, subtitle, avatarUrl, isGroup, onBack, onCa
   return (
     <View style={[styles.wrap, { paddingTop: insets.top + 2 }]} pointerEvents="box-none">
       <LinearGradient
-        colors={['#121214', '#121214', 'rgba(18,18,20,0.85)', 'rgba(18,18,20,0)']}
+        colors={['#eddae7', '#eddae7', 'rgba(237,218,231,0.9)', 'rgba(237,218,231,0)']}
         locations={[0, 0.72, 0.84, 1]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
@@ -48,9 +48,6 @@ export function ThreadHeader({ title, subtitle, avatarUrl, isGroup, onBack, onCa
           </View>
         </Pressable>
         <View style={styles.actions}>
-          <GlassCircle accessibilityLabel="Effects">
-            <Icon name="face.smiling" size={21} />
-          </GlassCircle>
           <GlassCircle onPress={onCall} accessibilityLabel="Audio call">
             <Icon name="phone" size={20} />
           </GlassCircle>

@@ -8,6 +8,7 @@ import {
   Animated,
   KeyboardAvoidingView,
   LayoutAnimation,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -27,7 +28,7 @@ import { firstName } from '@/lib/format';
 import { useMe, useSession } from '@/state/session';
 import { colors } from '@/theme';
 
-const PANEL_H = 128;
+const PANEL_H = 66;
 const PIP = { w: 108, h: 148 };
 const GAP = 12;
 const SPEAKING_MS = 1500; // a fresh caption counts as speaking (Chime volume also does)
@@ -57,8 +58,8 @@ export default function CallScreen() {
   if (!supported) {
     return (
       <Notice
-        title="Calls need the iOS dev build"
-        body={'Expo Go can’t load the Chime calling module.\nRun `npx expo run:ios` in frontend/, or start with EXPO_PUBLIC_USE_MOCKS=1 for a scripted call.'}
+        title={Platform.OS === 'web' ? 'Open Connect on your phone' : 'Video calling is unavailable'}
+        body={Platform.OS === 'web' ? 'Video calls are available in the Connect iOS app.' : 'This version of Connect does not include video calling.'}
         onClose={() => router.back()}
       />
     );
@@ -80,7 +81,7 @@ type Frame = { x: number; y: number; w: number; h: number; side: 'left' | 'right
 /** FaceTime's staggered column (alternating sides, overlapping a little), or a plain 2-column grid. */
 function layoutTiles(n: number, width: number, top: number, bottom: number, grid: boolean): Frame[] {
   const areaH = Math.max(160, bottom - top);
-  if (n === 1) return [{ x: GAP, y: top, w: width - GAP * 2, h: areaH, side: 'left' }];
+  if (n === 1) return [{ x: 0, y: top, w: width, h: areaH, side: 'left' }];
   if (grid) {
     const rows = Math.ceil(n / 2);
     const w = (width - GAP * 3) / 2;
@@ -154,8 +155,8 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
   const remotes = call.participants.filter((p) => !p.isLocal);
   const local = call.participants.find((p) => p.isLocal);
   const speaking = (p: Participant) => p.speaking || (!!p.userId && now - (call.captions[p.userId]?.updatedAt ?? 0) < SPEAKING_MS);
-  const areaTop = insets.top + PANEL_H + 24;
-  const areaBottom = height - insets.bottom - PIP.h - 28;
+  const areaTop = remotes.length <= 1 ? 0 : insets.top + PANEL_H + 24;
+  const areaBottom = remotes.length <= 1 ? height : height - insets.bottom - PIP.h - 28;
   const frames = layoutTiles(remotes.length, width, areaTop, areaBottom, grid);
   const people = call.participants.length;
   const status =
@@ -177,6 +178,7 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
 
   return (
     <KeyboardAvoidingView behavior="padding" style={styles.screen}>
+      <LinearGradient colors={['#d7c9de', '#efdae6', '#ddd9ed']} style={StyleSheet.absoluteFill} />
       <Pressable style={StyleSheet.absoluteFill} onPress={togglePanel} accessibilityLabel="Show or hide call controls">
         {remotes.length === 0 ? (
           <View style={[styles.waiting, { top: areaTop, bottom: height - areaBottom }]}>
@@ -196,19 +198,19 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
         const maxWidth = Math.min(width - GAP * 2, f.w + 60);
         const x = f.side === 'left' ? f.x + 8 : Math.max(GAP, f.x + f.w - 8 - maxWidth);
         return (
-          <View key={`cap-${p.attendeeId}`} pointerEvents="none" style={[styles.captionSlot, { left: x, top: f.y + f.h - 18, width: maxWidth }]}>
+          <View key={`cap-${p.attendeeId}`} pointerEvents="none" style={[styles.captionSlot, { left: x, top: Math.min(f.y + f.h - 18, height - insets.bottom - PIP.h - 70), width: maxWidth }]}>
             <CaptionBubble caption={call.captions[p.userId]} maxWidth={maxWidth} tail={f.side} />
           </View>
         );
       })}
 
-      {/* Your own tile: picture-in-picture, bottom right, with your caption above it. */}
+      {/* Your own tile: picture-in-picture, bottom left, with your caption above it. */}
       {local ? (
         <>
-          <View style={[styles.pipCaption, { right: GAP, bottom: insets.bottom + 16 + PIP.h + 10, width: width * 0.55 }]} pointerEvents="none">
+          <View style={[styles.pipCaption, { left: GAP, bottom: insets.bottom + 16 + PIP.h + 10, width: width * 0.55 }]} pointerEvents="none">
             <CaptionBubble caption={call.captions[me.id] as SpeakerCaption | undefined} maxWidth={width * 0.55} small tail="right" />
           </View>
-          <View style={[styles.pip, { right: GAP, bottom: insets.bottom + 16 }, speaking(local) && styles.speaking]}>
+          <View style={[styles.pip, { left: GAP, bottom: insets.bottom + 16 }, speaking(local) && styles.speaking]}>
             {local.tileId !== undefined && !call.videoOff ? (
               <ChimeVideo tileId={local.tileId} mirror style={StyleSheet.absoluteFill} />
             ) : (
@@ -230,7 +232,7 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             setGrid((g) => !g);
           }}
-          style={[styles.gridPill, { left: GAP, bottom: insets.bottom + 16 }]}
+          style={[styles.gridPill, { left: PIP.w + GAP * 2, bottom: insets.bottom + 16 }]}
           accessibilityLabel={grid ? 'Staggered layout' : 'Grid layout'}>
           <BlurView tint="dark" intensity={60} style={[StyleSheet.absoluteFill, grid && styles.gridPillOn]} />
           <Icon name="square.grid.2x2.fill" size={15} color={grid ? '#111' : 'white'} />
@@ -257,27 +259,22 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
                 {status}
               </Text>
             </View>
-            <Pressable
-              onPress={async () => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                await leave();
-                onLeft();
-              }}
-              style={styles.leave}
-              accessibilityLabel="Leave call">
-              <Text style={styles.leaveText}>Leave</Text>
-            </Pressable>
-          </View>
-          <View style={styles.controls}>
-            <Control icon={call.muted ? 'mic.slash.fill' : 'mic.fill'} active={call.muted} label={call.muted ? 'Unmute' : 'Mute'} onPress={call.toggleMute} />
-            <Control icon={call.videoOff ? 'video.slash.fill' : 'video.fill'} active={call.videoOff} label={call.videoOff ? 'Turn camera on' : 'Turn camera off'} onPress={call.toggleVideo} />
-            <Pressable onPress={ask} accessibilityLabel="Explain what was just said" style={({ pressed }) => [pressed && { transform: [{ scale: 0.94 }] }]}>
-              <QuestionDot size={50} />
-            </Pressable>
           </View>
         </BlurView>
         {captionNote ? <Text style={styles.captionNote}>{captionNote}</Text> : null}
       </Animated.View>
+
+
+      <View pointerEvents={panelShown ? 'auto' : 'none'} style={[styles.sideControls, { bottom: insets.bottom + 18, opacity: panelShown ? 1 : 0 }]}>
+        <Control icon={call.videoOff ? 'video.slash.fill' : 'video.fill'} active={call.videoOff} label={call.videoOff ? 'Turn camera on' : 'Turn camera off'} onPress={call.toggleVideo} />
+        <Control icon={call.muted ? 'mic.slash.fill' : 'mic.fill'} active={call.muted} label={call.muted ? 'Unmute' : 'Mute'} onPress={call.toggleMute} />
+        <Pressable onPress={ask} accessibilityRole="button" accessibilityLabel="Explain what was just said"><QuestionDot size={50} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Leave call" style={styles.endCall} onPress={async () => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          await leave();
+          onLeft();
+        }}><Icon name="xmark" size={23} color="white" /></Pressable>
+      </View>
 
       {card ? (
         <View style={[styles.cardWrap, { bottom: insets.bottom + 12 }]}>
@@ -293,18 +290,18 @@ function Tile({ p, frame, speaking, big }: { p: Participant; frame: Frame | unde
   if (!frame) return null;
   const user = p.userId ? userById(p.userId) : undefined;
   return (
-    <View style={[styles.tile, { left: frame.x, top: frame.y, width: frame.w, height: frame.h }, speaking && styles.speaking]}>
+    <View style={[styles.tile, big && { borderRadius: 0, borderWidth: 0 }, { left: frame.x, top: frame.y, width: frame.w, height: frame.h }, speaking && styles.speaking]}>
       {p.tileId !== undefined ? (
         <ChimeVideo tileId={p.tileId} mirror={false} style={StyleSheet.absoluteFill} />
       ) : (
         <Avatar uri={user?.avatar_url} size={big ? 110 : 76} />
       )}
-      <View style={styles.tileLabel}>
+      {!big && <View style={styles.tileLabel}>
         {p.muted ? <Icon name="mic.slash.fill" size={11} color="white" /> : null}
         <Text style={styles.tileName} numberOfLines={1}>
           {user ? firstName(user.display_name) : 'Joining…'}
         </Text>
-      </View>
+      </View>}
     </View>
   );
 }
@@ -312,7 +309,7 @@ function Tile({ p, frame, speaking, big }: { p: Participant; frame: Frame | unde
 function QuestionDot({ size }: { size: number }) {
   return (
     <LinearGradient
-      colors={['#A033FF', '#5B51F5', '#3797F0']}
+      colors={['#b998b2', '#a294c1', '#92a5c9']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }}>
@@ -329,8 +326,9 @@ function Control({ icon, active, label, onPress }: { icon: 'mic.fill' | 'mic.sla
         onPress();
       }}
       style={[styles.control, active && styles.controlActive]}
+      accessibilityRole="button"
       accessibilityLabel={label}>
-      <Icon name={icon} size={21} color={active ? '#111' : 'white'} />
+      <Icon name={icon} size={21} color={active ? '#996681' : '#4b4053'} />
     </Pressable>
   );
 }
@@ -359,7 +357,7 @@ function useNow(ms: number) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000' },
+  screen: { flex: 1, backgroundColor: '#e5dbe9' },
   center: { alignItems: 'center', justifyContent: 'center', gap: 12 },
   dim: { color: colors.textSecondary, fontSize: 14 },
   waiting: { position: 'absolute', left: 0, right: 0, alignItems: 'center', justifyContent: 'center', gap: 14 },
@@ -367,7 +365,7 @@ const styles = StyleSheet.create({
   tile: {
     position: 'absolute',
     borderRadius: 18,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#ddd1e4',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -377,8 +375,8 @@ const styles = StyleSheet.create({
   speaking: { borderColor: colors.sparkle, shadowColor: colors.sparkle, shadowOpacity: 0.6, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
   tileLabel: {
     position: 'absolute',
-    left: 8,
-    top: 8,
+    left: 12,
+    bottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -396,12 +394,12 @@ const styles = StyleSheet.create({
     width: PIP.w,
     height: PIP.h,
     borderRadius: 16,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#ede2ec',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#ffffffaa',
     zIndex: 4,
   },
   pipMuted: { position: 'absolute', left: 6, bottom: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
@@ -419,17 +417,19 @@ const styles = StyleSheet.create({
   gridPillOn: { backgroundColor: 'white' },
   gridText: { color: 'white', fontSize: 15, fontWeight: '600' },
   floatingAsk: { position: 'absolute', alignSelf: 'center', zIndex: 7 },
-  panelWrap: { position: 'absolute', left: 10, right: 10, zIndex: 8 },
-  panel: { height: PANEL_H, borderRadius: 26, overflow: 'hidden', paddingHorizontal: 14, paddingTop: 12, backgroundColor: 'rgba(28,28,30,0.55)' },
+  panelWrap: { position: 'absolute', left: 14, right: 80, zIndex: 8 },
+  panel: { height: PANEL_H, borderRadius: 33, overflow: 'hidden', paddingHorizontal: 12, paddingTop: 12, backgroundColor: 'rgba(65,45,65,0.22)', borderWidth: 1, borderColor: '#ffffff55' },
   panelRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   panelTitles: { flex: 1, minWidth: 0 },
   panelName: { color: 'white', fontSize: 16, fontWeight: '700' },
-  panelStatus: { color: colors.textSecondary, fontSize: 13, marginTop: 1 },
+  panelStatus: { color: '#f1e4ef', fontSize: 13, marginTop: 1 },
   leave: { backgroundColor: '#FF3B30', height: 34, paddingHorizontal: 16, borderRadius: 17, justifyContent: 'center' },
   leaveText: { color: 'white', fontSize: 15, fontWeight: '700' },
   controls: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginTop: 12 },
-  control: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
-  controlActive: { backgroundColor: 'white' },
+  control: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,248,253,0.88)', borderWidth: 1, borderColor: '#ffffffbb', alignItems: 'center', justifyContent: 'center' },
+  controlActive: { backgroundColor: '#f3d8e7' },
+  sideControls: { position: 'absolute', right: 18, gap: 12, zIndex: 8 },
+  endCall: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#b94156', alignItems: 'center', justifyContent: 'center' },
   captionNote: { color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 8 },
   cardWrap: { position: 'absolute', left: 10, right: 10, zIndex: 9 },
   noticeTitle: { color: colors.text, fontSize: 20, fontWeight: '700', textAlign: 'center' },

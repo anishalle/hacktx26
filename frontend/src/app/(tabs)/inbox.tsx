@@ -1,26 +1,29 @@
+import { useDockScroll } from '@/components/navigation/DockMotion';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { InboxItem } from '@/api';
 import { Icon } from '@/components/Icon';
 import { InboxRow } from '@/components/inbox/InboxRow';
-import { NotesRow } from '@/components/inbox/NotesRow';
 import { useAsks } from '@/state/asks';
 import { useInbox } from '@/state/inbox';
 import { useMe, useSession } from '@/state/session';
 import { colors } from '@/theme';
 
 export default function InboxScreen() {
+  const onDockScroll = useDockScroll();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const me = useMe();
-  const { users, userById } = useSession();
+  const { userById } = useSession();
   const { items, status, error, refresh } = useInbox();
   const { pendingIncoming, refresh: refreshAsks } = useAsks();
   const [refreshing, setRefreshing] = useState(false);
+  const [query, setQuery] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -53,15 +56,13 @@ export default function InboxScreen() {
     <View>
       <View style={styles.searchWrap}>
         <View style={styles.search}>
-          <Icon name="sparkle.magnifyingglass" size={20} color={colors.textSecondary} />
-          <Text style={styles.searchText}>Search or ask Meta AI</Text>
+          <Icon name="magnifyingglass" size={20} color={colors.textSecondary} />
+          <TextInput accessibilityLabel="Search messages" placeholder="Search conversations" placeholderTextColor={colors.textSecondary} value={query} onChangeText={setQuery} style={[styles.searchText, { flex: 1, outlineWidth: 0 }]} />
         </View>
       </View>
-      <NotesRow me={me} others={users.filter((u) => u.id !== me.id)} />
       <View style={styles.sectionHeader}>
         <View style={styles.sectionLeft}>
           <Text style={styles.sectionTitle}>Messages</Text>
-          <Icon name="bell.slash" size={17} color={colors.text} />
         </View>
         <Pressable onPress={openRequests} hitSlop={8} style={styles.requestsBtn}>
           <Text style={[styles.requests, pendingIncoming > 0 && { color: colors.blue }]}>Requests</Text>
@@ -77,20 +78,21 @@ export default function InboxScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <LinearGradient colors={['#f3dfe9', '#e5e0ef', '#f4e9ed']} style={StyleSheet.absoluteFill} />
       <View style={styles.topBar}>
         <View style={styles.side} />
         <Pressable onPress={openSwitcher} onLongPress={openSwitcher} style={styles.titleBtn} hitSlop={8}>
           <Text style={styles.title} numberOfLines={1}>
-            {me.username}
+            Messages
           </Text>
           <Icon name="chevron.down" size={13} weight="semibold" color={colors.text} style={{ marginLeft: 6, marginTop: 3 }} />
         </Pressable>
         <View style={[styles.side, { alignItems: 'flex-end' }]}>
-          <Icon name="square.and.pencil" size={26} color={colors.text} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Switch account" onPress={openSwitcher}><Icon name="person.crop.circle" size={26} color={colors.text} /></Pressable>
         </View>
       </View>
-      <FlatList
-        data={items}
+      <FlatList onScroll={onDockScroll} scrollEventThrottle={32}
+        data={items.filter(item => item.group.name.toLowerCase().includes(query.toLowerCase()))}
         keyExtractor={(it) => String(it.group.id)}
         renderItem={({ item }) => <InboxRow item={item} meId={me.id} userById={userById} onPress={openThread} />}
         ListHeaderComponent={header}
@@ -125,11 +127,11 @@ export default function InboxScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  topBar: { flexDirection: 'row', alignItems: 'center', height: 52, paddingHorizontal: 16 },
+  topBar: { flexDirection: 'row', alignItems: 'center', height: 84, paddingHorizontal: 22 },
   side: { width: 40 },
   titleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  title: { color: colors.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.5 },
-  searchWrap: { paddingHorizontal: 14, paddingTop: 6, paddingBottom: 4 },
+  title: { color: colors.text, fontSize: 32, fontWeight: '600', letterSpacing: -0.5 },
+  searchWrap: { paddingHorizontal: 22, paddingTop: 6, paddingBottom: 14 },
   search: {
     height: 42,
     borderRadius: 21,
@@ -139,12 +141,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     gap: 10,
   },
-  searchText: { color: colors.textSecondary, fontSize: 17 },
+  searchText: { color: colors.textSecondary, fontSize: 14 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingTop: 14,
     paddingBottom: 8,
   },

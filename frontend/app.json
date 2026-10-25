@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "hacktx26",
+    "name": "Connect",
     "slug": "hacktx26",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.hacktx26.chat",
@@ -40,7 +40,7 @@
       ]
     ],
     "scheme": "hacktx26",
-    "backgroundColor": "#000000",
+    "backgroundColor": "#F1E5EB",
     "experiments": {
       "typedRoutes": true
     }

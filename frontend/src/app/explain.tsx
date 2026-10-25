@@ -1,150 +1,145 @@
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, type Explanation, type MemberAsk, type Message, type User } from '@/api';
 import { Avatar } from '@/components/Avatar';
 import { BoldText } from '@/components/BoldText';
+import { CloudBackdrop } from '@/components/CloudBackdrop';
+import { GlassCircle } from '@/components/GlassCircle';
 import { Icon } from '@/components/Icon';
+import { explanationKey, readExplanation, saveExplanation } from '@/features/explanationCache';
 import { firstName } from '@/lib/format';
 import { useAsks } from '@/state/asks';
 import { threadJump } from '@/state/bus';
 import { useMe, useSession } from '@/state/session';
 import { colors } from '@/theme';
 
-type Phase = 'loading' | 'done' | 'error';
-
+type Params = { groupId: string; messageId?: string; text?: string; term?: string; image?: string };
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-/** Feature 1: a private explanation of one message (or a bare term from catch-up). Never posts anything. */
 export default function ExplainSheet() {
-  const params = useLocalSearchParams<{ groupId: string; messageId?: string; text?: string; term?: string; image?: string }>();
-  const groupId = Number(params.groupId);
-  const messageId = params.messageId ? Number(params.messageId) : undefined;
+  const params = useLocalSearchParams<Params>();
+  const me = useMe();
+  return <ExplanationConversation key={JSON.stringify([me.id, params.groupId, params.messageId, params.term])} params={params} />;
+}
+
+function ExplanationConversation({ params }: { params: Params }) {
   const router = useRouter();
   const me = useMe();
   const asks = useAsks();
-
-  const [result, setResult] = useState<Explanation | null>(null);
-  const [phase, setPhase] = useState<Phase>('loading');
+  const groupId = Number(params.groupId);
+  const messageId = params.messageId ? Number(params.messageId) : undefined;
+  const key = explanationKey(me.id, groupId, messageId, params.term);
+  const [result, setResult] = useState<Explanation | null>(() => readExplanation(key));
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [question, setQuestion] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [details, setDetails] = useState(false);
+  const [turns, setTurns] = useState<{ question: string; answer: string }[]>([]);
+  const pending = useRef<AbortController | null>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     const ctrl = new AbortController();
-    (async () => {
-      try {
-        const res = await api.explain(
-          { group_id: groupId, user_id: me.id, ...(messageId !== undefined ? { message_id: messageId } : { term: params.term }) },
-          ctrl.signal,
-        );
-        if (ctrl.signal.aborted) return;
-        setResult(res);
-        setPhase('done');
-        if (res.ask?.existing) asks.upsert(res.ask.existing);
-        Haptics.selectionAsync();
-      } catch (e) {
-        if (ctrl.signal.aborted) return;
-        setError(e instanceof Error ? e.message : String(e));
-        setPhase('error');
-      }
-    })();
-    return () => ctrl.abort();
-    // `asks` changes on every frame; only (re)load when the target or attempt changes.
+    const cached = readExplanation(key);
+    if (!cached) {
+      api.explain({ group_id: groupId, user_id: me.id, ...(messageId !== undefined ? { message_id: messageId } : { term: params.term }) }, ctrl.signal)
+        .then(answer => {
+          if (ctrl.signal.aborted) return;
+          saveExplanation(key, answer);
+          setResult(answer);
+          if (answer.ask?.existing) asks.upsert(answer.ask.existing);
+        }).catch(e => { if (!ctrl.signal.aborted) setError(e instanceof Error ? e.message : 'Could not load this explanation.'); });
+    }
+    return () => { ctrl.abort(); pending.current?.abort(); };
+    // Context updates do not re-request a completed explanation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId, messageId, params.term, me.id, attempt]);
+  }, [key, groupId, messageId, params.term, me.id, attempt]);
 
-  const jump = (id: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    threadJump.emit({ groupId, messageId: id });
-    router.back();
+  const submit = async () => {
+    const text = question.trim();
+    if (!text || busy || !result) return;
+    setBusy(true);
+    setError(null);
+    const ctrl = new AbortController();
+    pending.current = ctrl;
+    try {
+      const answer = await api.explain({
+        group_id: groupId, user_id: me.id, explanation_id: result.explanation_id, follow_up: text,
+        ...(messageId !== undefined ? { message_id: messageId } : result.term ? { term: result.term } : {}),
+      }, ctrl.signal);
+      if (ctrl.signal.aborted) return;
+      setTurns(previous => [...previous, { question: text, answer: answer.meaning }]);
+      setQuestion('');
+    } catch (e) { if (!ctrl.signal.aborted) setError(e instanceof Error ? e.message : 'Could not send. Try again.'); }
+    finally { if (!ctrl.signal.aborted) setBusy(false); }
   };
 
-  const openCatchup = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.replace({ pathname: '/catchup', params: { groupId: String(groupId) } });
-  };
-
-  const quote = params.text ?? params.term;
-  const subtitle =
-    phase === 'loading'
-      ? 'Figuring out what this means…'
-      : result?.status === 'explained'
-        ? 'From this group’s history'
-        : result?.status === 'general'
-          ? 'Not defined in this chat'
-          : result?.status === 'plain'
-            ? 'Nothing unusual here'
-            : phase === 'error'
-              ? 'Something went wrong'
-              : 'Not explained in this chat yet';
-
-  return (
-    <ScrollView
-      style={styles.sheet}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets>
-      <View style={styles.header}>
-        <LinearGradient colors={['#A033FF', '#5B51F5', '#3797F0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerIcon}>
-          <Icon name="questionmark" size={18} color="white" weight="bold" />
-        </LinearGradient>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>What this means</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+  return <View style={page.screen}>
+    <CloudBackdrop />
+    <SafeAreaView style={page.screen}>
+      <KeyboardAvoidingView style={page.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={page.header}>
+          <GlassCircle onPress={() => router.back()} accessibilityLabel="Back to conversation"><Icon name="chevron.left" size={19} /></GlassCircle>
+          <Text style={page.headerText}>A little context</Text>
+          <View style={{ width: 44 }} />
         </View>
-        {phase === 'loading' ? <ActivityIndicator color={colors.textSecondary} /> : null}
-      </View>
-
-      {params.image ? (
-        <View style={styles.photoQuote}>
-          <Image source={{ uri: params.image }} style={styles.photoThumb} contentFit="cover" />
-          {params.text && params.text !== 'Photo' ? (
-            <Text style={[styles.quoteText, { flex: 1 }]} numberOfLines={4}>
-              “{params.text}”
-            </Text>
-          ) : null}
+        <ScrollView ref={scroll} contentContainerStyle={page.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => { if (turns.length) scroll.current?.scrollToEnd({ animated: true }); }}>
+          <View style={page.quote}>
+            {params.image && <Image source={{ uri: params.image }} style={page.photo} contentFit="cover" />}
+            <Text style={page.quoteText}>{params.text || params.term || 'This conversation'}</Text>
+          </View>
+          {!result && !error && <ActivityIndicator color={colors.blue} style={{ marginVertical: 26 }} />}
+          {result && <View style={page.response}><BoldText text={result.meaning} style={page.answerText} /></View>}
+          {turns.map((turn, index) => <View key={index} style={page.turn}>
+            <View style={page.question}><Text style={page.questionText}>{turn.question}</Text></View>
+            <View style={page.response}><BoldText text={turn.answer} style={page.answerText} /></View>
+          </View>)}
+          {busy && <ActivityIndicator color={colors.blue} style={{ alignSelf: 'flex-start', margin: 20 }} />}
+          {error && <View accessibilityRole="alert" style={page.error}>
+            <Text style={page.errorText}>{error}</Text>
+            {!result && <Pressable accessibilityRole="button" onPress={() => { setError(null); setAttempt(value => value + 1); }}><Text style={page.contextLink}>Try again</Text></Pressable>}
+          </View>}
+          {result && <Pressable accessibilityRole="button" accessibilityState={{ expanded: details }} onPress={() => setDetails(value => !value)} style={page.contextButton}><Text style={page.contextLink}>{details ? 'Hide context' : 'More context'}</Text></Pressable>}
+          {result && details && <Result result={result} groupId={groupId} onJump={id => { threadJump.emit({ groupId, messageId: id }); router.back(); }} onCatchup={() => router.replace({ pathname: '/catchup', params: { groupId: String(groupId) } })} />}
+        </ScrollView>
+        <View style={page.composerWrap}>
+          <View style={page.composer}>
+            <TextInput accessibilityLabel="Ask about this message" placeholder="Ask about this…" placeholderTextColor="#8b7c8d" value={question} onChangeText={setQuestion} editable={!busy} onSubmitEditing={submit} returnKeyType="send" style={page.input} maxLength={2000} />
+            <Pressable accessibilityRole="button" accessibilityLabel="Send question" disabled={!question.trim() || busy || !result} onPress={submit} style={[page.send, (!question.trim() || busy || !result) && { opacity: 0.4 }]}><Icon name="arrow.up" color="#fff" size={19} /></Pressable>
+          </View>
         </View>
-      ) : quote ? (
-        <View style={styles.quote}>
-          <Text style={styles.quoteText} numberOfLines={4}>
-            {params.term && !params.text ? quote : `“${quote}”`}
-          </Text>
-        </View>
-      ) : null}
-
-      {phase === 'loading' ? <Skeleton lines={3} /> : null}
-
-      {phase === 'error' ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error ?? 'Something went wrong.'}</Text>
-          <Pressable
-            onPress={() => {
-              setPhase('loading');
-              setError(null);
-              setAttempt((n) => n + 1);
-            }}
-            style={styles.retry}>
-            <Text style={styles.retryText}>Try again</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {result && phase === 'done' ? (
-        <Result result={result} groupId={groupId} onJump={jump} onCatchup={openCatchup} />
-      ) : null}
-
-      <View style={styles.footer}>
-        <Text style={styles.footerNote}>
-          <Icon name="lock.fill" size={10} color={colors.textTertiary} /> Only you can see this. Nothing is posted to the chat.
-        </Text>
-      </View>
-    </ScrollView>
-  );
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  </View>;
 }
+const page = StyleSheet.create({
+  screen: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, paddingBottom: 8 },
+  headerText: { color: '#6f6178', fontSize: 13 },
+  content: { padding: 24, paddingTop: 35, paddingBottom: 50, width: '100%', maxWidth: 620, alignSelf: 'center' },
+  quote: { alignSelf: 'flex-end', maxWidth: '92%', backgroundColor: '#ffffff77', borderWidth: 1, borderColor: '#ffffffbb', borderRadius: 25, borderBottomRightRadius: 8, padding: 18, marginBottom: 28 },
+  quoteText: { color: '#5f506b', fontSize: 15, lineHeight: 23 },
+  photo: { width: 180, height: 130, borderRadius: 15, marginBottom: 12 },
+  response: { alignSelf: 'flex-start', maxWidth: '96%', backgroundColor: '#fffafcdd', paddingHorizontal: 19, paddingVertical: 17, borderRadius: 26, borderBottomLeftRadius: 8, marginBottom: 18 },
+  answerText: { color: '#42374c', fontSize: 17, lineHeight: 26 },
+  turn: { marginTop: 6 },
+  question: { alignSelf: 'flex-end', maxWidth: '90%', borderRadius: 24, borderBottomRightRadius: 8, backgroundColor: '#efd9e9', padding: 16, marginBottom: 18 },
+  questionText: { color: '#554357', fontSize: 15, lineHeight: 23 },
+  contextButton: { alignSelf: 'flex-start', paddingVertical: 12, paddingHorizontal: 4 },
+  contextLink: { color: '#7d6b85', fontSize: 12 },
+  error: { paddingVertical: 14, gap: 12 },
+  errorText: { color: '#964758', fontSize: 14, lineHeight: 21 },
+  composerWrap: { padding: 18, paddingTop: 10, width: '100%', maxWidth: 620, alignSelf: 'center' },
+  composer: { flexDirection: 'row', alignItems: 'center', padding: 6, borderRadius: 30, borderWidth: 1, borderColor: '#fff', backgroundColor: '#ffffffcc', shadowColor: '#8e7695', shadowOpacity: 0.1, shadowRadius: 18, shadowOffset: { width: 0, height: 4 } },
+  input: { flex: 1, minWidth: 0, minHeight: 44, paddingHorizontal: 15, fontSize: 15, color: colors.text },
+  send: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#a782a3', alignItems: 'center', justifyContent: 'center' },
+});
 
 function Result({
   result,
@@ -205,7 +200,6 @@ function Result({
         <AskCard result={result} groupId={groupId} ask={live ?? result.ask.existing ?? undefined} />
       ) : null}
 
-      {result.status !== 'plain' ? <FollowUp result={result} groupId={groupId} /> : null}
     </View>
   );
 }
@@ -317,85 +311,6 @@ function AskCard({ result, groupId, ask }: { result: Explanation; groupId: numbe
   );
 }
 
-function FollowUp({ result, groupId }: { result: Explanation; groupId: number }) {
-  const me = useMe();
-  const [q, setQ] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [answers, setAnswers] = useState<Explanation[]>([]);
-  const [err, setErr] = useState<string | null>(null);
-
-  const submit = async () => {
-    const question = q.trim();
-    if (!question || busy) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      const res = await api.explain({
-        group_id: groupId,
-        user_id: me.id,
-        explanation_id: result.explanation_id,
-        follow_up: question,
-        ...(result.message_id !== null ? { message_id: result.message_id } : result.term ? { term: result.term } : {}),
-      });
-      setAnswers((a) => [...a, { ...res, follow_up: res.follow_up ?? question }]);
-      setQ('');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <View style={styles.section}>
-      {answers.map((a, i) => (
-        <View key={i} style={styles.answer}>
-          <Text style={styles.answerQ}>{a.follow_up}</Text>
-          <BoldText text={a.meaning} style={styles.answerText} />
-        </View>
-      ))}
-      <View style={styles.askRow}>
-        <TextInput
-          value={q}
-          onChangeText={setQ}
-          placeholder="Ask something else about this…"
-          placeholderTextColor={colors.textSecondary}
-          style={styles.askInput}
-          returnKeyType="send"
-          onSubmitEditing={submit}
-          keyboardAppearance="dark"
-          editable={!busy}
-        />
-        <Pressable onPress={submit} disabled={!q.trim() || busy} style={[styles.askGo, (!q.trim() || busy) && { opacity: 0.4 }]}>
-          {busy ? <ActivityIndicator size="small" color="white" /> : <Icon name="arrow.up" size={15} weight="bold" color="white" />}
-        </Pressable>
-      </View>
-      {err ? <Text style={styles.errorText}>{err}</Text> : null}
-    </View>
-  );
-}
-
-function Skeleton({ lines }: { lines: number }) {
-  const [pulse] = useState(() => new Animated.Value(0.35));
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 0.8, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.35, duration: 700, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
-  return (
-    <View style={{ gap: 10, paddingVertical: 14 }}>
-      {Array.from({ length: lines }).map((_, i) => (
-        <Animated.View key={i} style={[styles.skel, { opacity: pulse, width: i === lines - 1 ? '62%' : '92%' }]} />
-      ))}
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   sheet: { flex: 1, backgroundColor: colors.sheetBg },

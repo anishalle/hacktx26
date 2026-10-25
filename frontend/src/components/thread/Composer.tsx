@@ -104,21 +104,22 @@ export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
           </View>
         ) : null}
         <View style={styles.row}>
-          <Pressable style={styles.camera} accessibilityLabel="Camera">
-            <Icon name={hasText ? 'magnifyingglass' : 'camera.fill'} size={18} color="white" />
+          <Pressable onPress={onPickPhoto} style={styles.camera} accessibilityRole="button" accessibilityLabel="Choose a photo">
+            <Icon name="plus" size={18} color="white" />
           </Pressable>
           <View style={styles.inputWrap}>
             <TextInput
               ref={ref}
               value={value}
               onChangeText={onChangeText}
+              accessibilityLabel="Message"
               placeholder={attachment ? 'Add a caption...' : 'Message...'}
               placeholderTextColor={colors.textSecondary}
               style={[styles.input, { height: inputHeight }]}
               onContentSizeChange={(e) => setContentHeight(e.nativeEvent.contentSize.height)}
               scrollEnabled={contentHeight > 120}
               multiline
-              keyboardAppearance="dark"
+              keyboardAppearance="light"
               selectionColor={colors.blue}
             />
             {highlights ? (
@@ -137,12 +138,9 @@ export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
             </Pressable>
           ) : (
             <View style={styles.icons}>
-              <Icon name="mic" size={24} />
               <Pressable onPress={onPickPhoto} hitSlop={6} accessibilityLabel="Send a photo">
                 <Icon name="photo" size={24} />
               </Pressable>
-              <Icon name="face.smiling" size={24} />
-              <Icon name="plus.circle" size={25} />
             </View>
           )}
         </View>
@@ -163,7 +161,7 @@ const styles = StyleSheet.create({
   },
   replyTitle: { color: colors.text, fontSize: 13 },
   replyText: { color: colors.textSecondary, fontSize: 13, marginTop: 1 },
-  box: { backgroundColor: colors.surfaceAlt, borderRadius: 26, borderWidth: 1.5 },
+  box: { backgroundColor: '#ffffffcc', borderRadius: 26, borderWidth: 1.5 },
   row: { flexDirection: 'row', alignItems: 'flex-end', minHeight: 48, paddingLeft: 5, paddingRight: 14, paddingVertical: 5 },
   attachment: { alignSelf: 'flex-start', marginTop: 10, marginLeft: 10 },
   thumb: { height: 150, borderRadius: 16, backgroundColor: colors.surface },

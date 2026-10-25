@@ -7,7 +7,7 @@ import type { SpeakerCaption } from '@/hooks/useCall';
 const HIDE_AFTER_MS = 4000;
 const PAD_H = 12;
 const PAD_V = 8;
-const BG = 'rgba(28,28,30,0.92)';
+const BG = 'rgba(255,248,253,0.94)';
 
 type Props = {
   caption: SpeakerCaption | undefined;
@@ -68,10 +68,10 @@ export function CaptionBubble({ caption, maxWidth, small, tail }: Props) {
   const overflowing = measured.h + PAD_V * 2 > maxHeight;
 
   return (
-    <View pointerEvents="none" style={{ alignItems: tail === 'left' ? 'flex-start' : 'flex-end' }}>
+    <View pointerEvents="none" style={{ width: maxWidth, alignItems: tail === 'left' ? 'flex-start' : 'flex-end' }}>
       {/* Invisible copy that measures the full text at the wrap width. */}
       <Text
-        style={[styles.text, textStyle, styles.measure, { maxWidth: maxWidth - PAD_H * 2 }]}
+        style={[styles.text, textStyle, styles.measure, { width: maxWidth - PAD_H * 2 }]}
         onLayout={(e) => {
           const { width, height } = e.nativeEvent.layout;
           if (Math.abs(width - measured.w) > 0.5 || Math.abs(height - measured.h) > 0.5) setMeasured({ w: width, h: height });
@@ -83,7 +83,7 @@ export function CaptionBubble({ caption, maxWidth, small, tail }: Props) {
         <Animated.View style={[styles.bubble, { width: size.x, height: size.y }]}>
           <Text style={[styles.text, textStyle, styles.bottom, { width: measured.w }]}>{body}</Text>
           {overflowing ? (
-            <LinearGradient colors={[BG, 'rgba(28,28,30,0)']} style={styles.fade} pointerEvents="none" />
+            <LinearGradient colors={[BG, 'rgba(255,248,253,0)']} style={styles.fade} pointerEvents="none" />
           ) : null}
         </Animated.View>
       </Animated.View>
@@ -102,11 +102,11 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     borderRadius: 2,
   },
-  text: { color: 'white', fontWeight: '500' },
+  text: { color: '#332936', fontWeight: '500' },
   measure: { position: 'absolute', opacity: 0, alignSelf: 'flex-start' },
   // Anchored to the bottom so the newest line stays in view and older ones slide up and out.
   bottom: { position: 'absolute', left: PAD_H, bottom: PAD_V },
-  finished: { color: 'rgba(255,255,255,0.58)' },
-  live: { color: 'white' },
+  finished: { color: '#766575' },
+  live: { color: '#332936' },
   fade: { position: 'absolute', top: 0, left: 0, right: 0, height: 22 },
 });
