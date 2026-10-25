@@ -1,0 +1,35 @@
+[project]
+name = "hackrice26"
+version = "0.1.0"
+description = "Minimal FastAPI backend for HackRice 26"
+readme = "README.md"
+authors = [
+    { name = "anishalle", email = "anish.alle11@gmail.com" }
+]
+requires-python = ">=3.12.11"
+dependencies = [
+    "fastapi>=0.141.1",
+    "pydantic-settings>=2.15.0",
+    "sentry-sdk>=2.69.1",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[dependency-groups]
+dev = ["httpx>=0.27.0", "pytest>=8.0.0", "ruff>=0.6.0"]
+
+[tool.uv.build-backend]
+module-name = "app"
+module-root = "backend"
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+
+[tool.ruff]
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
