@@ -40,7 +40,7 @@ export function QuestionButton({ onTap, onLongPressStart, isLoading, disabled }:
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Explain recent conversation"
-        accessibilityHint="Tap for a short explanation. Hold to ask a private question."
+        accessibilityHint="Tap for a short explanation. Hold to ask a private question by voice."
         accessibilityState={{ disabled: !!disabled || isLoading, busy: isLoading }}
         disabled={disabled || isLoading}
         onPressIn={() => { held.current = false; deform(1); }}

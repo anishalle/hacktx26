@@ -1,57 +1,58 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+﻿import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { createRoom } from '../services/rooms';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function startCall() {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const invitation = await createRoom();
+      router.push({ pathname: '/call/[callId]', params: {
+        callId: invitation.room_id, invite: invitation.invite_token, name: name.trim(),
+      } });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not start the call.');
+    } finally { setBusy(false); }
+  }
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.top}><Text style={styles.wordmark}>in the loop</Text><View style={styles.profile}><Text style={styles.initial}>Y</Text></View></View>
-        <Text style={styles.eyebrow}>A SPACE TO BELONG</Text>
-        <Text style={styles.title}>Same call.{'\n'}More connection.</Text>
-        <Text style={styles.description}>The jokes, the names, the things you missed. Get a little context without breaking the conversation.</Text>
-        <View style={styles.room}>
-          <View style={styles.roomTop}><Text style={styles.roomLabel}>YOUR CALL SPACE</Text><Text style={styles.preview}>Preview</Text></View>
-          <View style={styles.portraits}>{['Y', 'S', 'M'].map((letter, i) => <View key={letter} style={[styles.avatar, { backgroundColor: ['#d7e7fa', '#eee1d7', '#dcdfee'][i], marginLeft: i ? -12 : 0 }]}><Text style={styles.avatarText}>{letter}</Text></View>)}</View>
-          <Text style={styles.roomTitle}>Catch up with your people</Text>
-          <Text style={styles.roomDescription}>Explore the call experience. Live video and transcription are not connected yet.</Text>
-          <Pressable accessibilityRole="button" style={({ pressed }) => [styles.join, pressed && { opacity: 0.8 }]} onPress={() => router.push('/call/preview')}><Text style={styles.joinText}>Open call preview</Text><Text style={styles.joinArrow}>↗</Text></Pressable>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={styles.wordmark}>in the loop</Text>
+        <View style={styles.hero}>
+          <Text style={styles.title}>Your people.{'\n'}One link away.</Text>
+          <Text style={styles.description}>Start a call and invite someone in.</Text>
         </View>
-        <Text style={styles.section}>A little help, on your terms</Text>
-        {[['01', 'Tap for context', 'One sentence about the last 10 seconds.'], ['02', 'Hold to ask', 'A private question, a concise answer.'], ['03', 'Find your way in', 'Conversation suggestions once live speech is connected.']].map(([number, title, detail]) => <View key={number} style={styles.feature}><Text style={styles.number}>{number}</Text><View style={styles.featureBody}><Text style={styles.featureTitle}>{title}</Text><Text style={styles.featureDetail}>{detail}</Text></View></View>)}
-        <Text style={styles.footer}>Your questions stay on your screen.</Text>
+        <View style={styles.room}>
+          <Text style={styles.label}>Your name</Text>
+          <TextInput accessibilityLabel="Your name" placeholder="How should we call you?" placeholderTextColor="#9299a3" value={name} onChangeText={setName} maxLength={60} autoComplete="name" returnKeyType="go" onSubmitEditing={startCall} style={styles.input} editable={!busy} />
+          {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+          <Pressable accessibilityRole="button" disabled={busy || !name.trim()} onPress={startCall} style={({ pressed }) => [styles.join, (busy || !name.trim() || pressed) && { opacity: 0.6 }]}>
+            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.joinText}>Start a call</Text>}
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#faf9f7' },
-  content: { width: '100%', maxWidth: 560, alignSelf: 'center', padding: 24, paddingBottom: 36 },
-  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 45 },
-  wordmark: { color: '#171a20', fontWeight: '700', fontSize: 24, letterSpacing: -1 },
-  profile: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#e9edf3', alignItems: 'center', justifyContent: 'center' },
-  initial: { color: '#536478', fontWeight: '600' },
-  eyebrow: { color: '#6f8095', fontSize: 10, letterSpacing: 2, fontWeight: '600', marginBottom: 15 },
-  title: { color: '#15191f', fontSize: 39, lineHeight: 44, letterSpacing: -1.8, fontWeight: '600' },
-  description: { color: '#73777e', fontSize: 15, lineHeight: 23, marginTop: 17, marginBottom: 30 },
+  content: { width: '100%', maxWidth: 520, alignSelf: 'center', padding: 24, paddingBottom: 40 },
+  wordmark: { color: '#171a20', fontWeight: '700', fontSize: 24, letterSpacing: -1, marginTop: 14 },
+  hero: { paddingTop: 80, paddingBottom: 38 },
+  title: { color: '#15191f', fontSize: 40, lineHeight: 46, letterSpacing: -1.8, fontWeight: '600' },
+  description: { color: '#73777e', fontSize: 15, lineHeight: 23, marginTop: 18 },
   room: { backgroundColor: '#fff', padding: 22, borderRadius: 26, borderWidth: 1, borderColor: '#e8e9eb' },
-  roomTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  roomLabel: { color: '#888f99', letterSpacing: 1.3, fontSize: 9, fontWeight: '600' },
-  preview: { color: '#526e8e', fontSize: 11, backgroundColor: '#edf4fc', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  portraits: { flexDirection: 'row', marginVertical: 22 },
-  avatar: { width: 50, height: 50, borderRadius: 25, borderWidth: 3, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: '#576171', fontSize: 16, fontWeight: '500' },
-  roomTitle: { fontSize: 20, color: '#20242a', fontWeight: '600', letterSpacing: -0.5 },
-  roomDescription: { color: '#878b93', fontSize: 12, lineHeight: 19, marginTop: 9, marginBottom: 22 },
-  join: { backgroundColor: '#202a36', padding: 16, borderRadius: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  joinText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  joinArrow: { color: '#9bc9ff', fontSize: 21 },
-  section: { color: '#242a32', fontSize: 16, fontWeight: '600', marginTop: 32, marginBottom: 8 },
-  feature: { flexDirection: 'row', gap: 18, paddingVertical: 17, borderBottomWidth: 1, borderColor: '#e9e9e7' },
-  number: { color: '#94a4b6', fontSize: 12, paddingTop: 3 },
-  featureBody: { flex: 1 },
-  featureTitle: { color: '#373d46', fontSize: 14, fontWeight: '500' },
-  featureDetail: { color: '#848990', fontSize: 12, lineHeight: 18, marginTop: 5 },
-  footer: { textAlign: 'center', color: '#969ba2', fontSize: 11, marginTop: 28 },
+  label: { color: '#555e6b', fontSize: 13, marginBottom: 10 },
+  input: { backgroundColor: '#f5f6f8', borderWidth: 1, borderColor: '#e4e7ec', borderRadius: 14, padding: 15, fontSize: 16, color: '#202a36', marginBottom: 18 },
+  error: { color: '#a13b40', fontSize: 13, lineHeight: 19, marginBottom: 16 },
+  join: { backgroundColor: '#202a36', padding: 17, borderRadius: 15, alignItems: 'center', minHeight: 54 },
+  joinText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });

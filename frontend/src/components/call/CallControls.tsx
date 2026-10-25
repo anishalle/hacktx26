@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface CallControlsProps {
+  disabled?: boolean;
   isMuted: boolean;
   isVideoOff: boolean;
   onToggleMute: () => void;
@@ -13,6 +14,7 @@ interface CallControlsProps {
  * Standard call controls — nothing fancy here.
  */
 export function CallControls({
+  disabled,
   isMuted,
   isVideoOff,
   onToggleMute,
@@ -23,6 +25,7 @@ export function CallControls({
     <View style={styles.container}>
       <Pressable
         accessibilityRole="button"
+        disabled={disabled}
         style={[styles.button, isMuted && styles.buttonActive]}
         onPress={onToggleMute}
       >
@@ -34,6 +37,7 @@ export function CallControls({
 
       <Pressable
         accessibilityRole="button"
+        disabled={disabled}
         style={[styles.button, isVideoOff && styles.buttonActive]}
         onPress={onToggleVideo}
       >
@@ -43,7 +47,7 @@ export function CallControls({
         </Text>
       </Pressable>
 
-      <Pressable accessibilityRole="button" accessibilityLabel="Leave call preview" style={[styles.button, styles.endCallButton]} onPress={onEndCall}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Leave call" style={[styles.button, styles.endCallButton]} onPress={onEndCall}>
 
         <Text style={[styles.buttonLabel, styles.endCallLabel]}>End</Text>
       </Pressable>

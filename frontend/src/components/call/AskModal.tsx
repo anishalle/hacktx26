@@ -1,265 +1,105 @@
-import { type ComponentRef, useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+export type VoiceStatus = 'idle' | 'preparing' | 'listening' | 'ready' | 'stopping' | 'error';
 
 interface AskModalProps {
-  visible: boolean;
-  isLoading: boolean;
-  onSubmit: (question: string) => void;
+  status: VoiceStatus;
+  transcript: string;
+  error: string;
+  onSend: () => void;
   onCancel: () => void;
+  onChangeText?: (text: string) => void;
 }
 
-/**
- * Full-screen ask modal triggered by long-pressing the ? button.
- *
- * When this opens:
- * - User's mic is muted (handled by parent)
- * - Call volume is lowered (handled by parent)
- * - User types their specific question
- * - Submit sends it to the AI with recent transcript context
- *
- * The call stays visible behind a semi-transparent overlay.
- */
-export function AskModal({ visible, isLoading, onSubmit, onCancel }: AskModalProps) {
-  const [question, setQuestion] = useState('');
-  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
-  const [fadeAnim] = useState(() => new Animated.Value(0));
-  const [slideAnim] = useState(() => new Animated.Value(50));
-
-  useEffect(() => {
-    if (visible) {
-      fadeAnim.setValue(0);
-      slideAnim.setValue(50);
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        inputRef.current?.focus();
-      });
-    }
-  }, [visible, fadeAnim, slideAnim]);
-
-  if (!visible) return null;
-
-  const handleSubmit = () => {
-    const q = question.trim();
-    if (q.length === 0 || isLoading) return;
-    onSubmit(q);
-    setQuestion('');
-  };
-
+export function AskModal({ status, transcript, error, onSend, onCancel, onChangeText }: AskModalProps) {
+  const waiting = status === 'preparing' || status === 'stopping';
+  const isNative = Platform.OS !== 'web';
   return (
-    <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
-      >
-        <Pressable style={styles.backdrop} onPress={onCancel} />
-
-        <Animated.View
-          style={[
-            styles.modal,
-            { transform: [{ translateY: slideAnim }] },
-          ]}
-        >
+    <Modal visible={status !== 'idle'} transparent animationType="slide" onRequestClose={onCancel}>
+      <View style={styles.overlay}>
+        <Pressable accessibilityLabel="Close voice question" style={StyleSheet.absoluteFill} onPress={onCancel} />
+        <View style={styles.sheet} accessibilityViewIsModal>
+          <View style={styles.handle} />
           <View style={styles.header}>
-            <View style={styles.micBadge}>
-              <Text style={styles.micBadgeText}>Private question</Text>
-            </View>
-            <Pressable onPress={onCancel} style={styles.cancelButton}>
-              <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.eyebrow}>PRIVATE QUESTION</Text>
+            <Pressable accessibilityRole="button" onPress={onCancel} style={styles.close}>
+              <Text style={styles.closeText}>Close</Text>
             </Pressable>
           </View>
-
-          <Text style={styles.title}>Ask about the call</Text>
-          <Text style={styles.subtitle}>
-            Ask about a phrase, a person, or something you missed. Only you see the answer.
+          <Text accessibilityRole="header" style={styles.title}>
+            {status === 'preparing'
+              ? 'Muting your call mic...'
+              : status === 'listening'
+                ? 'Go ahead, listening...'
+                : status === 'error'
+                  ? 'Something went wrong'
+                  : isNative
+                    ? 'Type your question'
+                    : 'Ready to ask?'}
           </Text>
-
-          <View style={styles.inputRow}>
+          <Text style={styles.subtitle}>
+            {status === 'listening' || status === 'ready'
+              ? 'Call mic muted - call audio lowered'
+              : isNative
+                ? 'Your mic is muted from the call'
+                : 'Ask by voice'}
+          </Text>
+          {isNative && onChangeText ? (
             <TextInput
-              ref={inputRef}
-              style={styles.input}
-              placeholder="e.g. What does 'procs' mean?"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              accessibilityLabel="Your question about the call"
-              maxLength={300}
-              value={question}
-              onChangeText={setQuestion}
-              onSubmitEditing={handleSubmit}
-              returnKeyType="send"
+              style={styles.textInput}
+              value={transcript}
+              onChangeText={onChangeText}
+              placeholder="What do you want to know?"
+              placeholderTextColor="#828c99"
+              multiline
               autoFocus
-              multiline={false}
-              editable={!isLoading}
+              onSubmitEditing={onSend}
             />
-            <Pressable
-              onPress={handleSubmit}
-              style={[
-                styles.sendButton,
-                (!question.trim() || isLoading) && styles.sendButtonDisabled,
-              ]}
-              disabled={!question.trim() || isLoading}
-            >
-              <Text accessibilityLabel="Send question" style={styles.sendButtonText}>
-                {isLoading ? '···' : '→'}
-              </Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.quickQuestions}>
-            <Text style={styles.quickLabel}>Quick questions:</Text>
-            {[
-              'Who is that?',
-              "What did they just say?",
-              "What's the joke?",
-            ].map((q) => (
-              <Pressable
-                key={q}
-                style={styles.quickChip}
-                onPress={() => {
-                  setQuestion(q);
-
-                }}
-                disabled={isLoading}
-              >
-                <Text style={styles.quickChipText}>{q}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </Animated.View>
+          ) : (
+            <>
+              <View style={styles.wave} accessibilityLabel={status === 'listening' ? 'Listening for your question' : 'Voice question'}>
+                {[12, 26, 38, 22, 45, 30, 16].map((height, i) => (
+                  <View key={i} style={[styles.bar, { height, opacity: status === 'listening' ? 1 : 0.35 }]} />
+                ))}
+              </View>
+              <ScrollView style={styles.words} contentContainerStyle={{ paddingBottom: 8 }}>
+                <Text accessibilityLiveRegion="polite" style={styles.transcript}>
+                  {transcript || 'Say your question out loud.'}
+                </Text>
+              </ScrollView>
+            </>
+          )}
+          {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Send voice question"
+            onPress={onSend}
+            disabled={waiting || !transcript.trim() || status === 'error'}
+            style={[styles.send, (waiting || !transcript.trim() || status === 'error') && { opacity: 0.4 }]}
+          >
+            <Text style={styles.sendText}>{status === 'stopping' ? 'Finishing...' : 'Ask'}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 300,
-  },
-  keyboardAvoid: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modal: {
-    backgroundColor: '#202329',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 40,
-    borderTopWidth: 1,
-    borderColor: 'rgba(116, 181, 250, 0.2)',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  micBadge: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  micBadgeText: {
-    color: '#ef4444',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    padding: 8,
-  },
-  cancelText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 14,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-    lineHeight: 18,
-    marginBottom: 16,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: '#fff',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(116, 181, 250, 0.3)',
-  },
-  sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#74b5fa',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#374151',
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  quickQuestions: {
-    marginTop: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    alignItems: 'center',
-  },
-  quickLabel: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 12,
-    marginRight: 4,
-  },
-  quickChip: {
-    backgroundColor: 'rgba(116, 181, 250, 0.15)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(116, 181, 250, 0.2)',
-  },
-  quickChipText: {
-    color: '#b4d6ff',
-    fontSize: 13,
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  sheet: { width: '100%', maxWidth: 560, maxHeight: '85%', alignSelf: 'center', backgroundColor: '#202329', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 36 },
+  handle: { width: 34, height: 4, borderRadius: 3, backgroundColor: '#535963', alignSelf: 'center', marginBottom: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  eyebrow: { color: '#91bce9', fontSize: 10, letterSpacing: 1.5, fontWeight: '600' },
+  close: { minHeight: 44, minWidth: 44, alignItems: 'flex-end', justifyContent: 'center' },
+  closeText: { color: '#b5bbc5', fontSize: 13 },
+  title: { color: '#fafafa', fontSize: 24, lineHeight: 30, fontWeight: '600', marginTop: 10, letterSpacing: -0.6 },
+  subtitle: { color: '#a0a7b2', fontSize: 12, marginTop: 10 },
+  textInput: { color: '#fff', backgroundColor: '#2a3040', borderRadius: 14, padding: 16, fontSize: 16, lineHeight: 22, minHeight: 80, marginVertical: 16, textAlignVertical: 'top' },
+  wave: { flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', height: 92 },
+  bar: { width: 5, borderRadius: 3, backgroundColor: '#86bfff' },
+  words: { maxHeight: 150, marginBottom: 20 },
+  transcript: { color: '#e7ebf1', fontSize: 17, lineHeight: 25, textAlign: 'center' },
+  error: { color: '#ffb8b8', fontSize: 13, lineHeight: 20, marginTop: 14 },
+  send: { minHeight: 52, borderRadius: 15, backgroundColor: '#85bfff', justifyContent: 'center', alignItems: 'center' },
+  sendText: { color: '#142336', fontSize: 15, fontWeight: '700' },
 });

@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     MEDIA_BUCKET: str = ""
     AWS_REGION: str = "us-east-1"
 
+    # LiveKit credentials stay on the backend.
+    LIVEKIT_URL: str = ""
+    LIVEKIT_API_KEY: str = ""
+    LIVEKIT_API_SECRET: str = ""
+
     # Budget guardrails
     MAX_BEDROCK_REQUESTS_PER_MINUTE: int = 20
     MAX_BEDROCK_REQUESTS_PER_HOUR: int = 200
