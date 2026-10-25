@@ -21,7 +21,10 @@ uv run uvicorn app.main:app --reload       # tables are also created on startup
 Seed options and the fixture format: [`backend/app/seed/README.md`](backend/app/seed/README.md).
 The LLM is Meta's Muse through the OpenAI-compatible Meta Model API (`MODEL_API_BASE_URL`,
 `MODEL_API_KEY`, `LLM_MODEL`, `LLM_REASONING_EFFORT`). Environment variables override `.env`.
-Production points `DATABASE_URL` at AWS RDS.
+The shared database is Postgres + pgvector on Timescale Cloud: paste its `postgres://...?sslmode=require`
+connection string into `DATABASE_URL` as-is. It listens on a non-standard port that some venue
+Wi-Fi blocks; use a VPN or hotspot if connections time out. Running `app.seed` against it wipes
+and reseeds the shared data for everyone.
 
 ## Layout
 
@@ -46,13 +49,14 @@ backend/app/
   core/
     config.py        # Typed environment settings
     db.py            # Async engine, SessionLocal, init_db()
-backend/tests/       # pytest (uses a separate database, TEST_DB_NAME, default hacktx_test)
+backend/tests/       # pytest (local TEST_DATABASE_URL server, database TEST_DB_NAME, default hacktx_test)
 ```
 
 ## Checks
 
-Tests need the compose database running; they create and use a separate database
-(`TEST_DB_NAME`, default `hacktx_test`) on the same server and never call the real LLM.
+Tests need the compose database running. They use `TEST_DATABASE_URL` (default: the compose
+server), never the shared `DATABASE_URL`, create a separate database there (`TEST_DB_NAME`,
+default `hacktx_test`) and never call the real LLM.
 
 ```sh
 uv run pytest

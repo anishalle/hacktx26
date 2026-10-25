@@ -1,4 +1,4 @@
-# Local Postgres + pgvector for development. Production uses AWS RDS via DATABASE_URL.
+# Local Postgres + pgvector for tests and offline development. The shared database is Timescale Cloud via DATABASE_URL.
 services:
   db:
     image: pgvector/pgvector:pg17

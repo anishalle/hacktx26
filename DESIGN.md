@@ -222,7 +222,7 @@ If the term is absent from this group but is common slang, answer from general k
 
 ## System architecture
 
-One React Native app (Expo) for iOS and Android, one API server, Postgres with pgvector for history and embeddings, Claude for every language task, and a streaming speech-to-text service for calls. Everything is hackathon-simple: no auth, hardcoded demo users, one group chat seeded from a real export.
+One React Native app (Expo) for iOS and Android, one API server, Postgres with pgvector (on Timescale Cloud) for history and embeddings, Claude for every language task, and a streaming speech-to-text service for calls. Everything is hackathon-simple: no auth, hardcoded demo users, one group chat seeded from a real export.
 
 &#91;embedded content: system architecture · client, API, data and AI services\]
 
@@ -239,7 +239,7 @@ The three screens of the mobile app all talk to one API; the API is the only thi
 | Call audio to STT | Raw mic stream from the call SDK (or `expo-av` recording in short chunks) sent over WebSocket to the API, which forwards it to STT | Keeps STT keys off the device; one transcript store per call |
 | Pronunciation audio | `expo-av` record and playback; upload to the API as m4a | Feature 5 with no extra native code |
 | API | FastAPI (Python) | Same language as the import/indexing scripts and the Claude SDK |
-| Database | Postgres + pgvector | Messages, members, glossary and embeddings in one place; full-text search built in |
+| Database | Postgres + pgvector, hosted on Timescale Cloud (local Docker Postgres for tests) | Messages, members, glossary and embeddings in one place; full-text search built in; one shared connection string with no cloud networking to set up |
 | LLM | Claude (Sonnet for extract/explain/rewrite, Haiku for the glossary sweep) | Fast JSON-mode answers; cheap for the bulk pass |
 | Embeddings | Voyage or OpenAI text-embedding-3-small | Only used for the semantic leg of retrieval |
 | STT | Deepgram streaming (fallback: Whisper streaming) | Sub-second partials; speaker labels |

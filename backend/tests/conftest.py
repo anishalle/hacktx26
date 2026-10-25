@@ -1,7 +1,8 @@
 """Shared test fixtures.
 
 - Tests use a separate database (env TEST_DB_NAME, default "hacktx_test") on the
-  DATABASE_URL server: tables are created once, truncated before each test.
+  TEST_DATABASE_URL server (local compose Postgres, never the shared DATABASE_URL):
+  tables are created once, truncated before each test.
 - `app.core.db.engine` / `SessionLocal` are rebound to it, so routes, WS and
   background code that use them hit the test database.
 - Every test has a FakeLLM installed (an unexpected LLM call fails the test);
@@ -36,7 +37,7 @@ WsConnect = Callable[[str], AbstractAsyncContextManager[AsyncWebSocketSession]]
 
 
 async def _ensure_database(name: str) -> str:
-    url = make_url(settings.DATABASE_URL)
+    url = make_url(settings.TEST_DATABASE_URL)
     admin = create_async_engine(url, isolation_level="AUTOCOMMIT")
     async with admin.connect() as conn:
         found = await conn.scalar(
