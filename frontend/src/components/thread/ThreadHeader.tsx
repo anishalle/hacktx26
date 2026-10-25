@@ -13,12 +13,13 @@ type Props = {
   avatarUrl: string | null;
   isGroup: boolean;
   onBack: () => void;
+  onCall?: () => void;
 };
 
 export const HEADER_ROW = 56;
 
 /** Floating thread header: liquid-glass circle buttons over the wallpaper, like Instagram on iOS 26. */
-export function ThreadHeader({ title, subtitle, avatarUrl, isGroup, onBack }: Props) {
+export function ThreadHeader({ title, subtitle, avatarUrl, isGroup, onBack, onCall }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.wrap, { paddingTop: insets.top + 2 }]} pointerEvents="box-none">
@@ -50,10 +51,10 @@ export function ThreadHeader({ title, subtitle, avatarUrl, isGroup, onBack }: Pr
           <GlassCircle accessibilityLabel="Effects">
             <Icon name="face.smiling" size={21} />
           </GlassCircle>
-          <GlassCircle accessibilityLabel="Audio call">
+          <GlassCircle onPress={onCall} accessibilityLabel="Audio call">
             <Icon name="phone" size={20} />
           </GlassCircle>
-          <GlassCircle accessibilityLabel="Video call">
+          <GlassCircle onPress={onCall} accessibilityLabel="Video call">
             <Icon name="video" size={20} />
           </GlassCircle>
         </View>

@@ -3,7 +3,8 @@
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic.alias_generators import to_camel
 
 UtcDatetime = Annotated[datetime, AfterValidator(lambda d: d.astimezone(UTC))]
 GlossaryKind = Literal["nickname", "place", "event", "slang", "person", "inside_joke"]
@@ -120,6 +121,7 @@ class WsEvent(Schema):
         "read.updated",
         "ask.new",
         "ask.updated",
+        "call.updated",
         "pong",
     ]
     data: dict[str, Any] | None = None
@@ -139,7 +141,7 @@ class ReadUpdated(Schema):
 
 # Feature 1: hold-to-explain
 
-ExplainStatus = Literal["explained", "general", "plain", "unknown"]
+ExplainStatus = Literal["explained", "general", "plain", "unknown", "no_speech"]
 ExplainKind = Literal[
     "nickname", "place", "event", "slang", "person", "inside_joke", "plain", "unknown"
 ]
@@ -196,6 +198,9 @@ class Explanation(Schema):
     human_sources: list[HumanSource]
     person: User | None
     ask: AskTarget | None
+    call_id: int | None = None
+    said_by: User | None = None
+    heard: str | None = None
 
 
 class AskCreate(Schema):
@@ -371,3 +376,87 @@ class ChunkDigestContent(Schema):
 
     bullets: list[CatchupBullet] = []
     terms: list[str] = []
+
+
+# Feature 4: live ? on a group call
+
+Millis = Annotated[int, Field(ge=0, le=9_007_199_254_740_991)]
+
+
+class CallMember(Schema):
+    user: User
+    attendee_id: str
+    joined_at: UtcDatetime
+    left_at: UtcDatetime | None
+
+
+class Call(Schema):
+    id: int
+    group_id: int
+    started_by: str | None
+    started_at: UtcDatetime
+    ended_at: UtcDatetime | None
+    members: list[CallMember]
+
+
+class CallJoin(Schema):
+    call: Call
+    meeting: dict[str, Any]
+    attendee: dict[str, Any]
+
+
+class CallUserRequest(Schema):
+    user_id: str
+
+
+class ChimeModel(BaseModel):
+    """Chime transcript events, as the native module emits them (camelCase)."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class ChimeAttendee(ChimeModel):
+    attendee_id: str = Field(min_length=1, max_length=128)
+    external_user_id: str = Field(default="", max_length=128)
+
+
+class ChimeItem(ChimeModel):
+    type: Literal["pronunciation", "punctuation"] = "pronunciation"
+    content: str = Field(max_length=500)
+    start_time_ms: Millis
+    end_time_ms: Millis
+    attendee: ChimeAttendee
+
+
+class ChimeAlternative(ChimeModel):
+    transcript: str = Field(max_length=10_000)
+    items: list[ChimeItem] = Field(default_factory=list, max_length=2000)
+
+
+class ChimeResult(ChimeModel):
+    result_id: str = Field(min_length=1, max_length=128)
+    is_partial: bool
+    start_time_ms: Millis
+    end_time_ms: Millis
+    alternatives: list[ChimeAlternative] = Field(min_length=1, max_length=5)
+
+    @model_validator(mode="after")
+    def _times(self) -> "ChimeResult":
+        if self.end_time_ms < self.start_time_ms:
+            raise ValueError("endTimeMs must be at or after startTimeMs")
+        return self
+
+
+class TranscriptBatch(Schema):
+    user_id: str
+    results: list[ChimeResult] = Field(max_length=50)
+
+
+class TranscriptStored(Schema):
+    stored: int
+
+
+class CallExplainRequest(Schema):
+    user_id: str
+    at_ms: Millis
+    pending_results: list[ChimeResult] = Field(default_factory=list, max_length=20)

@@ -2,7 +2,9 @@
 import { readSse } from '../sse';
 import type {
   Api,
+  Call,
   CatchupEvent,
+  ChimeResult,
   ExplainRequest,
   Explanation,
   FlaggedTerm,
@@ -201,6 +203,9 @@ function mockExplain(body: ExplainRequest): Explanation {
     human_sources: [] as Explanation['human_sources'],
     person: null,
     ask: null,
+    call_id: null,
+    said_by: null,
+    heard: null,
   };
 
   if (body.follow_up && body.explanation_id !== undefined) {
@@ -320,6 +325,54 @@ function mockCatchupBody(groupId: number, userId: string, signal?: AbortSignal) 
       carry = carry.slice(cut);
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Calls (feature 4): one in-memory call per group; the call screen plays a
+// scripted transcript (src/lib/callEngine.ts) and forwards finals here.
+// ---------------------------------------------------------------------------
+const CALL_FOCUS_MS = 45_000;
+type MockCall = Call & { transcripts: Map<string, ChimeResult> };
+const calls = new Map<number, MockCall>();
+let nextCallId = 1;
+
+const activeCall = (groupId: number) => [...calls.values()].find((c) => c.group_id === groupId && !c.ended_at);
+function callView({ transcripts: _t, ...call }: MockCall): Call {
+  return clone(call);
+}
+const resultText = (r: ChimeResult) => r.alternatives[0]?.transcript ?? '';
+const resultSpeaker = (r: ChimeResult) => r.alternatives[0]?.items.find((i) => i.type === 'pronunciation')?.attendee.externalUserId ?? null;
+
+/** Same answer the text pipeline gives, applied to the newest line in the focus window that needs one. */
+function mockExplainCall(call: MockCall, userId: string, atMs: number, pending: ChimeResult[]): Explanation {
+  const byId = new Map(call.transcripts);
+  for (const r of pending) if (!byId.get(r.resultId) || byId.get(r.resultId)!.isPartial) byId.set(r.resultId, r);
+  const focus = [...byId.values()]
+    .filter((r) => r.startTimeMs <= atMs && r.endTimeMs > atMs - CALL_FOCUS_MS && resultText(r).trim())
+    .sort((a, b) => a.startTimeMs - b.startTimeMs);
+  const callFields = { call_id: call.id, said_by: null, heard: null };
+  if (!focus.length) {
+    const result: Explanation = {
+      ...mockExplain({ group_id: call.group_id, user_id: userId, term: '' }),
+      ...callFields,
+      status: 'no_speech',
+      kind: 'unknown',
+      term: null,
+      meaning: "I didn't catch anything in the last 45 seconds.",
+      confidence: 0,
+    };
+    return result;
+  }
+  const candidates = [...focus].reverse().map((r) => ({ r, e: mockExplain({ group_id: call.group_id, user_id: userId, term: resultText(r) }) }));
+  const { r, e } = candidates.find((c) => c.e.status !== 'plain') ?? candidates[0];
+  const speaker = resultSpeaker(r);
+  const words = resultText(r).split(/\s+/).slice(0, 8).join(' ');
+  return {
+    ...e,
+    ...callFields,
+    said_by: speaker ? (clone(userById.get(speaker)) ?? null) : null,
+    heard: e.status === 'unknown' ? `…${words}…` : null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -643,6 +696,65 @@ export const mockApi: Api = {
     }
     for (const uid of [ask.for_user.id, ask.asked_user.id]) toUser(uid, { type: 'ask.updated', data: ask });
     return askView(ask);
+  },
+
+  async getCall(groupId) {
+    await latency();
+    const call = activeCall(groupId);
+    return call ? callView(call) : null;
+  },
+
+  async joinCall(groupId, userId) {
+    await latency();
+    const g = groupOf(groupId);
+    if (!g.members.some((m) => m.user_id === userId)) throw new Error(`${userId} is not a member of group ${groupId}`);
+    let call = activeCall(groupId);
+    if (!call) {
+      call = { id: nextCallId++, group_id: groupId, started_by: userId, started_at: new Date().toISOString(), ended_at: null, members: [], transcripts: new Map() };
+      calls.set(call.id, call);
+    }
+    const attendeeId = `mock-${call.id}-${userId}`;
+    const existing = call.members.find((m) => m.user.id === userId);
+    if (existing) existing.left_at = null;
+    else call.members.push({ user: clone(userById.get(userId)!), attendee_id: attendeeId, joined_at: new Date().toISOString(), left_at: null });
+    fanOut(groupId, { type: 'call.updated', data: callView(call) });
+    return {
+      call: callView(call),
+      meeting: { MeetingId: `mock-meeting-${call.id}`, MediaRegion: 'us-east-1' },
+      attendee: { AttendeeId: attendeeId, ExternalUserId: userId },
+    };
+  },
+
+  async leaveCall(callId, userId) {
+    await latency();
+    const call = calls.get(callId);
+    if (!call) throw new Error('Call not found');
+    const member = call.members.find((m) => m.user.id === userId && !m.left_at);
+    if (member) member.left_at = new Date().toISOString();
+    if (!call.ended_at && call.members.every((m) => m.left_at)) call.ended_at = new Date().toISOString();
+    fanOut(call.group_id, { type: 'call.updated', data: callView(call) });
+    return callView(call);
+  },
+
+  async sendTranscripts(callId, _userId, results) {
+    const call = calls.get(callId);
+    if (!call) throw new Error('Call not found');
+    let stored = 0;
+    for (const r of results) {
+      if (r.isPartial || call.transcripts.get(r.resultId)?.isPartial === false) continue;
+      call.transcripts.set(r.resultId, clone(r));
+      stored++;
+    }
+    return { stored };
+  },
+
+  async explainCall(callId, body, signal) {
+    await sleep(900 + Math.random() * 700, signal);
+    const call = calls.get(callId);
+    if (!call) throw new Error('Call not found');
+    const result = mockExplainCall(call, body.user_id, body.at_ms, body.pending_results ?? []);
+    explanations.set(result.explanation_id, { term: result.term, meaning: result.meaning, status: result.status });
+    return result;
   },
 
   connectRealtime(userId, handlers) {

@@ -6,6 +6,8 @@ import type {
   Api,
   AsideResult,
   Asks,
+  Call,
+  CallJoin,
   CatchupAnswer,
   CatchupEvent,
   CatchupPreview,
@@ -185,6 +187,13 @@ export const realApi: Api = {
   askMember: (body) => post<MemberAsk>('/ask-member', body),
   getAsks: (userId) => get<Asks>(`/users/${encodeURIComponent(userId)}/asks`),
   answerAsk: (askId, body) => post<MemberAsk>(`/ask-member/${askId}/answer`, body),
+
+  getCall: (groupId) => get<Call | null>(`/groups/${groupId}/call`),
+  joinCall: (groupId, userId) => post<CallJoin>(`/groups/${groupId}/call`, { user_id: userId }),
+  leaveCall: (callId, userId) => post<Call>(`/calls/${callId}/leave`, { user_id: userId }),
+  sendTranscripts: (callId, userId, results) =>
+    post<{ stored: number }>(`/calls/${callId}/transcripts`, { user_id: userId, results }),
+  explainCall: (callId, body, signal) => post<Explanation>(`/calls/${callId}/explain`, body, signal),
 
   connectRealtime,
 };

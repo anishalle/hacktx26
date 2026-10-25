@@ -124,6 +124,7 @@ every group the user is in:
 | `read.updated` | `{ group_id, user_id, message_id }` |
 | `ask.new` | `MemberAsk`, sent only to the member being asked |
 | `ask.updated` | `MemberAsk`, sent to both people on the ask when it is answered or declined |
+| `call.updated` | `Call`, sent to every group member when a call starts, someone joins or leaves, or it ends |
 
 The client may send `{ "type": "ping" }`; the server answers `{ "type": "pong" }`.
 
@@ -149,6 +150,7 @@ with a bare `term`. Nothing is posted to the group, and nobody else sees that th
 
 ```ts
 type ExplainStatus =
+  | "no_speech"   // calls only: nothing was said in the last 45 s
   | "explained"   // grounded in this group's history
   | "general"     // not defined in this chat; common slang from general knowledge (label it so)
   | "plain"       // nothing unusual; the sheet offers catch-up instead
@@ -168,6 +170,10 @@ type Explanation = {
   human_sources: { ask_id: number; user: User; answer: string; answered_at: string }[];
   person: User | null;        // kind "person" naming a member: show their profile card
   ask: { user: User; existing: MemberAsk | null } | null; // unknown/general: who to ask privately
+  // Calls only (feature 4); null for messages and terms:
+  call_id: number | null;
+  said_by: User | null;       // who said the explained phrase on the call
+  heard: string | null;       // status unknown on a call: the words it caught, e.g. "…getting procs…"
 };
 
 type MemberAsk = {
@@ -192,6 +198,64 @@ embedding hits fused by rank, preferring definitional and pre-join messages), ab
 Every answer must cite supplied message, glossary or private-answer ids; uncited or low-confidence
 (< 0.4) answers become `unknown`. Windows of 10 messages are embedded with Bedrock Titan v2 in the
 background; without AWS credentials retrieval falls back to full-text only.
+
+## Feature 4: live ? on a group call
+
+Calls run on Amazon Chime. The server creates the meeting and one attendee per member; Chime
+carries audio/video and live transcription (Amazon Transcribe) to every participant through the
+iOS bridge in `frontend/modules/chime-call` (needs an Expo dev build, not Expo Go). Each client
+forwards **final** transcript results here. The **?** button explains what was just said, privately,
+with the feature 1 pipeline over the call transcript **and** the group's chat history.
+
+| Method | Path | Body / query | Returns |
+| --- | --- | --- | --- |
+| GET | `/groups/{group_id}/call` | | `Call \| null`, the group's active call |
+| POST | `/groups/{group_id}/call` | `{ user_id }` | `CallJoin`: starts a call (with transcription) or joins the active one; pushes `call.updated` |
+| POST | `/calls/{call_id}/leave` | `{ user_id }` | `Call`; the last member out ends it (the Chime meeting is deleted); pushes `call.updated` |
+| POST | `/calls/{call_id}/transcripts` | `{ user_id, results: ChimeResult[] }` (max 50) | `{ stored: number }` |
+| POST | `/calls/{call_id}/explain` | `{ user_id, at_ms, pending_results?: ChimeResult[] }` (max 20) | `Explanation` |
+
+- Every participant may forward the same finals: `(call_id, resultId)` deduplicates, and a late
+  partial never overwrites a final. Partials are only for on-screen captions.
+- `at_ms` is `Date.now()` frozen at the tap (epoch ms). The focus is the 45 s before it, with the
+  2 minutes before that as background. `pending_results` carries finals (and the current partial)
+  not uploaded yet, so the tap never races an upload.
+- Follow-ups on a call card use `POST /explain` with the returned `explanation_id`, like feature 1.
+- Chime's `externalUserId` is our user id, so transcript lines and `said_by` map to members.
+
+```ts
+type Call = {
+  id: number;
+  group_id: number;
+  started_by: string;
+  started_at: string;
+  ended_at: string | null;
+  members: { user: User; attendee_id: string; joined_at: string; left_at: string | null }[];
+};
+
+type CallJoin = {
+  call: Call;
+  meeting: object;   // Chime CreateMeeting "Meeting" (MeetingId, MediaRegion, MediaPlacement, ...)
+  attendee: object;  // Chime CreateAttendee "Attendee" (AttendeeId, ExternalUserId, JoinToken)
+};
+
+type ChimeResult = {  // exactly what the native module emits
+  resultId: string;
+  isPartial: boolean;
+  startTimeMs: number; // epoch ms
+  endTimeMs: number;
+  alternatives: {
+    transcript: string;
+    items: {
+      type: "pronunciation" | "punctuation";
+      content: string;
+      startTimeMs: number;
+      endTimeMs: number;
+      attendee: { attendeeId: string; externalUserId: string };
+    }[];
+  }[];
+};
+```
 
 ## Feature 2: pre-send clarity nudge
 
@@ -309,3 +373,6 @@ Defined in `backend/app/models.py`, created on startup with `CREATE EXTENSION ve
 | `chunk_digests` | `id, group_id, start_message_id, end_message_id, start_ts, end_ts, message_count, digest jsonb` |
 | `explanations` | `id, group_id, user_id, message_id, answer jsonb (answer + context snapshot), created_at` |
 | `member_asks` | `id, group_id, asked_user_id, for_user_id, term, message_id, status, answer, posted_message_id, created_at, answered_at` |
+| `calls` | `id, group_id, meeting_id, meeting jsonb, started_by, started_at, ended_at` |
+| `call_members` | `call_id, user_id, attendee_id, joined_at, left_at` |
+| `call_transcripts` | `call_id, result_id, speaker_id, start_ms, end_ms, text, items jsonb, is_partial` |

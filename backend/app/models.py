@@ -210,3 +210,67 @@ class MemberAsk(Base):
     )
     created_at: Mapped[datetime] = _now()
     answered_at: Mapped[datetime | None]
+
+
+class Call(Base):
+    """Feature 4: a group call on Amazon Chime; at most one active per group."""
+
+    __tablename__ = "calls"
+    __table_args__ = (
+        Index(
+            "uq_calls_active_group",
+            "group_id",
+            unique=True,
+            postgresql_where=text("ended_at IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk())
+    meeting_id: Mapped[str] = mapped_column(String(64), unique=True)
+    meeting: Mapped[dict[str, Any]] = mapped_column(JSONB)  # Chime "Meeting" object
+    started_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    started_at: Mapped[datetime] = _now()
+    ended_at: Mapped[datetime | None]
+
+    members: Mapped[list["CallMember"]] = relationship(
+        order_by="CallMember.joined_at", lazy="selectin"
+    )
+
+
+class CallMember(Base):
+    __tablename__ = "call_members"
+
+    call_id: Mapped[int] = mapped_column(
+        ForeignKey("calls.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(_user_fk(), primary_key=True)
+    attendee_id: Mapped[str] = mapped_column(String(64))
+    joined_at: Mapped[datetime] = _now()
+    left_at: Mapped[datetime | None]
+
+    user: Mapped[User] = relationship(lazy="joined")
+
+
+class CallTranscript(Base):
+    """One Chime transcript result; `(call_id, result_id)` dedupes every client's
+    copy, and a final is never overwritten by a late partial."""
+
+    __tablename__ = "call_transcripts"
+    __table_args__ = (Index("ix_call_transcripts_time", "call_id", "start_ms"),)
+
+    call_id: Mapped[int] = mapped_column(
+        ForeignKey("calls.id", ondelete="CASCADE"), primary_key=True
+    )
+    result_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    speaker_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    start_ms: Mapped[int] = mapped_column(BigInteger)  # epoch ms
+    end_ms: Mapped[int] = mapped_column(BigInteger)
+    text: Mapped[str] = mapped_column(Text)
+    items: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    is_partial: Mapped[bool]
+    received_at: Mapped[datetime] = _now()

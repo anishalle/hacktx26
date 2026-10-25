@@ -142,7 +142,8 @@ export type CatchupEvent =
   | { event: 'done'; data: { elapsed_ms: number } }
   | { event: 'error'; data: { message: string } };
 
-export type ExplainStatus = 'explained' | 'general' | 'plain' | 'unknown';
+/** `no_speech` only comes from calls: nothing was said in the last 45 s. */
+export type ExplainStatus = 'explained' | 'general' | 'plain' | 'unknown' | 'no_speech';
 
 export type HumanSource = { ask_id: number; user: User; answer: string; answered_at: string };
 
@@ -178,6 +179,11 @@ export type Explanation = {
   human_sources: HumanSource[];
   person: User | null;
   ask: { user: User; existing: MemberAsk | null } | null;
+  // Calls only (feature 4); null for messages and terms.
+  call_id: number | null;
+  said_by: User | null;
+  /** Status unknown on a call: the words it caught, e.g. "…getting procs…". */
+  heard: string | null;
 };
 
 export type ExplainRequest = {
@@ -191,12 +197,46 @@ export type ExplainRequest = {
 
 export type Asks = { incoming: MemberAsk[]; outgoing: MemberAsk[] };
 
+// Feature 4: live ? on a group call
+
+export type CallMember = { user: User; attendee_id: string; joined_at: string; left_at: string | null };
+
+export type Call = {
+  id: number;
+  group_id: number;
+  started_by: string;
+  started_at: string;
+  ended_at: string | null;
+  members: CallMember[];
+};
+
+/** `meeting` / `attendee` are Chime's CreateMeeting / CreateAttendee objects, passed straight to the native SDK. */
+export type CallJoin = { call: Call; meeting: Record<string, unknown>; attendee: Record<string, unknown> };
+
+export type ChimeItem = {
+  type: 'pronunciation' | 'punctuation';
+  content: string;
+  startTimeMs: number;
+  endTimeMs: number;
+  attendee: { attendeeId: string; externalUserId: string };
+};
+
+/** One transcript result, exactly as the native Chime module emits it. Times are epoch ms. */
+export type ChimeResult = {
+  resultId: string;
+  isPartial: boolean;
+  startTimeMs: number;
+  endTimeMs: number;
+  alternatives: { transcript: string; items: ChimeItem[] }[];
+};
+
 export type RealtimeFrame =
   | { type: 'message.new'; data: Message }
   | { type: 'reaction.updated'; data: { group_id: number; message_id: number; reactions: Reaction[] } }
   | { type: 'read.updated'; data: { group_id: number; user_id: string; message_id: number } }
   | { type: 'ask.new'; data: MemberAsk }
   | { type: 'ask.updated'; data: MemberAsk }
+  | { type: 'call.updated'; data: Call }
   | { type: 'pong'; data?: unknown };
 
 /** The full client surface. `real.ts` and `mock/` both implement it. */
@@ -237,6 +277,18 @@ export interface Api {
     askId: number,
     body: { user_id: string; answer?: string; decline?: boolean; post_in_chat?: boolean },
   ): Promise<MemberAsk>;
+
+  getCall(groupId: number): Promise<Call | null>;
+  /** Starts the group's call (with transcription) or joins the active one. */
+  joinCall(groupId: number, userId: string): Promise<CallJoin>;
+  leaveCall(callId: number, userId: string): Promise<Call>;
+  /** Final results only (max 50); the server dedupes by resultId. */
+  sendTranscripts(callId: number, userId: string, results: ChimeResult[]): Promise<{ stored: number }>;
+  explainCall(
+    callId: number,
+    body: { user_id: string; at_ms: number; pending_results?: ChimeResult[] },
+    signal?: AbortSignal,
+  ): Promise<Explanation>;
 
   /** Opens the realtime channel for a user. Returns an unsubscribe/close function. */
   connectRealtime(userId: string, handlers: RealtimeHandlers): () => void;

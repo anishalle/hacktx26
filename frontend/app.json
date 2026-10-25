@@ -8,7 +8,11 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.hacktx26.chat"
+      "bundleIdentifier": "com.hacktx26.chat",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Your microphone is used for group calls and their live captions.",
+        "NSCameraUsageDescription": "Your camera is used to share video in group calls."
+      }
     },
     "android": {
       "adaptiveIcon": {

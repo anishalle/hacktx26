@@ -6,6 +6,7 @@ import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, T
 
 import { api, type Explanation, type MemberAsk, type Message, type User } from '@/api';
 import { Avatar } from '@/components/Avatar';
+import { BoldText } from '@/components/BoldText';
 import { Icon } from '@/components/Icon';
 import { firstName } from '@/lib/format';
 import { useAsks } from '@/state/asks';
@@ -199,24 +200,6 @@ function Result({
   );
 }
 
-/** Renders `**bold**` segments from the model's meaning. */
-function BoldText({ text, style }: { text: string; style: object }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
-  return (
-    <Text style={style}>
-      {parts.map((p, i) =>
-        p.startsWith('**') && p.endsWith('**') ? (
-          <Text key={i} style={styles.bold}>
-            {p.slice(2, -2)}
-          </Text>
-        ) : (
-          p
-        ),
-      )}
-    </Text>
-  );
-}
-
 function SourceRow({ message, sender, meId, onPress }: { message: Message; sender?: User; meId: string; onPress: () => void }) {
   const name = message.sender_id === meId ? 'You' : sender ? firstName(sender.display_name) : 'Someone';
   return (
@@ -407,7 +390,6 @@ const styles = StyleSheet.create({
   meaningCard: { marginTop: 10, gap: 10 },
   label: { color: colors.sparkle, fontSize: 13, fontWeight: '600' },
   meaning: { color: colors.text, fontSize: 17, lineHeight: 24 },
-  bold: { fontWeight: '700' },
   section: { marginTop: 18 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   sectionTitle: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },

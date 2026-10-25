@@ -52,6 +52,7 @@ function Gate() {
         <Stack.Screen name="catchup" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
         <Stack.Screen name="explain" options={{ ...sheet, sheetAllowedDetents: [0.55, 1], sheetCornerRadius: 28 }} />
         <Stack.Screen name="requests" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
+        <Stack.Screen name="call/[groupId]" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#000' } }} />
         <Stack.Screen name="switch-user" options={{ ...sheet, sheetAllowedDetents: [0.6, 1] }} />
       </Stack>
       </AsksProvider>

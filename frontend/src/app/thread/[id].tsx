@@ -23,6 +23,7 @@ import { api, type Message, type User } from '@/api';
 import { Avatar, GroupAvatar } from '@/components/Avatar';
 import { GlassCircle } from '@/components/GlassCircle';
 import { Icon } from '@/components/Icon';
+import { CallBar } from '@/components/thread/CallBar';
 import { CatchupPill } from '@/components/thread/CatchupPill';
 import { Composer } from '@/components/thread/Composer';
 import { NudgeBanner } from '@/components/thread/NudgeBanner';
@@ -30,6 +31,7 @@ import { MessageRow, SeenBy, SystemLine, TimeSeparator, type RunPos } from '@/co
 import { HEADER_ROW, ThreadHeader } from '@/components/thread/ThreadHeader';
 import { Wallpaper } from '@/components/thread/Wallpaper';
 import { useExplain } from '@/features/explain';
+import { useGroupCall } from '@/hooks/useGroupCall';
 import { useNudge } from '@/hooks/useNudge';
 import { useThread } from '@/hooks/useThread';
 import { firstName, separatorLabel, shortAge } from '@/lib/format';
@@ -276,6 +278,12 @@ export default function ThreadScreen() {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
+  const activeCall = useGroupCall(groupId);
+  const openCall = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: '/call/[groupId]', params: { groupId: String(groupId), name: title } });
+  };
+
   const openCatchup = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
@@ -366,7 +374,7 @@ export default function ThreadScreen() {
   };
 
   const intro = group ? (
-    <View style={[styles.intro, { paddingTop: headerHeight + (pillVisible ? 60 : 24) }]}>
+    <View style={[styles.intro, { paddingTop: headerHeight + (pillVisible ? 60 : 24) + (activeCall ? 56 : 0) }]}>
       {group.is_dm || group.avatar_url ? <Avatar uri={group.avatar_url} size={92} /> : <GroupAvatar uris={[null, null]} size={92} />}
       <Text style={styles.introTitle}>{group.name}</Text>
       <Text style={styles.introSub}>{group.is_dm ? 'Instagram' : `${group.member_count} members`}</Text>
@@ -467,8 +475,10 @@ export default function ThreadScreen() {
         avatarUrl={group?.avatar_url ?? null}
         isGroup={!!group && !group.is_dm}
         onBack={() => router.back()}
+        onCall={openCall}
       />
-      {catchup ? <CatchupPill count={catchup.count} top={headerHeight + 6} onPress={openCatchup} /> : null}
+      {activeCall ? <CallBar call={activeCall} top={headerHeight + 6} meId={me.id} onJoin={openCall} /> : null}
+      {catchup ? <CatchupPill count={catchup.count} top={headerHeight + (activeCall ? 62 : 6)} onPress={openCatchup} /> : null}
     </View>
   );
 }
