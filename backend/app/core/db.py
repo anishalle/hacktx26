@@ -2,6 +2,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
+    AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
@@ -26,6 +27,8 @@ UPGRADES = [
     "ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_width integer",
     "ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_height integer",
     "ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_description text",
+    "ALTER TABLE lore ADD COLUMN IF NOT EXISTS events jsonb",
+    "ALTER TABLE lore ADD COLUMN IF NOT EXISTS hero_message_id bigint",
 ]
 
 
@@ -56,10 +59,16 @@ async def _upgrade(conn: AsyncConnection) -> None:
 
 async def init_db(bind: AsyncEngine | None = None, *, drop: bool = False) -> None:
     """Create the vector extension and every table; `drop=True` recreates them first.
-    Existing databases get UPGRADES applied in place."""
+    Existing databases get UPGRADES applied in place, and lore without events gets
+    them computed."""
     async with (bind or engine).begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         if drop:
             await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
         await _upgrade(conn)
+    # Lore from before events existed gets them once (SQL only, no model calls).
+    from app.services import lore  # the services import this module
+
+    async with AsyncSession(bind or engine, expire_on_commit=False) as session:
+        await lore.backfill_events(session)

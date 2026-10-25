@@ -135,7 +135,7 @@ every group the user is in:
 | `ask.updated` | `MemberAsk`, sent to both people on the ask when it is answered or declined |
 | `call.updated` | `Call`, sent to every group member when a call starts, someone joins or leaves, or it ends |
 | `call.caption` | `CallCaption`, sent to every member on the call as someone speaks (feature 4) |
-| `lore.updated` | `Lore`, sent to the group when a moment is suggested, kept, dismissed or removed (feature 6). A call suggestion (`source: "call"`, `status: "suggested"`) goes only to the people on that call |
+| `lore.updated` | `Lore` (feed-sized, `pinned` and `is_me` for the receiving user), sent to the group when a moment is suggested, kept, dismissed or removed (feature 6). A call suggestion (`source: "call"`, `status: "suggested"`) goes only to the people on that call; a pin or unpin goes only to the member who did it |
 
 The client may send `{ "type": "ping" }`; the server answers `{ "type": "pong" }`.
 
@@ -274,21 +274,36 @@ type CallJoin = {
 
 ## Feature 6: Lore
 
-A group's kept moments: things that happened (an inside joke being born, the Incident, a trip),
-each with a title, a short story, who was there, and its evidence (messages, photos, call replays).
+A group's kept moments: things that happened (an inside joke being born, the Incident, a trip).
+Each has an AI **title** (the only model-written text Lore serves), who was there, and its
+**events**: each photo, each call replay, or, when it has neither, its most-reacted message as a
+**quote**. Every event carries **snippets**: the real lines people sent or said around it.
 Moments are found automatically (chat and calls) and **suggested**; any member taps **Keep**
-(first tap wins for the group) or dismisses. Kept lore shows in the Lore feed (the Reels tab) across
-all your groups. Any member can remove a kept entry. Backfill over existing history keeps the
-strongest moments automatically.
+(first tap wins for the group) or dismisses. Kept lore shows in the Lore feed (the Reels tab)
+across all your groups. Any member can remove a kept entry; pins are per member. Backfill over
+existing history keeps the strongest moments automatically.
 
 | Method | Path | Body / query | Returns |
 | --- | --- | --- | --- |
-| GET | `/users/{user_id}/lore` | `?group_id=&cursor=&limit=20` (max 50) | `LoreFeed`: kept lore in the user's groups, newest moment first |
+| GET | `/users/{user_id}/lore` | `?group_id=&kind=photo\|replay\|quote&pinned=true&sort=deck\|recent&q=&cursor=&limit=20` (max 50) | `LoreFeed`: kept lore in the user's groups (below) |
 | GET | `/lore/{lore_id}` | `?user_id=` | `LoreDetail` (any status; members only) |
 | GET | `/groups/{group_id}/lore/suggestions` | `?user_id=` | `Lore[]`: chat suggestions still waiting (`status: "suggested"`, `source: "chat"`) |
+| POST | `/groups/{group_id}/lore` | `{ user_id, message_id }` | `Lore`, "Save to Lore" on a text or photo message (system: 400): Muse titles the moment around it (±15 min) and it is kept at once by `user_id`, or merged into kept lore it matches. A message already in kept lore returns that lore; one in a suggestion keeps it. Pushes `lore.updated` |
 | POST | `/lore/{lore_id}/keep` | `{ user_id }` | `Lore`; suggested → kept (already kept: returned as is; dismissed: 409). A kept call replay that matches existing lore is attached to it and that lore is returned. Pushes `lore.updated` |
 | POST | `/lore/{lore_id}/dismiss` | `{ user_id }` | `Lore`; suggested → dismissed. Pushes `lore.updated` |
 | POST | `/lore/{lore_id}/remove` | `{ user_id }` | `Lore`; kept → removed. Pushes `lore.updated` |
+| POST | `/lore/{lore_id}/pin` | `{ user_id }` | `Lore` with `pinned: true` (kept lore only, else 409; pinning twice is fine). Pushes `lore.updated` to that user only |
+| DELETE | `/lore/{lore_id}/pin` | `?user_id=` | `Lore` with `pinned: false`. Pushes `lore.updated` to that user only |
+
+Feed query:
+
+- `kind`: lore with a photo event (`photo`), a replay event (`replay`), or a quote (`quote`, the
+  moments with no media). `pinned=true`: only the user's pins. `q`: title contains (case-insensitive).
+- `sort=recent` (default): newest moment first. `sort=deck`: the user's pins first (newest pin
+  first), then by `0.6·score + 0.25·recency + 0.15·media`, where score gets +0.1 when the moment
+  has media, recency halves every 14 days, and media is 1 for a photo, 0.8 for a replay, 0 for a
+  quote. The deck cursor is an offset (`deck:<n>`); keep passing `next_cursor` back as is.
+- `counts` respect `group_id` and `q` but not `kind`, `pinned` or the cursor, so the chips can show them.
 
 ```ts
 type LoreStatus = "suggested" | "kept" | "dismissed" | "removed";
@@ -302,12 +317,36 @@ type LoreReplay = {
   captions: { user_id: string; text: string; start_ms: number; end_ms: number }[]; // offsets into the clip
 };
 
+type LoreSnippet = {
+  message_id: number | null;  // null for spoken lines (tap → thread around=id)
+  user: User | null;
+  text: string;               // at most 140 characters
+  ts: string;
+  reactions: Reaction[];
+  reason: "caption"           // the photo's own caption (always first)
+    | "reply"                 // replies to the photo / quote
+    | "key"                   // one of the moment's key messages
+    | "reaction"              // reacted to, right after
+    | "spoken"                // said on the call, around the replay's signal
+    | "after";                // sent right after (for a replay: in the 10 min after the call)
+  start_ms: number | null;    // spoken lines: offset into the replay (tap → seek)
+  is_me: boolean;             // sent or said by the requesting user
+};
+
+type LoreEvent = {
+  kind: "photo" | "replay" | "quote" | "video"; // video: reserved, never sent yet
+  at: string;
+  message: Message | null;    // photo / quote: the anchor message
+  replay: LoreReplay | null;  // replay
+  snippets: LoreSnippet[];    // oldest first; photo ≤ 4 (caption included), quote ≤ 4,
+                              // replay ≤ 3 speaker turns + ≤ 2 chat lines
+};
+
 type Lore = {
   id: number;
   group_id: number;
   group_name: string;
-  title: string;              // "The Incident: Mike's ramen fire alarm"
-  story: string;              // 1-3 sentences, plain English
+  title: string;              // ≤ 48 chars, who + what: "Mike sets off the ramen alarm again"
   status: LoreStatus;
   source: "chat" | "call";
   call_id: number | null;     // call suggestions: the call it came from
@@ -315,13 +354,19 @@ type Lore = {
   ended_at: string;
   people: User[];
   terms: { term: string; glossary_id: number | null }[]; // tap → explain the term
-  cover: { photo: Message | null; replay: LoreReplay | null }; // at most one set; both null = text card
+  hero_kind: LoreEvent["kind"]; // events[0].kind ("quote" when there are no events)
+  events: LoreEvent[];        // events[0] is the hero, the rest oldest first (≤ 6 per moment).
+                              // Feed, suggestions, related and frames: ≤ 3 events, ≤ 3 snippets each.
+                              // LoreDetail: all of them.
+  media: Message[];           // up to 6 photo messages, oldest first (the image row)
+  cover: { photo: Message | null; replay: LoreReplay | null }; // from events[0]; both null = quote
   anchor_message_id: number | null; // chat suggestions: show the Keep card after this message
   message_count: number;
   photo_count: number;
   replay_count: number;
   kept_by: User | null;       // null for backfilled lore
   kept_at: string | null;
+  pinned: boolean;            // pinned by the requesting user
 };
 
 type LoreDetail = Lore & {
@@ -331,17 +376,39 @@ type LoreDetail = Lore & {
   related: Lore[];            // up to 6 kept lore in the same group, most related first
 };
 
-type LoreFeed = { items: Lore[]; next_cursor: string | null };
+type LoreFeed = {
+  items: Lore[];
+  next_cursor: string | null;
+  counts: { photo: number; replay: number; quote: number; pinned: number };
+};
 ```
 
-Server design (not part of the contract): chat moments come from the catch-up chunk digests'
-events plus quick triggers (message bursts, reaction piles, photo clusters) on recent messages; Muse
-picks the ones worth keeping and writes title and story from the supplied lines only. A candidate
-that matches existing lore by embedding is attached to it instead of duplicating it; related lore
-is found the same way. On a call the server keeps the last ~30 s of everyone's mic audio (mixed)
-and captions; signals (3+ people talking at once, a loudness spike against the call's baseline,
-a ? tap, phrases like "no way" / "remember when", glossary terms said aloud) save a replay a few
-seconds later, at most one per moment.
+The hero is the photo Muse picked as showing the moment best, else the most-reacted photo, else
+the first replay, else the quote (the most-reacted key message, earliest on ties).
+
+Server design (not part of the contract): chat moments come from Muse reading raw lines (backfill
+over the whole history, and quick triggers on recent messages: message bursts, reaction piles,
+photo clusters). It writes a title and a story from the supplied lines only, picks key messages
+(every photo included) and a hero photo. The story is stored and embedded but never served: a
+candidate that matches existing lore by embedding is attached to it instead of duplicating it,
+and related lore is found the same way. Events are computed without a model (`_events` in
+`app/services/lore.py`) and stored in `lore.events`, recomputed whenever the evidence changes:
+
+- Photo: text lines in the 40 messages / 15 min after it, plus replies to it within a day. Each
+  line belongs to the photo it replies to, else the nearest photo before it. Score: reply +3, key
+  message +2, +1 per reaction (up to 3), not the photo's sender +1, an inside term +0.5,
+  emoji-only or laughter +1, logistics ("ok", "omw", "what time", ...) or under 3 characters −2,
+  −0.1 per minute from the photo (up to 15). The best lines scoring above 0 are kept: at most 2
+  per sender, at least one from someone else when there is one.
+- Replay: the caption lines overlapping 8 s before to 4 s after the signal (4 s before the clip
+  ends), merged into speaker turns (the 3 nearest), plus up to 2 chat lines from the 10 min after
+  the call scoring at least 2.
+- Quote: its replies, then the other key messages, scored the same way.
+
+On a call the server keeps the last ~30 s of everyone's mic audio (mixed) and captions; signals
+(3+ people talking at once, a loudness spike against the call's baseline, a ? tap, phrases like
+"no way" / "remember when", glossary terms said aloud) save a replay a few seconds later, at most
+one per moment.
 
 ## Feature 2: pre-send clarity nudge
 
@@ -444,7 +511,9 @@ over the digests in range plus the raw undigested tail, so the first bullet appe
 
 ## Data model
 
-Defined in `backend/app/models.py`, created on startup with `CREATE EXTENSION vector`.
+Defined in `backend/app/models.py`, created on startup with `CREATE EXTENSION vector`. Columns added later are
+added in place (`UPGRADES` in `backend/app/core/db.py`), and lore without `events` gets them
+computed then, once.
 
 | Table | Key fields |
 | --- | --- |
@@ -462,5 +531,6 @@ Defined in `backend/app/models.py`, created on startup with `CREATE EXTENSION ve
 | `calls` | `id, group_id, meeting_id, meeting jsonb, started_by, started_at, ended_at` |
 | `call_members` | `call_id, user_id, attendee_id, joined_at, left_at` |
 | `call_transcripts` | `call_id, result_id, speaker_id, start_ms, end_ms, text, items jsonb, is_partial` |
-| `lore` | `id, group_id, title, story, status, source, call_id, started_at, ended_at, people text[], terms text[], message_ids bigint[], replay_ids int[], anchor_message_id, score, embedding vector, kept_by, kept_at, created_at` |
+| `lore` | `id, group_id, title, story (not served), status, source, call_id, started_at, ended_at, people text[], terms text[], message_ids bigint[], replay_ids int[], anchor_message_id, events jsonb, hero_message_id, score, embedding vector, kept_by, kept_at, created_at` |
+| `lore_pins` | `user_id, lore_id, pinned_at` (primary key `user_id, lore_id`) |
 | `lore_replays` | `id, call_id, group_id, audio_path, duration_ms, started_at, captions jsonb, signal, created_at` |

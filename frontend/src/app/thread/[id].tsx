@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useIsPreview, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,9 +13,9 @@ import {
   StyleSheet,
   Text,
   View,
+  type ListViewToken,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  type ListViewToken,
   type TextInputInstance,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,27 +37,26 @@ import { useExplain } from '@/features/explain';
 import { useGroupCall } from '@/hooks/useGroupCall';
 import { useNudge } from '@/hooks/useNudge';
 import { useThread } from '@/hooks/useThread';
-import { firstName, separatorLabel, shortAge } from '@/lib/format';
+import { firstName } from '@/lib/format';
 import { catchupMarkRead, threadJump } from '@/state/bus';
 import { useInbox } from '@/state/inbox';
 import { useRealtime } from '@/state/realtime';
 import { useMe, useSession } from '@/state/session';
-import { colors, mixHex } from '@/theme';
+import { colors } from '@/theme';
 
 const CATCHUP_MIN = 50;
+
+/** The photos a kept moment shows: its photo events and its image row. */
+const lorePhotoIds = (l: Lore) => [
+  ...new Set([...l.events.filter((e) => e.kind === 'photo' && e.message).map((e) => e.message!.id), ...l.media.map((m) => m.id)]),
+];
 const GAP_FOR_SEPARATOR_MS = 60 * 60 * 1000;
 
-// A subtle blue shift separates outgoing messages from the dark chat surface.
-function tintFor(rowsFromBottom: number) {
-  const t = Math.max(0, Math.min(1, rowsFromBottom / 12));
-  return t < 0.5 ? mixHex(colors.gradBottom, colors.gradMid, t * 2) : mixHex(colors.gradMid, colors.gradTop, (t - 0.5) * 2);
-}
-
 type Item =
-  | { type: 'sep'; key: string; label: string }
+  | { type: 'sep'; key: string; ts: string }
   | { type: 'system'; key: string; m: Message }
   | { type: 'msg'; key: string; m: Message; run: RunPos; showName: boolean; showAvatar: boolean }
-  | { type: 'seen'; key: string; users: User[] }
+  | { type: 'seen'; key: string; users: User[]; readAt: number | null; delivered: boolean }
   | { type: 'lore'; key: string; lore: Lore };
 
 export default function ThreadScreen() {
@@ -69,16 +68,20 @@ export default function ThreadScreen() {
   const { userById } = useSession();
   const inbox = useInbox();
   const onExplain = useExplain();
-  const t = useThread(groupId, me.id);
+  // A peek from the inbox (Link.Preview) renders this screen too: it must not mark anything read,
+  // show the catch-up pill or listen to realtime; the composer and overlays stay hidden.
+  const isPreview = useIsPreview();
+  const t = useThread(groupId, me.id, { live: !isPreview });
   const listRef = useRef<FlatList<Item>>(null);
   const inputRef = useRef<TextInputInstance>(null);
 
   // ---- Catch-up pill ------------------------------------------------------------------------
   const [catchup, setCatchup] = useState<{ count: number; since: number | null } | null>(() => {
     const n = Number(params.unread ?? 0);
-    return n >= CATCHUP_MIN ? { count: n, since: null } : null;
+    return n >= CATCHUP_MIN && !isPreview ? { count: n, since: null } : null;
   });
   useEffect(() => {
+    if (isPreview) return;
     let cancelled = false;
     api
       .catchupPreview(groupId, me.id)
@@ -90,11 +93,13 @@ export default function ThreadScreen() {
     return () => {
       cancelled = true;
     };
-  }, [groupId, me.id]);
+  }, [groupId, me.id, isPreview]);
   const pillVisible = !!catchup;
 
   // ---- Read state ---------------------------------------------------------------------------
-  const focused = useRef(true);
+  // Starts false: a peek prefetches this route as a real (non-preview) screen that never gains
+  // focus, and it must not mark anything read until the user actually opens the thread.
+  const focused = useRef(false);
   const [focusTick, setFocusTick] = useState(0);
   useFocusEffect(
     useCallback(() => {
@@ -109,14 +114,14 @@ export default function ThreadScreen() {
   const lastReadSent = useRef(0);
   const markRead = useCallback(
     (messageId: number) => {
-      if (messageId <= lastReadSent.current) return;
+      if (isPreview || messageId <= lastReadSent.current) return;
       lastReadSent.current = messageId;
       api.markRead(groupId, { user_id: me.id, message_id: messageId }).catch(() => {
         lastReadSent.current = 0;
       });
       inbox.markReadLocal(groupId, messageId);
     },
-    [groupId, me.id, inbox],
+    [groupId, me.id, inbox, isPreview],
   );
   useEffect(() => {
     // Catch-up must not change read state while its pill is up.
@@ -127,27 +132,30 @@ export default function ThreadScreen() {
   useEffect(
     () =>
       catchupMarkRead.on(({ groupId: g }) => {
-        if (g !== groupId) return;
+        if (g !== groupId || isPreview) return;
         setCatchup(null);
         const newest = t.messages.filter((m) => m.id > 0).at(-1);
         if (newest) markRead(newest.id);
       }),
-    [groupId, t.messages, markRead],
+    [groupId, t.messages, markRead, isPreview],
   );
 
-  // Index of the bottom-most visible row: outgoing bubbles are tinted by screen position from here.
-  const [bottomIndex, setBottomIndex] = useState(0);
   const onViewable = useCallback(({ viewableItems }: { viewableItems: ListViewToken[] }) => {
     let max = 0;
-    let minIndex = Infinity;
     for (const v of viewableItems) {
-      if (v.index !== null && v.index !== undefined && v.index < minIndex) minIndex = v.index;
       const it = v.item as Item;
       if ((it.type === 'msg' || it.type === 'system') && it.m.id > max) max = it.m.id;
     }
     if (max > 0) setNewestVisible((prev) => (prev === null || max > prev ? max : prev));
-    if (minIndex !== Infinity) setBottomIndex(minIndex);
   }, []);
+
+  // A DM's "Read 3:29 PM": the read time is only known when this session sees the receipt arrive.
+  const [readSeen, setReadSeen] = useState<{ messageId: number; at: number } | null>(null);
+  useRealtime((frame) => {
+    if (isPreview || frame.type !== 'read.updated' || frame.data.group_id !== groupId || frame.data.user_id === me.id) return;
+    const messageId = frame.data.message_id;
+    setReadSeen((prev) => (prev && prev.messageId >= messageId ? prev : { messageId, at: Date.now() }));
+  });
 
   // ---- Jump to a message (catch-up bullet) -----------------------------------------------------
   const [highlightId, setHighlightId] = useState<number | null>(null);
@@ -155,7 +163,7 @@ export default function ThreadScreen() {
   useEffect(
     () =>
       threadJump.on(async ({ groupId: g, messageId }) => {
-        if (g !== groupId) return;
+        if (g !== groupId || isPreview) return;
         try {
           await t.jumpTo(messageId);
         } catch {
@@ -165,7 +173,7 @@ export default function ThreadScreen() {
         setHighlightId(null);
         setTimeout(() => setHighlightId(messageId), 50);
       }),
-    [groupId, t],
+    [groupId, t, isPreview],
   );
 
   // ---- Opened at a message (Lore's "What was said") -----------------------------------------------
@@ -176,9 +184,59 @@ export default function ThreadScreen() {
     threadJump.emit({ groupId, messageId: Number(params.around) });
   }, [params.around, t.status, groupId]);
 
+  // ---- Kept moments: photos that anchor one get a sparkles badge -----------------------------------
+  const [keptPhotos, setKeptPhotos] = useState<Map<number, number[]>>(() => new Map()); // lore id → its photos
+  const noteKept = useCallback((l: Lore) => {
+    const ids = l.status === 'kept' ? lorePhotoIds(l) : [];
+    setKeptPhotos((prev) => {
+      if (!ids.length && !prev.has(l.id)) return prev;
+      const next = new Map(prev);
+      if (ids.length) next.set(l.id, ids);
+      else next.delete(l.id);
+      return next;
+    });
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getLoreFeed(me.id, { group_id: groupId, kind: 'photo', limit: 50 })
+      .then((feed) => !cancelled && setKeptPhotos(new Map(feed.items.map((l) => [l.id, lorePhotoIds(l)]))))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [groupId, me.id]);
+  const keptPhotoIds = useMemo(() => new Set([...keptPhotos.values()].flat()), [keptPhotos]);
+
+  const [viewing, setViewing] = useState<Message | null>(null); // the photo open full screen
+  const saveToLore = useCallback(
+    async (m: Message) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        const l = await api.saveLore(groupId, m.id, me.id);
+        noteKept(l);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Saved to Lore', l.title, [
+          { text: 'OK', style: 'cancel' },
+          {
+            text: 'View',
+            onPress: () => {
+              setViewing(null);
+              router.push({ pathname: '/lore/[id]', params: { id: String(l.id) } });
+            },
+          },
+        ]);
+      } catch (e) {
+        Alert.alert('Couldn’t save it', e instanceof Error ? e.message : String(e));
+      }
+    },
+    [groupId, me.id, noteKept, router],
+  );
+
   // ---- Lore suggestions: "Keep this as lore?" under the moment's messages -------------------------
   const [loreSuggestions, setLoreSuggestions] = useState<Lore[]>([]);
   useEffect(() => {
+    if (isPreview) return;
     let cancelled = false;
     api
       .getLoreSuggestions(groupId, me.id)
@@ -187,10 +245,12 @@ export default function ThreadScreen() {
     return () => {
       cancelled = true;
     };
-  }, [groupId, me.id]);
+  }, [groupId, me.id, isPreview]);
   useRealtime((frame) => {
-    if (frame.type !== 'lore.updated' || frame.data.group_id !== groupId || frame.data.source !== 'chat') return;
+    if (isPreview || frame.type !== 'lore.updated' || frame.data.group_id !== groupId) return;
     const l = frame.data;
+    noteKept(l);
+    if (l.source !== 'chat') return;
     setLoreSuggestions((prev) =>
       l.status === 'suggested' ? [...prev.filter((p) => p.id !== l.id), l] : prev.filter((p) => p.id !== l.id),
     );
@@ -234,7 +294,7 @@ export default function ThreadScreen() {
       i === 0 || new Date(asc[i].ts).getTime() - new Date(asc[i - 1].ts).getTime() > GAP_FOR_SEPARATOR_MS;
     for (let i = 0; i < asc.length; i++) {
       const m = asc[i];
-      if (sepBefore(i)) out.push({ type: 'sep', key: `sep-${m.id}`, label: separatorLabel(m.ts) });
+      if (sepBefore(i)) out.push({ type: 'sep', key: `sep-${m.id}`, ts: m.ts });
       if (m.kind === 'system') {
         out.push({ type: 'system', key: `m-${m.id}`, m });
         continue;
@@ -251,7 +311,7 @@ export default function ThreadScreen() {
         m,
         run,
         showName: !mine && !joinsPrev && !t.group?.is_dm,
-        showAvatar: !mine && !joinsNext,
+        showAvatar: !mine && !joinsNext && !t.group?.is_dm,
       });
       for (const l of loreSuggestions) if (l.anchor_message_id === m.id) out.push({ type: 'lore', key: `lore-${l.id}`, lore: l });
     }
@@ -262,10 +322,13 @@ export default function ThreadScreen() {
           (mem) => mem.user.id !== me.id && mem.user.id !== newest.sender_id && (mem.last_read_message_id ?? 0) >= newest.id,
         )
         .map((mem) => mem.user);
-      if (seen.length) out.push({ type: 'seen', key: 'seen', users: seen });
+      const mineNewest = newest.sender_id === me.id;
+      const readAt = readSeen && readSeen.messageId >= newest.id ? readSeen.at : null;
+      if (seen.length || (mineNewest && t.group?.is_dm))
+        out.push({ type: 'seen', key: 'seen', users: seen, readAt, delivered: mineNewest });
     }
     return out.reverse();
-  }, [t.messages, t.group?.is_dm, t.hasMoreAfter, members, me.id, loreSuggestions]);
+  }, [t.messages, t.group?.is_dm, t.hasMoreAfter, members, me.id, loreSuggestions, readSeen]);
 
   // Scroll to a jumped-to message once it's in the list.
   useEffect(() => {
@@ -302,7 +365,6 @@ export default function ThreadScreen() {
   const nudge = useNudge({ groupId, userId: me.id, hasNewcomers, draft, setDraft, onSend: sendNow });
 
   // ---- Photos ----------------------------------------------------------------------------------
-  const [viewing, setViewing] = useState<Message | null>(null);
   const [attachment, setAttachment] = useState<{ uri: string; width: number; height: number } | null>(null);
   const pickPhoto = useCallback(async () => {
     // quality < 1 makes iOS hand back a JPEG, which is what the upload expects.
@@ -310,6 +372,24 @@ export default function ThreadScreen() {
     const asset = res.canceled ? null : res.assets[0];
     if (asset) setAttachment({ uri: asset.uri, width: asset.width, height: asset.height });
   }, []);
+  // The simulator has no camera: launchCameraAsync rejects there, so offer Photos instead.
+  const takePhoto = useCallback(async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Camera Access Is Off', 'Allow camera access in Settings to take a photo here.');
+        return;
+      }
+      const res = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 });
+      const asset = res.canceled ? null : res.assets[0];
+      if (asset) setAttachment({ uri: asset.uri, width: asset.width, height: asset.height });
+    } catch {
+      Alert.alert('No Camera Available', 'This device can’t take photos. Choose one from your library instead.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Choose Photo', onPress: pickPhoto },
+      ]);
+    }
+  }, [pickPhoto]);
   // A photo skips the nudge checks: its caption goes out as typed.
   const sendPhotoNow = useCallback(async () => {
     if (!attachment) return;
@@ -393,36 +473,40 @@ export default function ThreadScreen() {
   }, []);
   const explainMessage = useCallback((m: Message) => onExplain({ groupId, message: m }), [onExplain, groupId]);
 
-  // ---- Header text ---------------------------------------------------------------------------
+  // ---- Header + apps -------------------------------------------------------------------------
   const group = t.group;
+  const isDm = !!group?.is_dm;
   const title = group?.name ?? params.name ?? '';
-  const [openedAt] = useState(() => Date.now());
-  const subtitle = useMemo(() => {
-    if (!group) return '';
-    // Prefer the live window; when viewing history (after a jump) fall back to the inbox's latest message.
-    const latestInbox = inbox.items.find((it) => it.group.id === groupId)?.last_message;
-    const fromWindow = t.hasMoreAfter
-      ? undefined
-      : [...t.messages].reverse().find((m) => m.kind !== 'system' && m.sender_id && m.sender_id !== me.id);
-    const lastOther = fromWindow ?? (latestInbox && latestInbox.sender_id !== me.id ? latestInbox : undefined);
-    if (group.is_dm) return lastOther ? `Active ${shortAge(lastOther.ts)} ago` : 'Instagram';
-    if (lastOther && openedAt - new Date(lastOther.ts).getTime() < 24 * 3600 * 1000) {
-      const who = userById(lastOther.sender_id);
-      return `${who ? firstName(who.display_name) : 'Someone'} was active ${shortAge(lastOther.ts)} ago`;
-    }
-    return `${group.member_count} members`;
-  }, [group, t.messages, t.hasMoreAfter, inbox.items, groupId, me.id, userById, openedAt]);
+  const others = useMemo(
+    () => (members ?? []).filter((mem) => mem.user.id !== me.id).map((mem) => mem.user),
+    [members, me.id],
+  );
+  const headerAvatar = group?.avatar_url ?? (isDm ? (others[0]?.avatar_url ?? null) : null);
+  const memberAvatars = others.slice(0, 2).map((u) => u.avatar_url);
+  // iMessage's "‹ 12": unread threads other than this one.
+  const unreadHere = inbox.items.find((it) => it.group.id === groupId)?.unread_count ?? 0;
+  const unreadElsewhere = Math.max(0, inbox.unreadThreads - (unreadHere > 0 ? 1 : 0));
+
+  const lastIncoming = useMemo(
+    () => [...t.messages].reverse().find((m) => m.id > 0 && m.kind !== 'system' && m.sender_id !== me.id),
+    [t.messages, me.id],
+  );
+  const openGroupInfo = () => {
+    Haptics.selectionAsync();
+    router.push({ pathname: '/group/[id]', params: { id: String(groupId), name: title } });
+  };
+  const openLore = () => router.push({ pathname: '/reels', params: { group: String(groupId) } });
 
   const headerHeight = insets.top + 2 + HEADER_ROW;
 
-  const renderItem = ({ item, index }: { item: Item; index: number }) => {
+  const renderItem = ({ item }: { item: Item }) => {
     switch (item.type) {
       case 'sep':
-        return <TimeSeparator label={item.label} />;
+        return <TimeSeparator ts={item.ts} />;
       case 'system':
         return <SystemLine text={item.m.text} names={names} />;
       case 'seen':
-        return <SeenBy users={item.users} isDm={!!group?.is_dm} />;
+        return <SeenBy users={item.users} isDm={isDm} readAt={item.readAt} delivered={item.delivered} />;
       case 'lore':
         return <LoreSuggestionCard lore={item.lore} onKeep={() => keepLore(item.lore)} onDismiss={() => dismissLore(item.lore)} />;
       case 'msg': {
@@ -437,13 +521,14 @@ export default function ThreadScreen() {
             sender={userById(m.sender_id)}
             showName={item.showName}
             showAvatar={item.showAvatar}
+            avatars={!isDm}
             run={item.run}
-            tint={tintFor(index - bottomIndex)}
+            meId={me.id}
             highlighted={highlightId === m.id}
             replied={
               m.reply_to
                 ? {
-                    name: replied?.sender_id === me.id ? 'you' : (repliedSender?.username ?? 'a message'),
+                    name: replied?.sender_id === me.id ? 'you' : repliedSender ? firstName(repliedSender.display_name) : 'a message',
                     text: replied ? (replied.kind === 'photo' ? 'Photo' : replied.text) : 'Original message',
                   }
                 : null
@@ -453,7 +538,9 @@ export default function ThreadScreen() {
             onReply={onReply}
             onCopy={onCopy}
             onExplain={explainMessage}
+            onSaveToLore={m.id > 0 ? saveToLore : undefined}
             onOpenPhoto={setViewing}
+            kept={m.kind === 'photo' && keptPhotoIds.has(m.id)}
           />
         );
       }
@@ -461,16 +548,14 @@ export default function ThreadScreen() {
   };
 
   const intro = group ? (
-    <View style={[styles.intro, { paddingTop: headerHeight + (pillVisible ? 60 : 24) + (activeCall ? 56 : 0) }]}>
-      {group.is_dm || group.avatar_url ? (
-        <Avatar uri={group.avatar_url} size={92} />
+    <View style={[styles.intro, { paddingTop: headerHeight + (pillVisible ? 60 : 24) + (activeCall && !isPreview ? 56 : 0) }]}>
+      {isDm || group.avatar_url ? (
+        <Avatar uri={headerAvatar} name={title} size={92} />
       ) : (
-        <GroupAvatar uris={[null, null]} size={92} />
+        <GroupAvatar uris={memberAvatars} size={92} />
       )}
       <Text style={styles.introTitle}>{group.name}</Text>
-      <Text style={styles.introSub}>
-        {group.is_dm ? 'A conversation, just between you.' : `${group.member_count} people. One shared space.`}
-      </Text>
+      <Text style={styles.introSub}>{isDm ? 'iMessage' : `${group.member_count} people`}</Text>
     </View>
   ) : null;
 
@@ -494,6 +579,9 @@ export default function ThreadScreen() {
             ref={listRef}
             data={items}
             inverted
+            // A peek renders inside the inbox's ScrollView; it doesn't scroll, and a scrollable list
+            // there trips React Native's nested-VirtualizedList error.
+            scrollEnabled={!isPreview}
             keyExtractor={(it) => it.key}
             renderItem={renderItem}
             onEndReached={t.loadOlder}
@@ -527,58 +615,77 @@ export default function ThreadScreen() {
             windowSize={15}
           />
         )}
-        {awayFromBottom || t.hasMoreAfter ? (
+        {isPreview ? null : awayFromBottom || t.hasMoreAfter ? (
           <View style={styles.fab}>
             <GlassCircle size={38} onPress={jumpToLatest} accessibilityLabel="Jump to latest">
-              <Icon name="chevron.down" size={15} weight="semibold" />
+              <Icon name="chevron.down" size={15} weight="semibold" color={colors.blue} />
             </GlassCircle>
           </View>
         ) : null}
-        <View style={{ paddingBottom: kbVisible ? 4 : insets.bottom }}>
-          {nudge.banner ? (
-            <NudgeBanner
-              banner={nudge.banner}
-              onRewrite={nudge.rewrite}
-              onKeepMine={nudge.keepMine}
-              onAddAside={nudge.openAside}
-              onSubmitAside={nudge.submitAside}
-              onDismiss={nudge.dismiss}
+        {isPreview ? null : (
+          <View style={{ paddingBottom: kbVisible ? 4 : insets.bottom }}>
+            {nudge.banner ? (
+              <NudgeBanner
+                banner={nudge.banner}
+                onRewrite={nudge.rewrite}
+                onKeepMine={nudge.keepMine}
+                onAddAside={nudge.openAside}
+                onSubmitAside={nudge.submitAside}
+                onDismiss={nudge.dismiss}
+              />
+            ) : null}
+            <Composer
+              ref={inputRef}
+              value={draft}
+              onChangeText={setDraft}
+              highlights={nudge.highlights}
+              sendLabel={attachment ? 'Send' : nudge.sendLabel}
+              sending={!attachment && nudge.checkingUnknown}
+              onSend={attachment ? sendPhotoNow : nudge.send}
+              placeholder={isDm ? 'iMessage' : 'Message'}
+              reply={
+                replyTo
+                  ? {
+                      name: replyTo.sender_id === me.id ? 'You' : firstName(userById(replyTo.sender_id)?.display_name ?? ''),
+                      text: replyTo.text,
+                      photoUri: replyTo.kind === 'photo' ? (replyTo.image?.url ?? null) : null,
+                    }
+                  : null
+              }
+              onCancelReply={() => setReplyTo(null)}
+              attachment={attachment}
+              onRemoveAttachment={() => setAttachment(null)}
+              apps={{
+                onPhotos: pickPhoto,
+                onCamera: takePhoto,
+                onCatchup: catchup || unreadHere > 0 ? openCatchup : undefined,
+                onExplain: lastIncoming ? () => explainMessage(lastIncoming) : undefined,
+                onLore: openLore,
+                onCall: openCall,
+              }}
             />
-          ) : null}
-          <Composer
-            ref={inputRef}
-            value={draft}
-            onChangeText={setDraft}
-            highlights={nudge.highlights}
-            sendLabel={attachment ? 'Send' : nudge.sendLabel}
-            sending={!attachment && nudge.checkingUnknown}
-            onSend={attachment ? sendPhotoNow : nudge.send}
-            reply={
-              replyTo
-                ? {
-                    name: replyTo.sender_id === me.id ? 'yourself' : (userById(replyTo.sender_id)?.username ?? ''),
-                    text: replyTo.kind === 'photo' ? 'Photo' : replyTo.text,
-                  }
-                : null
-            }
-            onCancelReply={() => setReplyTo(null)}
-            attachment={attachment}
-            onPickPhoto={pickPhoto}
-            onRemoveAttachment={() => setAttachment(null)}
-          />
-        </View>
+          </View>
+        )}
       </KeyboardAvoidingView>
       <ThreadHeader
         title={title}
-        subtitle={subtitle}
-        avatarUrl={group?.avatar_url ?? null}
-        isGroup={!!group && !group.is_dm}
+        avatarUrl={headerAvatar}
+        memberAvatars={memberAvatars}
+        isGroup={!!group && !isDm}
+        unreadCount={unreadElsewhere}
         onBack={() => router.back()}
-        onCall={openCall}
+        onOpenInfo={openGroupInfo}
+        onVideo={openCall}
+        onAudio={openCall}
       />
-      {activeCall ? <CallBar call={activeCall} top={headerHeight + 6} meId={me.id} onJoin={openCall} /> : null}
+      {activeCall && !isPreview ? <CallBar call={activeCall} top={headerHeight + 6} meId={me.id} onJoin={openCall} /> : null}
       {catchup ? <CatchupPill count={catchup.count} top={headerHeight + (activeCall ? 62 : 6)} onPress={openCatchup} /> : null}
-      <PhotoViewer message={viewing} onClose={() => setViewing(null)} />
+      <PhotoViewer
+        message={viewing}
+        onClose={() => setViewing(null)}
+        kept={!!viewing && keptPhotoIds.has(viewing.id)}
+        onSaveToLore={viewing && viewing.id > 0 ? saveToLore : undefined}
+      />
     </View>
   );
 }

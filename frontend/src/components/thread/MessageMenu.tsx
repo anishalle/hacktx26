@@ -9,13 +9,15 @@ type Props = {
   onReply: () => void;
   onCopy: () => void;
   onExplain: () => void;
+  /** "Save to Lore"; the item only shows when a handler is passed. */
+  onSaveToLore?: () => void;
 };
 
 /**
  * Native SwiftUI context menu around a bubble (Expo UI, works in Expo Go): long-press lifts the
- * bubble with the system preview, a quick-reaction row, then Reply / Copy / Explain.
+ * bubble with the system preview, a tapback row, then Explain / Reply / Copy / Save to Lore.
  */
-export function MessageMenu({ children, onReact, onReply, onCopy, onExplain }: Props) {
+export function MessageMenu({ children, onReact, onReply, onCopy, onExplain, onSaveToLore }: Props) {
   return (
     <Host matchContents>
       <ContextMenu>
@@ -32,9 +34,10 @@ export function MessageMenu({ children, onReact, onReply, onCopy, onExplain }: P
             ))}
           </ControlGroup>
           <Divider />
+          <Button label="Explain" systemImage="sparkles" onPress={onExplain} />
           <Button label="Reply" systemImage="arrowshape.turn.up.left" onPress={onReply} />
           <Button label="Copy" systemImage="doc.on.doc" onPress={onCopy} />
-          <Button label="Explain" systemImage="questionmark.circle" onPress={onExplain} />
+          {onSaveToLore ? <Button label="Save to Lore" systemImage="sparkles.rectangle.stack" onPress={onSaveToLore} /> : null}
         </ContextMenu.Items>
         <ContextMenu.Trigger>
           <RNHostView matchContents>{children}</RNHostView>

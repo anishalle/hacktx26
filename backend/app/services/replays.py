@@ -11,7 +11,8 @@ finished caption turns. Signals mark a moment worth replaying:
 
 A signal waits SETTLE_S (to catch the reaction), then saves the last CLIP_MS mixed to a
 WAV in MEDIA_DIR with the caption timeline, has Muse title it from the captions, and
-suggests it to everyone on the call as `source="call"` lore. One moment, one suggestion:
+suggests it to everyone on the call as `source="call"` lore (its events: the
+caption lines around the signal; see lore._events). One moment, one suggestion:
 signals within DEBOUNCE_MS of the last one are ignored.
 """
 
@@ -36,7 +37,6 @@ from app.core.config import settings
 from app.models import Call, CallMember, Lore, LoreReplay, User
 from app.services import embeddings, llm
 from app.services import lore as lore_service
-from app.services.realtime import hub
 
 log = logging.getLogger(__name__)
 
@@ -59,14 +59,18 @@ PHRASES = re.compile(
     re.IGNORECASE,
 )
 
-REPLAY_SYSTEM = """A group of friends is on a call. You get the captions of the last \
+REPLAY_SYSTEM = (
+    """A group of friends is on a call. You get the captions of the last \
 30 seconds, `<name>: text`. Decide whether this is a moment the group would want to \
 keep as lore: something funny, a story, an inside joke, big news, a memorable \
 reaction. Use only the captions; never invent what happened.
 Return only JSON: {"keep": bool, "title": str, "story": str, "terms": [str]}
-- title: at most 60 characters, specific, no quotes or emoji.
+- title: """
+    + lore_service.TITLE_RULE
+    + """
 - story: 1-2 plain sentences: what happened.
 - terms: inside terms or nicknames said, as written."""
+)
 
 
 @dataclass
@@ -277,6 +281,7 @@ async def save(m: CallMoments, kind: str) -> Lore | None:
             embedding=await embeddings.embed(f"{title}. {story} {' '.join(terms)}"),
         )
         session.add(lore)
+        await lore_service.refresh_events(session, lore)
         await session.commit()
         on_call = list(
             await session.scalars(
@@ -288,7 +293,7 @@ async def save(m: CallMoments, kind: str) -> Lore | None:
         call = await session.get(Call, m.call_id)
         if call is None or call.ended_at is not None:
             return lore
-        await hub.send(on_call, "lore.updated", await lore_service.view(session, lore))
+        await lore_service.announce(session, lore, on_call)
         return lore
 
 

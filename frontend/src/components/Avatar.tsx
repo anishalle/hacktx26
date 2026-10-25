@@ -41,12 +41,23 @@ export function Avatar({ uri, size, style, ring, name }: Props) {
 }
 
 /** Overlapping member avatars for groups without a photo. */
-export function GroupAvatar({ uris, size, style }: { uris: (string | null)[]; size: number; style?: StyleProp<ViewStyle> }) {
+export function GroupAvatar({
+  uris,
+  size,
+  style,
+  ring = colors.bg,
+}: {
+  uris: (string | null)[];
+  size: number;
+  style?: StyleProp<ViewStyle>;
+  /** The cut-out ring around the front face; pass the surface color on dark screens. */
+  ring?: string;
+}) {
   const inner = size * 0.68;
   return (
     <View style={[{ width: size, height: size }, style]}>
       <Avatar uri={uris[1] ?? null} size={inner} style={{ position: 'absolute', top: 0, right: 0 }} />
-      <Avatar uri={uris[0] ?? null} size={inner} ring={colors.bg} style={{ position: 'absolute', bottom: 0, left: 0 }} />
+      <Avatar uri={uris[0] ?? null} size={inner} ring={ring} style={{ position: 'absolute', bottom: 0, left: 0 }} />
     </View>
   );
 }

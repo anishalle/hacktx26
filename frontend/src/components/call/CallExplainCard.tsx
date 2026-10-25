@@ -1,5 +1,4 @@
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -13,6 +12,7 @@ import { useSession } from '@/state/session';
 import { callColors as colors } from '@/theme';
 
 const AUTO_DISMISS_MS = 15_000;
+const INDIGO = '#5E5CE6'; // systemIndigo (dark)
 
 export type CardState =
   | { phase: 'loading'; atMs: number }
@@ -84,14 +84,9 @@ export function CallExplainCard({ card, groupId, meId, onRetry, onDismiss }: Pro
   return (
     <Glass dark style={styles.card}>
       <Pressable onPress={onDismiss} style={styles.head} hitSlop={6} accessibilityLabel="Dismiss">
-        <LinearGradient
-          colors={['#4F70CC', '#567ED8', '#85A8FF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.badge}
-        >
+        <View style={styles.badge}>
           <Icon name="questionmark" size={13} weight="bold" color="white" />
-        </LinearGradient>
+        </View>
         <Text style={styles.title} numberOfLines={1}>
           {card.phase === 'loading'
             ? 'Catching what was just said…'
@@ -201,7 +196,15 @@ const styles = StyleSheet.create({
     borderColor: '#30425D',
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  badge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  // Indigo, like the ? button that opened the card.
+  badge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: INDIGO,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '700' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   label: { color: colors.sparkle, fontSize: 13, fontWeight: '600' },

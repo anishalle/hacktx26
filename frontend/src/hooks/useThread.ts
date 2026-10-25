@@ -11,8 +11,8 @@ type State = {
   hasMoreAfter: boolean;
 };
 
-/** Paged message window for one thread, kept live by realtime frames. */
-export function useThread(groupId: number, meId: string) {
+/** Paged message window for one thread, kept live by realtime frames (unless `live: false`, e.g. a peek preview). */
+export function useThread(groupId: number, meId: string, { live = true }: { live?: boolean } = {}) {
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [state, setState] = useState<State>({ messages: [], hasMoreBefore: false, hasMoreAfter: false });
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -104,6 +104,7 @@ export function useThread(groupId: number, meId: string) {
   );
 
   useRealtime((frame) => {
+    if (!live) return;
     if (frame.type === 'message.new' && frame.data.group_id === groupId) {
       const m = frame.data;
       setState((prev) => {

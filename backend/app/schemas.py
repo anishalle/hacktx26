@@ -486,12 +486,35 @@ class LoreCover(Schema):
     replay: LoreReplay | None = None
 
 
+LoreEventKind = Literal["photo", "replay", "quote", "video"]  # video: reserved
+
+
+class LoreSnippet(Schema):
+    """Something a member actually sent or said around an event's anchor."""
+
+    message_id: int | None  # null for spoken lines
+    user: User | None
+    text: str
+    ts: UtcDatetime
+    reactions: list[Reaction]
+    reason: Literal["caption", "reply", "reaction", "key", "spoken", "after"]
+    start_ms: int | None  # spoken lines: offset into the replay
+    is_me: bool
+
+
+class LoreEvent(Schema):
+    kind: LoreEventKind
+    at: UtcDatetime
+    message: Message | None  # photo / quote anchor
+    replay: LoreReplay | None
+    snippets: list[LoreSnippet]
+
+
 class Lore(Schema):
     id: int
     group_id: int
     group_name: str
     title: str
-    story: str
     status: LoreStatus
     source: Literal["chat", "call"]
     call_id: int | None
@@ -499,13 +522,17 @@ class Lore(Schema):
     ended_at: UtcDatetime
     people: list[User]
     terms: list[LoreTerm]
-    cover: LoreCover
+    hero_kind: LoreEventKind
+    events: list[LoreEvent]  # events[0] is the hero, the rest oldest first
+    media: list[Message]  # photo messages, oldest first
+    cover: LoreCover  # from events[0]
     anchor_message_id: int | None
     message_count: int
     photo_count: int
     replay_count: int
     kept_by: User | None
     kept_at: UtcDatetime | None
+    pinned: bool  # by the requesting member
 
 
 class LoreDetail(Lore):
@@ -515,9 +542,17 @@ class LoreDetail(Lore):
     related: list[Lore]
 
 
+class LoreCounts(Schema):
+    photo: int
+    replay: int
+    quote: int
+    pinned: int
+
+
 class LoreFeed(Schema):
     items: list[Lore]
     next_cursor: str | None
+    counts: LoreCounts
 
 
 class LoreAction(Schema):

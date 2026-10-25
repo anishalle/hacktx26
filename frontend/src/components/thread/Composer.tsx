@@ -1,14 +1,31 @@
 import { Image } from 'expo-image';
 import { forwardRef, useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated as RNAnimated,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type TextInputInstance,
+} from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import type { Span } from '@/api';
 import { colors } from '@/theme';
 
 import { Icon } from '../Icon';
+import { AppsStrip, springLayout, type AppsMode, type ComposerApps } from './AppsStrip';
 
 const LINE = 22;
-const PAD_V = 8;
+const PAD_V = 7;
+const MIN_H = LINE + PAD_V * 2;
+const MAX_H = LINE * 6 + PAD_V * 2;
+const HAIRLINE = '#C6C6C8';
+
+export type { ComposerApps };
 
 type Props = {
   value: string;
@@ -17,12 +34,14 @@ type Props = {
   sendLabel: string;
   sending: boolean;
   onSend: () => void;
-  reply: { name: string; text: string } | null;
+  /** "iMessage" in DMs, "Message" in groups. */
+  placeholder: string;
+  reply: { name: string; text: string; photoUri?: string | null } | null;
   onCancelReply: () => void;
   /** A picked photo waiting to be sent; the text becomes its caption. */
   attachment: { uri: string; width: number; height: number } | null;
-  onPickPhoto: () => void;
   onRemoveAttachment: () => void;
+  apps: ComposerApps;
 };
 
 /** Overlay runs: plain text is transparent (the input shows it), changed spans get a highlight. */
@@ -48,7 +67,7 @@ function segments(text: string, spans: Span[] | null) {
   return out;
 }
 
-/** Message composer with attachment preview and contextual rewrite highlights. */
+/** iMessage composer: apps cluster, then a white capsule with reply/photo preview and the send circle. */
 export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
   {
     value,
@@ -57,79 +76,109 @@ export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
     sendLabel,
     sending,
     onSend,
+    placeholder,
     reply,
     onCancelReply,
     attachment,
-    onPickPhoto,
     onRemoveAttachment,
+    apps,
   },
   ref,
 ) {
   const hasText = value.trim().length > 0;
   const canSend = hasText || !!attachment;
   // Track the content height ourselves: a multiline input doesn't shrink back after a programmatic clear.
-  const [contentHeight, setContentHeight] = useState(LINE + PAD_V * 2);
-  const inputHeight = Math.min(120, Math.max(LINE + PAD_V * 2, value ? contentHeight : 0));
-  const [glow] = useState(() => new Animated.Value(0));
+  const [contentHeight, setContentHeight] = useState(MIN_H);
+  const inputHeight = Math.min(MAX_H, Math.max(MIN_H, value ? contentHeight : 0));
+  const [glow] = useState(() => new RNAnimated.Value(0));
+
+  const [expanded, setExpanded] = useState(false);
+  const mode: AppsMode = expanded ? 'expanded' : value.length > 0 || attachment ? 'compact' : 'idle';
+  // Replying brings the input back.
+  useEffect(() => {
+    if (reply) setExpanded(false);
+  }, [reply]);
 
   useEffect(() => {
     if (!highlights) return;
     glow.setValue(1);
-    Animated.timing(glow, { toValue: 0, duration: 2400, useNativeDriver: false }).start();
+    RNAnimated.timing(glow, { toValue: 0, duration: 2400, useNativeDriver: false }).start();
   }, [highlights, glow]);
 
   return (
     <View style={styles.outer}>
-      {reply ? (
-        <View style={styles.reply}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.replyTitle}>
-              Replying to <Text style={{ fontWeight: '700' }}>{reply.name}</Text>
-            </Text>
-            <Text style={styles.replyText} numberOfLines={1}>
-              {reply.text}
-            </Text>
-          </View>
-          <Pressable onPress={onCancelReply} hitSlop={10}>
-            <Icon name="xmark" size={14} color={colors.textSecondary} />
-          </Pressable>
-        </View>
-      ) : null}
+      <AppsStrip
+        mode={mode}
+        apps={apps}
+        onExpand={() => {
+          Keyboard.dismiss();
+          setExpanded(true);
+        }}
+        onCollapse={() => setExpanded(false)}
+      />
       <Animated.View
-        style={[
-          styles.box,
-          {
-            borderColor: glow.interpolate({ inputRange: [0, 1], outputRange: [colors.separator, colors.blue] }),
-          },
-        ]}
+        layout={springLayout}
+        style={[styles.capsule, expanded && styles.capsuleHidden]}
+        pointerEvents={expanded ? 'none' : 'auto'}
       >
-        {attachment ? (
-          <View style={styles.attachment}>
-            <Image
-              source={{ uri: attachment.uri }}
-              style={[styles.thumb, { aspectRatio: Math.max(0.5, Math.min(2, attachment.width / attachment.height)) }]}
-              contentFit="cover"
-              accessibilityLabel="Photo to send"
-            />
-            <Pressable onPress={onRemoveAttachment} hitSlop={8} style={styles.thumbClose} accessibilityLabel="Remove photo">
-              <Icon name="xmark" size={11} weight="bold" color="white" />
+        <RNAnimated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            styles.border,
+            { borderColor: glow.interpolate({ inputRange: [0, 1], outputRange: [HAIRLINE, colors.blue] }) },
+          ]}
+        />
+        {reply ? (
+          <View style={styles.preview}>
+            <View style={styles.replyBar} />
+            <View style={styles.replyBody}>
+              <Text style={styles.replyName} numberOfLines={1}>
+                {reply.name}
+              </Text>
+              {reply.photoUri ? (
+                <View style={styles.replyPhoto}>
+                  <Image source={{ uri: reply.photoUri }} style={styles.replyThumb} contentFit="cover" />
+                  <Text style={styles.replyText}>Photo</Text>
+                </View>
+              ) : (
+                <Text style={styles.replyText} numberOfLines={1}>
+                  {reply.text}
+                </Text>
+              )}
+            </View>
+            <Pressable onPress={onCancelReply} hitSlop={10} accessibilityRole="button" accessibilityLabel="Cancel reply">
+              <Icon name="xmark.circle.fill" size={20} color={colors.textTertiary} />
             </Pressable>
           </View>
         ) : null}
-        <View style={styles.row}>
-          <Pressable onPress={onPickPhoto} style={styles.camera} accessibilityRole="button" accessibilityLabel="Attach a photo">
-            <Icon name="plus" size={20} color={colors.blue} />
-          </Pressable>
+        {attachment ? (
+          <View style={styles.preview}>
+            <View>
+              <Image source={{ uri: attachment.uri }} style={styles.attachThumb} contentFit="cover" accessibilityLabel="Photo to send" />
+              <Pressable
+                onPress={onRemoveAttachment}
+                hitSlop={8}
+                style={styles.attachClose}
+                accessibilityRole="button"
+                accessibilityLabel="Remove photo"
+              >
+                <Icon name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+        <View style={styles.inputRow}>
           <View style={styles.inputWrap}>
             <TextInput
               ref={ref}
               value={value}
               onChangeText={onChangeText}
-              placeholder={attachment ? 'Add a little context…' : 'Say something…'}
-              placeholderTextColor={colors.textSecondary}
+              placeholder={attachment ? 'Add comment or Send' : placeholder}
+              placeholderTextColor={colors.textTertiary}
               style={[styles.input, { height: inputHeight }]}
               onContentSizeChange={(e) => setContentHeight(e.nativeEvent.contentSize.height)}
-              scrollEnabled={contentHeight > 120}
+              scrollEnabled={contentHeight > MAX_H}
               multiline
               keyboardAppearance="light"
               selectionColor={colors.blue}
@@ -145,21 +194,17 @@ export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
               onPress={onSend}
               disabled={sending}
               hitSlop={8}
-              style={styles.sendBtn}
+              style={styles.send}
               accessibilityRole="button"
               accessibilityLabel={sendLabel}
             >
               {sending ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <Icon name="arrow.up" size={18} weight="bold" color="white" />
+                <Icon name="arrow.up" size={15} weight="bold" color="white" />
               )}
             </Pressable>
-          ) : (
-            <View style={styles.icons} pointerEvents="none">
-              <Icon name="bubble.left" size={19} color={colors.textTertiary} />
-            </View>
-          )}
+          ) : null}
         </View>
       </Animated.View>
     </View>
@@ -167,60 +212,46 @@ export const Composer = forwardRef<TextInputInstance, Props>(function Composer(
 });
 
 const styles = StyleSheet.create({
-  outer: { paddingHorizontal: 16, paddingBottom: 10, paddingTop: 8 },
-  reply: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginBottom: 6,
-    gap: 10,
+  outer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 10, paddingTop: 6, paddingBottom: 8 },
+  capsule: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: colors.bg,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
   },
-  replyTitle: { color: colors.text, fontSize: 13 },
-  replyText: { color: colors.textSecondary, fontSize: 13, marginTop: 1 },
-  box: { backgroundColor: colors.surfaceAlt, borderRadius: 22, borderWidth: 1 },
-  row: { flexDirection: 'row', alignItems: 'flex-end', minHeight: 54, paddingLeft: 7, paddingRight: 8, paddingVertical: 7 },
-  attachment: { alignSelf: 'flex-start', marginTop: 10, marginLeft: 10 },
-  thumb: { height: 150, borderRadius: 16, backgroundColor: colors.surface },
-  thumbClose: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  camera: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    backgroundColor: colors.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  capsuleHidden: { flexGrow: 0, flexBasis: 0, width: 0, opacity: 0 },
+  border: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth * 2 },
+  preview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 8, paddingLeft: 10, paddingRight: 8 },
+  replyBar: { width: 3, alignSelf: 'stretch', borderRadius: 1.5, backgroundColor: colors.blue },
+  replyBody: { flex: 1, minWidth: 0 },
+  replyName: { color: colors.blue, fontSize: 13, fontWeight: '600' },
+  replyText: { color: colors.textSecondary, fontSize: 15, marginTop: 1 },
+  replyPhoto: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  replyThumb: { width: 32, height: 32, borderRadius: 6, backgroundColor: colors.bubbleIn },
+  attachThumb: { width: 56, height: 56, borderRadius: 10, borderCurve: 'continuous', backgroundColor: colors.bubbleIn },
+  attachClose: { position: 'absolute', top: -6, right: -8, backgroundColor: colors.bg, borderRadius: 10 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingRight: 3 },
   inputWrap: { flex: 1 },
   input: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 17,
     lineHeight: LINE,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingTop: PAD_V,
     paddingBottom: PAD_V,
-    maxHeight: 120,
+    maxHeight: MAX_H,
   },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, color: 'transparent' },
-  icons: { alignItems: 'center', justifyContent: 'center', width: 38, height: 38 },
-  sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+  send: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginBottom: 3,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.action,
+    backgroundColor: colors.blue,
   },
-  send: { color: colors.blue, fontSize: 16, fontWeight: '700' },
   highlight: { backgroundColor: colors.highlight, color: colors.text, borderRadius: 4 },
 });

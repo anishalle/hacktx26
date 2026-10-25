@@ -5,13 +5,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.hacktx26.chat",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Your microphone is used for group calls and their live captions.",
-        "NSCameraUsageDescription": "Your camera is used to share video in group calls."
+        "NSCameraUsageDescription": "Your camera is used to take photos for your group chats and to share video in group calls."
       }
     },
     "android": {
@@ -34,7 +34,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Pick photos to share in your group chats.",
-          "cameraPermission": "Your camera is used to share video in group calls.",
+          "cameraPermission": "Your camera is used to take photos for your group chats and to share video in group calls.",
           "microphonePermission": "Your microphone is used for group calls and their live captions."
         }
       ],
@@ -44,7 +44,7 @@
       ]
     ],
     "scheme": "hacktx26",
-    "backgroundColor": "#000000",
+    "backgroundColor": "#FFFFFF",
     "experiments": {
       "typedRoutes": true
     }

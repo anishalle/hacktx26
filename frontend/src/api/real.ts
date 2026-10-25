@@ -18,6 +18,7 @@ import type {
   Lore,
   LoreDetail,
   LoreFeed,
+  LoreFeedQuery,
   MemberAsk,
   Message,
   MessagePage,
@@ -52,7 +53,7 @@ function url(path: string, query?: Query) {
 }
 
 async function request<T>(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'DELETE',
   path: string,
   opts: { query?: Query; body?: unknown; signal?: AbortSignal } = {},
 ): Promise<T> {
@@ -80,6 +81,14 @@ async function request<T>(
 const get = <T>(path: string, query?: Query, signal?: AbortSignal) => request<T>('GET', path, { query, signal });
 const post = <T>(path: string, body: unknown, signal?: AbortSignal, query?: Query) =>
   request<T>('POST', path, { body, signal, query });
+const del = <T>(path: string, query?: Query) => request<T>('DELETE', path, { query });
+
+/** `pinned` goes on the wire only when set, as `true`; an empty `q` is dropped. */
+const loreFeedQuery = ({ pinned, q, ...rest }: LoreFeedQuery): Query => ({
+  ...rest,
+  pinned: pinned ? 'true' : undefined,
+  q: q?.trim() || undefined,
+});
 
 /**
  * Multipart photo upload. Uses XMLHttpRequest: Expo replaces the global fetch, and its FormData
@@ -232,12 +241,16 @@ export const realApi: Api = {
   leaveCall: (callId, userId) => post<Call>(`/calls/${callId}/leave`, { user_id: userId }),
   explainCall: (callId, body, signal) => post<Explanation>(`/calls/${callId}/explain`, body, signal),
 
-  getLoreFeed: (userId, q = {}) => get<LoreFeed>(`/users/${encodeURIComponent(userId)}/lore`, q),
+  getLoreFeed: (userId, q = {}) => get<LoreFeed>(`/users/${encodeURIComponent(userId)}/lore`, loreFeedQuery(q)),
   getLore: (loreId, userId) => get<LoreDetail>(`/lore/${loreId}`, { user_id: userId }),
   getLoreSuggestions: (groupId, userId) => get<Lore[]>(`/groups/${groupId}/lore/suggestions`, { user_id: userId }),
+  saveLore: (groupId, messageId, userId) =>
+    post<Lore>(`/groups/${groupId}/lore`, { user_id: userId, message_id: messageId }),
   keepLore: (loreId, userId) => post<Lore>(`/lore/${loreId}/keep`, { user_id: userId }),
   dismissLore: (loreId, userId) => post<Lore>(`/lore/${loreId}/dismiss`, { user_id: userId }),
   removeLore: (loreId, userId) => post<Lore>(`/lore/${loreId}/remove`, { user_id: userId }),
+  pinLore: (loreId, userId) => post<Lore>(`/lore/${loreId}/pin`, { user_id: userId }),
+  unpinLore: (loreId, userId) => del<Lore>(`/lore/${loreId}/pin`, { user_id: userId }),
 
   connectRealtime,
 };

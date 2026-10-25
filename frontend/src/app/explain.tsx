@@ -2,18 +2,20 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { api, type Explanation, type Lore, type MemberAsk, type Message, type User } from '@/api';
 import { Avatar } from '@/components/Avatar';
 import { BoldText } from '@/components/BoldText';
 import { Icon } from '@/components/Icon';
+import { LoreThumb } from '@/components/lore/MomentRow';
 import { firstName } from '@/lib/format';
+import { loreSubtitle } from '@/lib/lore';
 import { useAsks } from '@/state/asks';
 import { threadJump } from '@/state/bus';
 import { useMe, useSession } from '@/state/session';
-import { colors } from '@/theme';
+import { colors, type } from '@/theme';
 
 type Phase = 'loading' | 'done' | 'error';
 
@@ -122,7 +124,11 @@ export default function ExplainSheet() {
         </View>
       ) : null}
 
-      {phase === 'loading' ? <Skeleton lines={3} /> : null}
+      {phase === 'loading' ? (
+        <Section>
+          <Skeleton lines={3} />
+        </Section>
+      ) : null}
 
       {phase === 'error' ? (
         <View style={styles.errorBox}>
@@ -133,9 +139,9 @@ export default function ExplainSheet() {
               setError(null);
               setAttempt((n) => n + 1);
             }}
-            style={styles.retry}
+            style={({ pressed }) => [styles.action, pressed && { opacity: 0.7 }]}
           >
-            <Text style={styles.retryText}>Try again</Text>
+            <Text style={styles.actionText}>Try Again</Text>
           </Pressable>
         </View>
       ) : null}
@@ -144,11 +150,31 @@ export default function ExplainSheet() {
 
       <View style={styles.footer}>
         <Text style={styles.footerNote}>
-          <Icon name="lock.fill" size={10} color={colors.textTertiary} /> Only you can see this. Nothing is posted to the chat.
+          <Icon name="lock.fill" size={10} color={colors.textSecondary} /> Only you can see this. Nothing is posted to the chat.
         </Text>
       </View>
     </ScrollView>
   );
+}
+
+/** An inset-grouped section: a footnote-caps header over a white card. */
+function Section({ title, children, padded }: { title?: string; children: ReactNode; padded?: boolean }) {
+  return (
+    <View style={styles.section}>
+      {title ? <Text style={styles.sectionTitle}>{title}</Text> : null}
+      <View style={[styles.card, padded && styles.cardPadded]}>{children}</View>
+    </View>
+  );
+}
+
+/** Rows inside one card, split by inset hairlines. */
+function Rows({ children, inset = 16 }: { children: ReactNode[]; inset?: number }) {
+  return children.map((child, i) => (
+    <Fragment key={i}>
+      {i ? <View style={[styles.sep, { marginLeft: inset }]} /> : null}
+      {child}
+    </Fragment>
+  ));
 }
 
 function Result({
@@ -171,56 +197,65 @@ function Result({
 
   return (
     <View>
-      <View style={styles.meaningCard}>
-        {result.status === 'general' ? <Text style={styles.label}>Not defined in this chat; generally it means…</Text> : null}
-        <BoldText text={result.meaning} style={styles.meaning} />
-        {result.status === 'plain' ? (
-          <Pressable onPress={onCatchup} style={({ pressed }) => [styles.action, pressed && { opacity: 0.7 }]}>
-            <Icon name="sparkles" size={14} color="white" weight="semibold" />
-            <Text style={styles.actionText}>Catch me up instead</Text>
-          </Pressable>
-        ) : null}
-      </View>
+      <Section padded>
+        <View style={{ gap: 12 }}>
+          {result.status === 'general' ? <Text style={styles.label}>Not defined in this chat; generally it means…</Text> : null}
+          <BoldText text={result.meaning} style={styles.meaning} />
+          {result.status === 'plain' ? (
+            <Pressable onPress={onCatchup} style={({ pressed }) => [styles.action, pressed && { opacity: 0.7 }]}>
+              <Icon name="sparkles" size={14} color="white" weight="semibold" />
+              <Text style={styles.actionText}>Catch Me Up Instead</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </Section>
 
-      {result.person ? <PersonCard user={result.person} /> : null}
+      {result.person ? (
+        <Section>
+          <PersonCard user={result.person} />
+        </Section>
+      ) : null}
 
       {result.lore?.length ? (
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Icon name="sparkles" size={15} color={colors.textSecondary} />
-            <Text style={styles.sectionTitle}>See the lore</Text>
-          </View>
-          {result.lore.map((l) => (
-            <LoreRow key={l.id} lore={l} />
-          ))}
-        </View>
+        <Section title="Lore">
+          <Rows inset={76}>
+            {result.lore.map((l) => (
+              <LoreRow key={l.id} lore={l} />
+            ))}
+          </Rows>
+        </Section>
       ) : null}
 
       {result.human_sources.length || lateAnswer ? (
-        <View style={styles.section}>
-          {result.human_sources.map((h) => (
-            <HumanCard key={h.ask_id} user={h.user} answer={h.answer} at={h.answered_at} />
-          ))}
-          {lateAnswer ? (
-            <HumanCard
-              user={lateAnswer.asked_user}
-              answer={lateAnswer.answer ?? ''}
-              at={lateAnswer.answered_at ?? lateAnswer.created_at}
-            />
-          ) : null}
-        </View>
+        <Section title="From members">
+          <Rows>
+            {[
+              ...result.human_sources.map((h) => (
+                <HumanCard key={h.ask_id} user={h.user} answer={h.answer} at={h.answered_at} />
+              )),
+              ...(lateAnswer
+                ? [
+                    <HumanCard
+                      key="late"
+                      user={lateAnswer.asked_user}
+                      answer={lateAnswer.answer ?? ''}
+                      at={lateAnswer.answered_at ?? lateAnswer.created_at}
+                    />,
+                  ]
+                : []),
+            ]}
+          </Rows>
+        </Section>
       ) : null}
 
       {result.sources.length ? (
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Icon name="text.bubble" size={15} color={colors.textSecondary} />
-            <Text style={styles.sectionTitle}>Where this came from</Text>
-          </View>
-          {result.sources.slice(0, 3).map((m) => (
-            <SourceRow key={m.id} message={m} sender={userById(m.sender_id)} meId={me.id} onPress={() => onJump(m.id)} />
-          ))}
-        </View>
+        <Section title="Where this came from">
+          <Rows inset={54}>
+            {result.sources.slice(0, 3).map((m) => (
+              <SourceRow key={m.id} message={m} sender={userById(m.sender_id)} meId={me.id} onPress={() => onJump(m.id)} />
+            ))}
+          </Rows>
+        </Section>
       ) : null}
 
       {(result.status === 'unknown' || result.status === 'general') &&
@@ -238,30 +273,26 @@ function Result({
 /** The kept moment behind a term: opens it full screen in place of this sheet. */
 function LoreRow({ lore }: { lore: Lore }) {
   const router = useRouter();
-  const photo = lore.cover.photo?.image;
   return (
     <Pressable
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.replace({ pathname: '/lore/[id]', params: { id: String(lore.id) } });
       }}
-      style={({ pressed }) => [styles.lore, pressed && { opacity: 0.7 }]}>
-      {photo ? (
-        <Image source={{ uri: photo.url }} style={styles.loreThumb} contentFit="cover" />
-      ) : (
-        <LinearGradient colors={['#3A1C71', '#1B2A5C']} style={[styles.loreThumb, styles.loreThumbText]}>
-          <Icon name={lore.cover.replay ? 'waveform' : 'sparkles'} size={18} color="white" />
-        </LinearGradient>
-      )}
+      accessibilityRole="button"
+      accessibilityLabel={lore.title}
+      style={({ pressed }) => [styles.lore, pressed && styles.pressed]}
+    >
+      <LoreThumb lore={lore} size={48} radius={10} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.loreTitle} numberOfLines={1}>
+        <Text style={styles.loreTitle} numberOfLines={2}>
           {lore.title}
         </Text>
-        <Text style={styles.loreStory} numberOfLines={2}>
-          {lore.story}
+        <Text style={styles.loreSub} numberOfLines={1}>
+          {loreSubtitle(lore, { weekday: false, people: false })}
         </Text>
       </View>
-      <Icon name="chevron.right" size={12} color={colors.textTertiary} />
+      <Icon name="chevron.right" size={13} color={colors.textTertiary} weight="semibold" />
     </Pressable>
   );
 }
@@ -269,11 +300,8 @@ function LoreRow({ lore }: { lore: Lore }) {
 function SourceRow({ message, sender, meId, onPress }: { message: Message; sender?: User; meId: string; onPress: () => void }) {
   const name = message.sender_id === meId ? 'You' : sender ? firstName(sender.display_name) : 'Someone';
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.source, pressed && { backgroundColor: 'rgba(255,255,255,0.06)' }]}
-    >
-      <Avatar uri={sender?.avatar_url} size={28} />
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.source, pressed && styles.pressed]}>
+      <Avatar uri={sender?.avatar_url} name={sender?.display_name} size={28} />
       <View style={{ flex: 1 }}>
         <Text style={styles.sourceMeta}>
           {name} · {shortDate(message.ts)}
@@ -300,7 +328,7 @@ function HumanCard({ user, answer, at }: { user: User; answer: string; at: strin
   return (
     <View style={styles.human}>
       <View style={styles.humanHead}>
-        <Avatar uri={user.avatar_url} size={22} />
+        <Avatar uri={user.avatar_url} name={user.display_name} size={22} />
         <Text style={styles.humanName}>From {firstName(user.display_name)}</Text>
         <Text style={styles.humanDate}>· {shortDate(at)}</Text>
       </View>
@@ -312,7 +340,7 @@ function HumanCard({ user, answer, at }: { user: User; answer: string; at: strin
 function PersonCard({ user }: { user: User }) {
   return (
     <View style={styles.person}>
-      <Avatar uri={user.avatar_url} size={44} />
+      <Avatar uri={user.avatar_url} name={user.display_name} size={44} />
       <View style={{ flex: 1 }}>
         <Text style={styles.personName}>{user.display_name}</Text>
         <Text style={styles.personSub}>
@@ -353,30 +381,32 @@ function AskCard({ result, groupId, ask }: { result: Explanation; groupId: numbe
   };
 
   return (
-    <View style={styles.askCard}>
-      <View style={styles.humanHead}>
-        <Avatar uri={who.avatar_url} size={22} />
-        <Text style={styles.humanName}>{name}</Text>
+    <Section title="Ask a member" padded>
+      <View style={{ gap: 10 }}>
+        <View style={styles.humanHead}>
+          <Avatar uri={who.avatar_url} name={who.display_name} size={22} />
+          <Text style={styles.humanName}>{name}</Text>
+        </View>
+        {!ask ? (
+          <>
+            <Text style={styles.askText}>Want me to ask {name} what this means, without making it a thing?</Text>
+            <Pressable
+              onPress={send}
+              disabled={busy}
+              style={({ pressed }) => [styles.action, (pressed || busy) && { opacity: 0.7 }]}
+            >
+              {busy ? <ActivityIndicator size="small" color="white" /> : <Icon name="paperplane.fill" size={13} color="white" />}
+              <Text style={styles.actionText}>Ask {name}</Text>
+            </Pressable>
+            {err ? <Text style={styles.errorText}>{err}</Text> : null}
+          </>
+        ) : ask.status === 'pending' ? (
+          <Text style={styles.askText}>Asked {name} privately. Their answer will show up here.</Text>
+        ) : (
+          <Text style={styles.askText}>{name} passed on this one.</Text>
+        )}
       </View>
-      {!ask ? (
-        <>
-          <Text style={styles.askText}>Want me to ask {name} what this means, without making it a thing?</Text>
-          <Pressable
-            onPress={send}
-            disabled={busy}
-            style={({ pressed }) => [styles.action, (pressed || busy) && { opacity: 0.7 }]}
-          >
-            {busy ? <ActivityIndicator size="small" color="white" /> : <Icon name="paperplane.fill" size={13} color="white" />}
-            <Text style={styles.actionText}>Ask {name}</Text>
-          </Pressable>
-          {err ? <Text style={styles.errorText}>{err}</Text> : null}
-        </>
-      ) : ask.status === 'pending' ? (
-        <Text style={styles.askText}>Asked {name} privately. Their answer will show up here.</Text>
-      ) : (
-        <Text style={styles.askText}>{name} passed on this one.</Text>
-      )}
-    </View>
+    </Section>
   );
 }
 
@@ -413,7 +443,7 @@ function FollowUp({ result, groupId }: { result: Explanation; groupId: number })
   return (
     <View style={styles.section}>
       {answers.map((a, i) => (
-        <View key={i} style={styles.answer}>
+        <View key={i} style={[styles.card, styles.cardPadded, { marginBottom: 12 }]}>
           <Text style={styles.answerQ}>{a.follow_up}</Text>
           <BoldText text={a.meaning} style={styles.answerText} />
         </View>
@@ -456,7 +486,7 @@ function Skeleton({ lines }: { lines: number }) {
     return () => loop.stop();
   }, [pulse]);
   return (
-    <View style={{ gap: 10, paddingVertical: 14 }}>
+    <View style={{ gap: 10, padding: 16 }}>
       {Array.from({ length: lines }).map((_, i) => (
         <Animated.View key={i} style={[styles.skel, { opacity: pulse, width: i === lines - 1 ? '62%' : '92%' }]} />
       ))}
@@ -465,65 +495,40 @@ function Skeleton({ lines }: { lines: number }) {
 }
 
 const styles = StyleSheet.create({
-  sheet: { flex: 1, backgroundColor: colors.sheetBg },
-  content: { paddingTop: 26, paddingHorizontal: 18, paddingBottom: 72 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  headerIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  title: { color: colors.text, fontSize: 20, fontWeight: '700' },
-  subtitle: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
-  quote: { borderLeftWidth: 3, borderLeftColor: colors.sparkle, paddingLeft: 12, paddingVertical: 2, marginBottom: 6 },
+  sheet: { flex: 1, backgroundColor: colors.grouped },
+  content: { paddingTop: 26, paddingHorizontal: 16, paddingBottom: 72 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14, paddingHorizontal: 2 },
+  headerIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  title: { color: colors.text, ...type.title2 },
+  subtitle: { color: colors.textSecondary, ...type.footnote, marginTop: 2 },
+  quote: { borderLeftWidth: 3, borderLeftColor: colors.blue, paddingLeft: 12, paddingVertical: 2, marginHorizontal: 2, marginBottom: 4 },
   quoteText: { color: colors.textSecondary, fontSize: 15, fontStyle: 'italic', lineHeight: 21 },
-  photoQuote: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 },
-  photoThumb: { width: 72, height: 72, borderRadius: 12, backgroundColor: colors.surface },
-  sourcePhoto: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  sourceThumb: { width: 40, height: 40, borderRadius: 8, backgroundColor: colors.surface },
-  meaningCard: {
-    marginTop: 10,
-    gap: 12,
-    padding: 18,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.separator,
-  },
-  label: { color: colors.sparkle, fontSize: 13, fontWeight: '600' },
+  photoQuote: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 2, marginBottom: 4 },
+  photoThumb: { width: 72, height: 72, borderRadius: 12, borderCurve: 'continuous', backgroundColor: colors.surfaceAlt },
+  section: { marginTop: 22 },
+  sectionTitle: { color: colors.textSecondary, ...type.footnote, textTransform: 'uppercase', marginHorizontal: 16, marginBottom: 7 },
+  card: { backgroundColor: colors.surface, borderRadius: 22, borderCurve: 'continuous', overflow: 'hidden' },
+  cardPadded: { padding: 16 },
+  sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.separator },
+  pressed: { backgroundColor: 'rgba(0,0,0,0.05)' },
+  label: { color: colors.blue, ...type.footnote, fontWeight: '600' },
   meaning: { color: colors.text, fontSize: 17, lineHeight: 24 },
-  section: { marginTop: 18 },
-  lore: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 16, backgroundColor: colors.surfaceAlt, marginBottom: 8 },
-  loreThumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.surface },
-  loreThumbText: { alignItems: 'center', justifyContent: 'center' },
-  loreTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  loreStory: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, marginTop: 2 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  sectionTitle: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
-  source: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 10 },
-  sourceMeta: { color: colors.textSecondary, fontSize: 12, marginBottom: 2 },
+  lore: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 16 },
+  loreTitle: { color: colors.text, ...type.headline, lineHeight: 22 },
+  loreSub: { color: colors.textSecondary, ...type.subheadline, marginTop: 1 },
+  source: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 11, paddingHorizontal: 16 },
+  sourceMeta: { color: colors.textSecondary, ...type.footnote, marginBottom: 2 },
   sourceText: { color: colors.text, fontSize: 15, lineHeight: 20 },
-  human: { backgroundColor: colors.surface, borderRadius: 16, padding: 14, marginBottom: 8 },
+  sourcePhoto: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  sourceThumb: { width: 40, height: 40, borderRadius: 8, borderCurve: 'continuous', backgroundColor: colors.surfaceAlt },
+  human: { padding: 16 },
   humanHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  humanName: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  humanDate: { color: colors.textTertiary, fontSize: 13 },
+  humanName: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  humanDate: { color: colors.textSecondary, ...type.footnote },
   humanText: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  person: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 12,
-  },
-  personName: { color: colors.text, fontSize: 16, fontWeight: '600' },
-  personSub: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
-  askCard: {
-    marginTop: 18,
-    borderRadius: 16,
-    padding: 14,
-    backgroundColor: 'rgba(0,122,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,122,255,0.16)',
-    gap: 10,
-  },
+  person: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16 },
+  personName: { color: colors.text, ...type.headline },
+  personSub: { color: colors.textSecondary, ...type.footnote, marginTop: 2 },
   askText: { color: colors.text, fontSize: 15, lineHeight: 21 },
   action: {
     alignSelf: 'flex-start',
@@ -531,13 +536,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.action,
-    paddingHorizontal: 14,
-    height: 34,
-    borderRadius: 17,
+    paddingHorizontal: 16,
+    height: 36,
+    borderRadius: 18,
   },
-  actionText: { color: 'white', fontSize: 14, fontWeight: '600' },
-  answer: { backgroundColor: colors.surface, borderRadius: 16, padding: 14, marginBottom: 12 },
-  answerQ: { color: colors.textSecondary, fontSize: 13, marginBottom: 6 },
+  actionText: { color: 'white', fontSize: 15, fontWeight: '600' },
+  answerQ: { color: colors.textSecondary, ...type.footnote, marginBottom: 6 },
   answerText: { color: colors.text, fontSize: 15, lineHeight: 21 },
   askRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   askInput: {
@@ -547,7 +551,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 17,
   },
   askGo: {
     width: 36,
@@ -557,11 +561,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  skel: { height: 12, borderRadius: 6, backgroundColor: colors.separator },
+  skel: { height: 12, borderRadius: 6, backgroundColor: colors.surfaceAlt },
   footer: { marginTop: 28, alignItems: 'center' },
-  footerNote: { color: colors.textTertiary, fontSize: 12 },
-  errorBox: { marginTop: 16, alignItems: 'flex-start', gap: 10 },
-  errorText: { color: '#FF6B6B', fontSize: 14, marginTop: 6 },
-  retry: { backgroundColor: colors.surface, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  retryText: { color: colors.text, fontWeight: '600' },
+  footerNote: { color: colors.textSecondary, ...type.caption },
+  errorBox: { marginTop: 16, alignItems: 'flex-start', gap: 10, marginHorizontal: 2 },
+  errorText: { color: colors.red, fontSize: 15, marginTop: 6 },
 });

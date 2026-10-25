@@ -334,6 +334,12 @@ class Lore(Base):
         ARRAY(Integer), default=list, server_default="{}"
     )
     anchor_message_id: Mapped[int | None] = mapped_column(BigInteger)
+    # What the moment shows, oldest first (app/services/lore.py `_events`); null
+    # until computed. The hero is this photo (or the quote's message) when set.
+    events: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    hero_message_id: Mapped[int | None] = mapped_column(BigInteger)
     score: Mapped[float] = mapped_column(Float, default=0.0)
     embedding: Mapped[Any | None] = mapped_column(Vector(settings.EMBEDDING_DIM))
     kept_by: Mapped[str | None] = mapped_column(
@@ -341,3 +347,15 @@ class Lore(Base):
     )
     kept_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = _now()
+
+
+class LorePin(Base):
+    """Feature 6: a member's pinned lore (keeping it is group-wide, pinning is not)."""
+
+    __tablename__ = "lore_pins"
+
+    user_id: Mapped[str] = mapped_column(_user_fk(), primary_key=True)
+    lore_id: Mapped[int] = mapped_column(
+        ForeignKey("lore.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    pinned_at: Mapped[datetime] = _now()

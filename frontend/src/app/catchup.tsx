@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { api, type CatchupAnswer, type CatchupBullet, type CatchupSection, type CatchupTerm } from '@/api';
@@ -10,16 +10,12 @@ import { useExplain } from '@/features/explain';
 import { formatCount } from '@/lib/format';
 import { catchupMarkRead, threadJump } from '@/state/bus';
 import { useMe } from '@/state/session';
-import { colors } from '@/theme';
+import { colors, type } from '@/theme';
 
-const SECTIONS: {
-  key: CatchupSection;
-  title: string;
-  icon: 'bubble.left.and.bubble.right' | 'checkmark.seal' | 'questionmark.bubble';
-}[] = [
-  { key: 'happened', title: 'What happened', icon: 'bubble.left.and.bubble.right' },
-  { key: 'decisions', title: 'Decided', icon: 'checkmark.seal' },
-  { key: 'open', title: 'Still open', icon: 'questionmark.bubble' },
+const SECTIONS: { key: CatchupSection; title: string }[] = [
+  { key: 'happened', title: 'What happened' },
+  { key: 'decisions', title: 'Decided' },
+  { key: 'open', title: 'Still open' },
 ];
 
 type Phase = 'streaming' | 'done' | 'error';
@@ -122,9 +118,9 @@ export default function CatchupSheet() {
               setError(null);
               setAttempt((n) => n + 1);
             }}
-            style={styles.retry}
+            style={({ pressed }) => [styles.retry, pressed && { opacity: 0.7 }]}
           >
-            <Text style={styles.retryText}>Try again</Text>
+            <Text style={styles.retryText}>Try Again</Text>
           </Pressable>
         </View>
       ) : null}
@@ -134,25 +130,24 @@ export default function CatchupSheet() {
         if (!list.length && phase !== 'streaming') return null;
         return (
           <View key={s.key} style={styles.section}>
-            <View style={styles.sectionHead}>
-              <Icon name={s.icon} size={15} color={colors.textSecondary} />
-              <Text style={styles.sectionTitle}>{s.title}</Text>
+            <Text style={styles.sectionTitle}>{s.title}</Text>
+            <View style={styles.card}>
+              {list.map((b, i) => (
+                <Fragment key={`${b.start_message_id}-${i}`}>
+                  {i ? <View style={styles.sep} /> : null}
+                  <BulletRow bullet={b} onPress={() => jump(b.start_message_id)} />
+                </Fragment>
+              ))}
+              {!list.length ? <Skeleton lines={s.key === 'happened' ? 3 : 1} /> : null}
             </View>
-            {list.map((b, i) => (
-              <BulletRow key={`${b.start_message_id}-${i}`} bullet={b} onPress={() => jump(b.start_message_id)} />
-            ))}
-            {!list.length ? <Skeleton lines={s.key === 'happened' ? 3 : 1} /> : null}
           </View>
         );
       })}
 
       {terms.length ? (
         <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Icon name="character.book.closed" size={15} color={colors.textSecondary} />
-            <Text style={styles.sectionTitle}>Terms you might not know</Text>
-          </View>
-          <View style={styles.chips}>
+          <Text style={styles.sectionTitle}>Terms you might not know</Text>
+          <View style={[styles.card, styles.cardPadded, styles.chips]}>
             {terms.map((term) => (
               <Pressable
                 key={term.term}
@@ -160,7 +155,7 @@ export default function CatchupSheet() {
                 style={({ pressed }) => [styles.chip, pressed && { opacity: 0.6 }]}
               >
                 <Text style={styles.chipText}>{term.term}</Text>
-                <Icon name="questionmark.circle" size={13} color={colors.sparkle} />
+                <Icon name="questionmark.circle" size={14} color={colors.blue} />
               </Pressable>
             ))}
           </View>
@@ -171,7 +166,7 @@ export default function CatchupSheet() {
 
       <View style={styles.footer}>
         <Text style={styles.footerNote}>
-          <Icon name="lock.fill" size={10} color={colors.textTertiary} /> Only you can see this. Your messages stay unread.
+          <Icon name="lock.fill" size={10} color={colors.textSecondary} /> Only you can see this. Your messages stay unread.
         </Text>
         <Pressable
           onPress={() => {
@@ -180,7 +175,7 @@ export default function CatchupSheet() {
           }}
           hitSlop={8}
         >
-          <Text style={styles.markRead}>Mark as read</Text>
+          <Text style={styles.markRead}>Mark as Read</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -198,7 +193,7 @@ function BulletRow({ bullet, onPress }: { bullet: CatchupBullet; onPress: () => 
     >
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => [styles.bullet, pressed && { backgroundColor: 'rgba(255,255,255,0.06)' }]}
+        style={({ pressed }) => [styles.bullet, pressed && styles.pressed]}
       >
         <View style={styles.dot} />
         <Text style={styles.bulletText}>{bullet.text}</Text>
@@ -221,7 +216,7 @@ function Skeleton({ lines }: { lines: number }) {
     return () => loop.stop();
   }, [pulse]);
   return (
-    <View style={{ gap: 10, paddingVertical: 6, paddingLeft: 18 }}>
+    <View style={{ gap: 10, paddingVertical: 16, paddingLeft: 32, paddingRight: 16 }}>
       {Array.from({ length: lines }).map((_, i) => (
         <Animated.View key={i} style={[styles.skel, { opacity: pulse, width: i === lines - 1 ? '62%' : '92%' }]} />
       ))}
@@ -270,7 +265,7 @@ function Ask({
   return (
     <View style={styles.section}>
       {answer ? (
-        <View style={styles.answer}>
+        <View style={[styles.card, styles.cardPadded, { marginBottom: 12 }]}>
           <Text style={styles.answerQ}>{answer.question}</Text>
           <Text style={styles.answerText}>{answer.answer}</Text>
           {answer.sources.length ? (
@@ -311,37 +306,37 @@ function Ask({
 }
 
 const styles = StyleSheet.create({
-  sheet: { flex: 1, backgroundColor: colors.sheetBg },
-  content: { paddingTop: 26, paddingHorizontal: 18, paddingBottom: 72 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
-  headerIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  title: { color: colors.text, fontSize: 20, fontWeight: '700' },
-  subtitle: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
-  section: { marginTop: 18 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  sectionTitle: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
-  bullet: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 10 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.sparkle, marginTop: 8 },
-  bulletText: { flex: 1, color: colors.text, fontSize: 16, lineHeight: 22 },
-  skel: { height: 12, borderRadius: 6, backgroundColor: colors.separator },
+  sheet: { flex: 1, backgroundColor: colors.grouped },
+  content: { paddingTop: 26, paddingHorizontal: 16, paddingBottom: 72 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6, paddingHorizontal: 2 },
+  headerIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  title: { color: colors.text, ...type.title2 },
+  subtitle: { color: colors.textSecondary, ...type.footnote, marginTop: 2 },
+  section: { marginTop: 22 },
+  sectionTitle: { color: colors.textSecondary, ...type.footnote, textTransform: 'uppercase', marginHorizontal: 16, marginBottom: 7 },
+  card: { backgroundColor: colors.surface, borderRadius: 22, borderCurve: 'continuous', overflow: 'hidden' },
+  cardPadded: { padding: 16 },
+  sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginLeft: 32 },
+  pressed: { backgroundColor: 'rgba(0,0,0,0.05)' },
+  bullet: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 11, paddingHorizontal: 16 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.blue, marginTop: 9 },
+  bulletText: { flex: 1, color: colors.text, fontSize: 17, lineHeight: 23 },
+  skel: { height: 12, borderRadius: 6, backgroundColor: colors.surfaceAlt },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,122,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,122,255,0.16)',
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.accentSoft,
   },
-  chipText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  answer: { backgroundColor: colors.surface, borderRadius: 16, padding: 14, marginBottom: 12 },
-  answerQ: { color: colors.textSecondary, fontSize: 13, marginBottom: 6 },
+  chipText: { color: colors.blue, fontSize: 15, fontWeight: '600' },
+  answerQ: { color: colors.textSecondary, ...type.footnote, marginBottom: 6 },
   answerText: { color: colors.text, fontSize: 15, lineHeight: 21 },
-  sourceChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  sourceText: { color: colors.blue, fontSize: 13, fontWeight: '600' },
+  sourceChip: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 28 },
+  sourceText: { color: colors.blue, ...type.footnote, fontWeight: '600' },
   askRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   askInput: {
     flex: 1,
@@ -350,7 +345,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 17,
   },
   askGo: {
     width: 36,
@@ -360,11 +355,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  footer: { marginTop: 28, alignItems: 'center', gap: 10 },
-  footerNote: { color: colors.textTertiary, fontSize: 12 },
-  markRead: { color: colors.blue, fontSize: 15, fontWeight: '600' },
-  errorBox: { marginTop: 16, alignItems: 'flex-start', gap: 10 },
-  errorText: { color: '#FF6B6B', fontSize: 14, marginTop: 6 },
-  retry: { backgroundColor: colors.surface, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  retryText: { color: colors.text, fontWeight: '600' },
+  footer: { marginTop: 28, alignItems: 'center', gap: 12 },
+  footerNote: { color: colors.textSecondary, ...type.caption },
+  markRead: { color: colors.action, fontSize: 17, fontWeight: '600', paddingVertical: 6 },
+  errorBox: { marginTop: 16, alignItems: 'flex-start', gap: 10, marginHorizontal: 2 },
+  errorText: { color: colors.red, fontSize: 15, marginTop: 6 },
+  retry: { backgroundColor: colors.action, paddingHorizontal: 16, height: 36, borderRadius: 18, justifyContent: 'center' },
+  retryText: { color: 'white', fontSize: 15, fontWeight: '600' },
 });

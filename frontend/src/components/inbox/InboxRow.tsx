@@ -1,104 +1,165 @@
+import { Link } from 'expo-router';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+
 import type { InboxItem, User } from '@/api';
-import { firstName, shortAge } from '@/lib/format';
+import { conversationPreview, inboxTime, memberAvatars } from '@/lib/conversations';
 import { colors } from '@/theme';
-import { Avatar } from '../Avatar';
+
+import { Avatar, GroupAvatar } from '../Avatar';
 import { Icon } from '../Icon';
+
+export type InboxRowActions = {
+  onCatchUp: (item: InboxItem) => void;
+  onMarkRead: (item: InboxItem) => void;
+  onCall: (item: InboxItem) => void;
+  onLore: (item: InboxItem) => void;
+};
 
 type Props = {
   item: InboxItem;
   meId: string;
   userById: (id: string | null | undefined) => User | undefined;
-  onPress: (item: InboxItem) => void;
+  /** The group's members, for the overlapping avatar when it has no photo. */
+  members?: User[];
+  /** Long-press menu under the peek; rows without it only peek. */
+  actions?: InboxRowActions;
+  /** The last row drops its separator. */
+  last?: boolean;
 };
-function subtitle(item: InboxItem, meId: string, userById: Props['userById']) {
-  const m = item.last_message;
-  if (!m) return 'Start the conversation';
-  if (m.kind === 'system') return m.text;
-  const body = m.kind === 'photo' ? 'Shared a photo' : m.text;
-  if (m.sender_id === meId) return `You: ${body}`;
-  const sender = userById(m.sender_id);
-  return !item.group.is_dm && sender ? `${firstName(sender.display_name)}: ${body}` : body;
+
+export function ConversationAvatar({
+  item,
+  meId,
+  members,
+  size,
+}: Pick<Props, 'item' | 'meId' | 'members'> & { size: number }) {
+  const { group } = item;
+  const pair = !group.avatar_url && !group.is_dm ? memberAvatars(members, meId) : null;
+  if (pair) return <GroupAvatar uris={pair} size={size} />;
+  return <Avatar uri={group.avatar_url} name={group.name} size={size} />;
 }
-export const InboxRow = memo(function InboxRow({ item, meId, userById, onPress }: Props) {
+
+/** One Messages row, iOS-style: unread dot, 52pt avatar, name and time, a 2-line preview. */
+export const InboxRow = memo(function InboxRow({ item, meId, userById, members, actions, last }: Props) {
   const unread = item.unread_count > 0;
-  return (
+  const time = item.last_message ? inboxTime(item.last_message.ts) : '';
+  const preview = conversationPreview(item, meId, userById);
+  const label = [item.group.name, unread ? `${item.unread_count} unread` : null, time || null, preview]
+    .filter(Boolean)
+    .join(', ');
+  const row = (
     <Pressable
-      onPress={() => onPress(item)}
       accessibilityRole="button"
-      accessibilityLabel={`${item.group.name}${unread ? `, ${item.unread_count} unread messages` : ''}`}
-      style={({ pressed }) => [styles.row, unread && styles.unreadRow, pressed && { backgroundColor: colors.surface }]}
+      accessibilityLabel={label}
+      accessibilityHint={
+        actions
+          ? 'Opens the conversation. Touch and hold to peek and for more.'
+          : 'Opens the conversation. Touch and hold to peek.'
+      }
     >
-      <View>
-        <Avatar uri={item.group.avatar_url} name={item.group.name} size={52} style={{ borderRadius: 18 }} />
-        {!item.group.is_dm ? (
-          <View style={styles.groupBadge}>
-            <Icon name="person.2.fill" size={10} color={colors.textSecondary} />
-          </View>
-        ) : null}
-      </View>
-      <View style={styles.body}>
-        <View style={styles.nameRow}>
-          <Text style={[styles.name, unread && { color: colors.text }]} numberOfLines={1}>
-            {item.group.name}
-          </Text>
-          {item.last_message ? (
-            <Text style={[styles.age, unread && { color: colors.blue }]}>{shortAge(item.last_message.ts)}</Text>
-          ) : null}
-        </View>
-        <View style={styles.previewRow}>
-          <Text style={[styles.preview, unread && { color: colors.textSecondary }]} numberOfLines={1}>
-            {subtitle(item, meId, userById)}
-          </Text>
-          {unread ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{item.unread_count > 99 ? '99+' : item.unread_count}</Text>
+      {/* Link's Slot flattens `style`, so a style function would be dropped: the pressed fill lives
+          on an inner view instead. */}
+      {({ pressed }) => (
+        <View style={[styles.row, pressed && styles.pressed]}>
+          <View style={styles.lead}>{unread ? <View style={styles.dot} /> : null}</View>
+          <ConversationAvatar item={item} meId={meId} members={members} size={52} />
+          <View style={styles.body}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, unread && styles.nameUnread]} numberOfLines={1}>
+                {item.group.name}
+              </Text>
+              {time ? <Text style={styles.time}>{time}</Text> : null}
+              <Icon name="chevron.forward" size={13} color={colors.textTertiary} weight="semibold" />
             </View>
-          ) : null}
+            <Text style={styles.preview} numberOfLines={2}>
+              {preview}
+            </Text>
+          </View>
+          {last ? null : <View style={styles.separator} />}
         </View>
-      </View>
+      )}
     </Pressable>
   );
+  const href = {
+    pathname: '/thread/[id]' as const,
+    params: {
+      id: String(item.group.id),
+      unread: String(item.unread_count),
+      name: item.group.name,
+    },
+  };
+  // Touch and hold peeks into the thread (Link.Preview). thread/[id] checks useIsPreview() so the
+  // peek marks nothing read, shows no catch-up pill and listens to no realtime frames.
+  if (!actions) {
+    return (
+      <Link href={href} asChild>
+        <Link.Trigger>{row}</Link.Trigger>
+        <Link.Preview />
+      </Link>
+    );
+  }
+  return (
+    <Link href={href} asChild>
+      <Link.Trigger>{row}</Link.Trigger>
+      <Link.Preview />
+      <Link.Menu>
+        <Link.MenuAction
+          title="Catch Me Up"
+          icon="text.bubble"
+          disabled={!unread}
+          onPress={() => actions.onCatchUp(item)}
+        />
+        <Link.MenuAction
+          title="Mark as Read"
+          icon="checkmark.message"
+          disabled={!unread}
+          onPress={() => actions.onMarkRead(item)}
+        />
+        <Link.MenuAction title="Start Call" icon="video" onPress={() => actions.onCall(item)} />
+        <Link.MenuAction
+          title="Lore from This Group"
+          icon="sparkles.rectangle.stack"
+          onPress={() => actions.onLore(item)}
+        />
+      </Link.Menu>
+    </Link>
+  );
 });
+
 const styles = StyleSheet.create({
   row: {
-    marginHorizontal: 16,
-    marginBottom: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 15,
-    borderRadius: 20,
+    minHeight: 76,
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 86,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    backgroundColor: colors.bg,
   },
-  unreadRow: { backgroundColor: colors.surfaceAlt, borderColor: colors.separator },
-  groupBadge: {
+  pressed: { backgroundColor: 'rgba(0,0,0,0.05)' },
+  lead: { width: 20, alignItems: 'center', justifyContent: 'center' },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.blueDot,
+  },
+  body: {
+    flex: 1,
+    marginLeft: 12,
+    paddingVertical: 10,
+    paddingRight: 16,
+    gap: 2,
+  },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { flex: 1, color: colors.text, fontSize: 17, fontWeight: '600' },
+  nameUnread: { fontWeight: '700' },
+  time: { color: colors.textSecondary, fontSize: 15 },
+  preview: { color: colors.textSecondary, fontSize: 15, lineHeight: 20 },
+  separator: {
     position: 'absolute',
-    bottom: -3,
-    right: -3,
-    backgroundColor: colors.surface,
-    borderRadius: 7,
-    padding: 3,
-    borderWidth: 2,
-    borderColor: colors.bg,
+    left: 84,
+    right: 0,
+    bottom: 0,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.separator,
   },
-  body: { flex: 1, marginLeft: 14 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  name: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '600', letterSpacing: -0.2 },
-  age: { color: colors.textTertiary, fontSize: 11 },
-  previewRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 10 },
-  preview: { flex: 1, color: colors.textSecondary, fontSize: 13, lineHeight: 18 },
-  badge: {
-    minWidth: 22,
-    minHeight: 22,
-    borderRadius: 8,
-    paddingHorizontal: 5,
-    backgroundColor: colors.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { color: colors.blue, fontSize: 10, fontWeight: '700' },
 });

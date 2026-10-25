@@ -4,10 +4,12 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { API_URL } from '@/api';
 import { AsksProvider } from '@/state/asks';
+import { ActiveCallsProvider } from '@/state/calls';
 import { InboxProvider } from '@/state/inbox';
+import { PlaybackProvider } from '@/state/playback';
 import { RealtimeProvider } from '@/state/realtime';
 import { SessionProvider, useSession } from '@/state/session';
-import { colors } from '@/theme';
+import { callColors, colors } from '@/theme';
 
 const theme = {
   ...DefaultTheme,
@@ -18,7 +20,7 @@ const sheet = {
   presentation: 'formSheet' as const,
   sheetGrabberVisible: true,
   headerShown: false,
-  contentStyle: { backgroundColor: colors.sheetBg },
+  contentStyle: { backgroundColor: colors.grouped },
 };
 
 function Gate() {
@@ -46,19 +48,33 @@ function Gate() {
     <RealtimeProvider userId={me.id}>
       <InboxProvider key={me.id} userId={me.id}>
         <AsksProvider key={me.id} userId={me.id}>
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="thread/[id]" />
-            <Stack.Screen name="catchup" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
-            <Stack.Screen name="explain" options={{ ...sheet, sheetAllowedDetents: [0.55, 1], sheetCornerRadius: 28 }} />
-            <Stack.Screen name="requests" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
-            <Stack.Screen
-              name="call/[groupId]"
-              options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: '#000' }, statusBarStyle: 'light' }}
-            />
-            <Stack.Screen name="lore/[id]" />
-            <Stack.Screen name="switch-user" options={{ ...sheet, sheetAllowedDetents: [0.6, 1] }} />
-          </Stack>
+          <ActiveCallsProvider key={me.id}>
+            <PlaybackProvider key={me.id}>
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="thread/[id]" />
+                <Stack.Screen name="lore/[id]" />
+                <Stack.Screen
+                  name="call/[groupId]"
+                  options={{
+                    presentation: 'fullScreenModal',
+                    contentStyle: { backgroundColor: callColors.bg },
+                    statusBarStyle: 'light',
+                  }}
+                />
+                {/* Explain leaves the thread undimmed at its medium detent so the message stays readable. */}
+                <Stack.Screen
+                  name="explain"
+                  options={{ ...sheet, sheetAllowedDetents: [0.55, 1], sheetLargestUndimmedDetentIndex: 0 }}
+                />
+                <Stack.Screen name="catchup" options={{ ...sheet, sheetAllowedDetents: [0.62, 1] }} />
+                <Stack.Screen name="requests" options={{ ...sheet, sheetAllowedDetents: [0.62, 1] }} />
+                <Stack.Screen name="switch-user" options={{ ...sheet, sheetAllowedDetents: [0.6, 1] }} />
+                <Stack.Screen name="compose" options={{ ...sheet, sheetAllowedDetents: [1] }} />
+                <Stack.Screen name="group/[id]" options={{ ...sheet, sheetAllowedDetents: [0.6, 1] }} />
+              </Stack>
+            </PlaybackProvider>
+          </ActiveCallsProvider>
         </AsksProvider>
       </InboxProvider>
     </RealtimeProvider>

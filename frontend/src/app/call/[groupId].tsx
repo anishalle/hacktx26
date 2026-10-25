@@ -1,8 +1,19 @@
+import { Button, Host, HStack, Spacer } from '@expo/ui/swift-ui';
+import {
+  bold,
+  buttonBorderShape,
+  buttonStyle,
+  controlSize,
+  foregroundStyle,
+  imageScale,
+  labelStyle,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -20,10 +31,13 @@ import { api, USE_MOCKS, type CallJoin, type Lore } from '@/api';
 import { Avatar, GroupAvatar } from '@/components/Avatar';
 import { CallExplainCard, type CardState } from '@/components/call/CallExplainCard';
 import { CaptionBubble } from '@/components/call/CaptionBubble';
+import { Glass } from '@/components/GlassCircle';
 import { Icon } from '@/components/Icon';
 import { useCall, type Participant, type SpeakerCaption } from '@/hooks/useCall';
 import { ChimeVideo, isChimeAvailable } from '@/lib/callEngine';
 import { firstName } from '@/lib/format';
+import { useInbox } from '@/state/inbox';
+import { usePlaybackControls } from '@/state/playback';
 import { useRealtime } from '@/state/realtime';
 import { useMe, useSession } from '@/state/session';
 import { callColors as colors } from '@/theme';
@@ -31,17 +45,19 @@ import { callColors as colors } from '@/theme';
 const PANEL_H = 128;
 const PIP = { w: 108, h: 148 };
 const GAP = 12;
+// systemIndigo: a bare 'indigo' tint resolves to CSS indigo (#4B0082), not the UIKit color.
+const SYSTEM_INDIGO = '#5E5CE6';
 const SPEAKING_MS = 1500; // a fresh caption counts as speaking (Chime volume also does)
 
 /** Feature 4: a FaceTime-style group call (Amazon Chime) with live per-speaker captions and a private ?. */
 export default function CallScreen() {
   const { groupId: gid, name } = useLocalSearchParams<{ groupId: string; name?: string }>();
   const groupId = Number(gid);
-  const router = useRouter();
   const me = useMe();
   const supported = USE_MOCKS || isChimeAvailable;
   const [join, setJoin] = useState<CallJoin | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { pause } = usePlaybackControls();
 
   useEffect(() => {
     if (!supported) return;
@@ -54,7 +70,23 @@ export default function CallScreen() {
       cancelled = true;
     };
   }, [groupId, me.id, supported]);
+  // A Lore replay playing in the accessory would talk over the call.
+  useEffect(() => {
+    if (join) pause();
+  }, [join, pause]);
 
+  // The app's status bar is view-controller-independent (Info.plist), so the screen's
+  // statusBarStyle option is ignored; this pushes light text over the root's dark style.
+  return (
+    <>
+      <StatusBar style="light" />
+      <CallBody supported={supported} error={error} join={join} name={name} />
+    </>
+  );
+}
+
+function CallBody({ supported, error, join, name }: { supported: boolean; error: string | null; join: CallJoin | null; name?: string }) {
+  const router = useRouter();
   if (!supported) {
     return (
       <Notice
@@ -113,7 +145,11 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
   const { width, height } = useWindowDimensions();
   const me = useMe();
   const { userById } = useSession();
+  const { items } = useInbox();
   const call = useCall(join, me.id);
+  // Chime's audio session already defaults to the speaker; the native module has no route
+  // override yet, so this button only reflects the choice.
+  const [speakerOn, setSpeakerOn] = useState(true);
   const [card, setCard] = useState<CardState | null>(null);
   const [grid, setGrid] = useState(false);
   const [panelShown, setPanelShown] = useState(true);
@@ -189,9 +225,13 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
   const areaBottom = height - insets.bottom - PIP.h - 28;
   const frames = layoutTiles(remotes.length, width, areaTop, areaBottom, grid);
   const people = call.participants.length;
+  const group = items.find((it) => it.group.id === join.call.group_id)?.group;
+  const title = groupName || group?.name || 'Group call';
+  // A DM shows the other person (initials when there's no photo), not a two-silhouette stack.
+  const dm = !!group?.is_dm;
   const status =
     call.state === 'connected'
-      ? `${people} ${people === 1 ? 'person' : 'people'} active`
+      ? `${people} ${people === 1 ? 'Person' : 'People'} Active ›`
       : call.state === 'reconnecting'
         ? 'Reconnecting…'
         : call.state === 'ended'
@@ -211,7 +251,11 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
       <Pressable style={StyleSheet.absoluteFill} onPress={togglePanel} accessibilityLabel="Show or hide call controls">
         {remotes.length === 0 ? (
           <View style={[styles.waiting, { top: areaTop, bottom: height - areaBottom }]}>
-            <GroupAvatar uris={[null, null]} size={88} />
+            {dm ? (
+              <Avatar uri={group?.avatar_url} name={title} size={88} />
+            ) : (
+              <GroupAvatar uris={[null, null]} size={88} ring={colors.bg} />
+            )}
             <Text style={styles.waitingText}>Waiting for others to join…</Text>
           </View>
         ) : null}
@@ -255,7 +299,7 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
             {local.tileId !== undefined && !call.videoOff ? (
               <ChimeVideo tileId={local.tileId} mirror style={StyleSheet.absoluteFill} />
             ) : (
-              <Avatar uri={userById(me.id)?.avatar_url} size={56} />
+              <Avatar uri={userById(me.id)?.avatar_url} name={me.display_name} size={56} />
             )}
             {call.muted ? (
               <View style={styles.pipMuted}>
@@ -284,68 +328,79 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
 
       {/* When the panel is tucked away, the ? stays one tap away. */}
       {!panelShown ? (
-        <Pressable
-          onPress={ask}
-          style={[styles.floatingAsk, { bottom: insets.bottom + 20 }]}
-          accessibilityLabel="Explain what was just said"
-        >
-          <QuestionDot size={54} />
-        </Pressable>
+        <Host matchContents colorScheme="dark" style={[styles.floatingAsk, { bottom: insets.bottom + 20 }]}>
+          <AskButton onPress={ask} size="extraLarge" />
+        </Host>
       ) : null}
 
       <Animated.View style={[styles.panelWrap, { top: insets.top + 6, transform: [{ translateY: panelY }] }]}>
         <BlurView tint="dark" intensity={70} style={styles.panel}>
           <View style={styles.panelRow}>
-            <GroupAvatar uris={[null, null]} size={40} />
+            {group?.avatar_url || dm ? (
+              <Avatar uri={group.avatar_url} name={title} size={40} />
+            ) : (
+              <GroupAvatar
+                uris={remotes.slice(0, 2).map((p) => (p.userId ? (userById(p.userId)?.avatar_url ?? null) : null))}
+                size={40}
+                ring={colors.bg}
+              />
+            )}
             <View style={styles.panelTitles}>
               <Text style={styles.panelName} numberOfLines={1}>
-                {groupName || 'Group call'}
+                {title}
               </Text>
               <Text style={styles.panelStatus} numberOfLines={1}>
                 {status}
               </Text>
             </View>
-            <Pressable
-              onPress={async () => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                await leave();
-                onLeft();
-              }}
-              style={styles.leave}
-              accessibilityLabel="Leave call"
-            >
-              <Text style={styles.leaveText}>Leave</Text>
-            </Pressable>
+            <Host matchContents colorScheme="dark">
+              <Button
+                label="Leave"
+                onPress={async () => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  await leave();
+                  onLeft();
+                }}
+                modifiers={[buttonStyle('borderedProminent'), buttonBorderShape('capsule'), tint(colors.red), bold()]}
+              />
+            </Host>
           </View>
-          <View style={styles.controls}>
-            <Control
-              icon={call.muted ? 'mic.slash.fill' : 'mic.fill'}
-              active={call.muted}
-              label={call.muted ? 'Unmute' : 'Mute'}
-              onPress={call.toggleMute}
-            />
-            <Control
-              icon={call.videoOff ? 'video.slash.fill' : 'video.fill'}
-              active={call.videoOff}
-              label={call.videoOff ? 'Turn camera on' : 'Turn camera off'}
-              onPress={call.toggleVideo}
-            />
-            <Pressable
-              onPress={ask}
-              accessibilityLabel="Explain what was just said"
-              style={({ pressed }) => [pressed && { transform: [{ scale: 0.94 }] }]}
-            >
-              <QuestionDot size={50} />
-            </Pressable>
-          </View>
+          <Host matchContents={{ vertical: true }} colorScheme="dark" style={styles.controls}>
+            <HStack>
+              <Spacer />
+              <Control
+                icon={call.muted ? 'mic.slash.fill' : 'mic.fill'}
+                on={call.muted}
+                label={call.muted ? 'Unmute' : 'Mute'}
+                onPress={call.toggleMute}
+              />
+              <Spacer />
+              <Control
+                icon={speakerOn ? 'speaker.wave.2.fill' : 'speaker.fill'}
+                on={speakerOn}
+                label={speakerOn ? 'Speaker on' : 'Speaker off'}
+                onPress={() => setSpeakerOn((v) => !v)}
+              />
+              <Spacer />
+              <Control
+                icon={call.videoOff ? 'video.slash.fill' : 'video.fill'}
+                on={call.videoOff}
+                label={call.videoOff ? 'Turn camera on' : 'Turn camera off'}
+                onPress={call.toggleVideo}
+              />
+              <Spacer />
+              <AskButton onPress={ask} size="large" />
+              <Spacer />
+            </HStack>
+          </Host>
         </BlurView>
         {captionNote ? <Text style={styles.captionNote}>{captionNote}</Text> : null}
       </Animated.View>
 
       {lore ? (
         <View style={[styles.loreWrap, { top: insets.top + PANEL_H + (captionNote ? 40 : 18) }]}>
-          <BlurView tint="dark" intensity={70} style={styles.lore}>
-            <Icon name="sparkles" size={14} color={colors.sparkle} />
+          <Glass dark style={styles.lore}>
+            {lore.kept ? <Icon name="sparkles" size={14} color={colors.sparkle} /> : null}
             <Text style={styles.loreTitle} numberOfLines={1}>
               {lore.kept ? 'Kept to Lore' : lore.l.title}
             </Text>
@@ -353,15 +408,20 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
               <Icon name="checkmark" size={14} color="white" weight="bold" />
             ) : (
               <>
-                <Pressable onPress={keepLore} style={styles.loreKeep} accessibilityLabel="Keep this moment as lore">
-                  <Text style={styles.loreKeepText}>Keep</Text>
-                </Pressable>
+                <Host matchContents colorScheme="dark">
+                  <Button
+                    label="Keep Moment"
+                    systemImage="sparkles"
+                    onPress={keepLore}
+                    modifiers={[buttonStyle('glass'), buttonBorderShape('capsule'), controlSize('small'), bold()]}
+                  />
+                </Host>
                 <Pressable onPress={dismissLore} hitSlop={8} accessibilityLabel="Not now">
                   <Icon name="xmark" size={12} color={colors.textSecondary} />
                 </Pressable>
               </>
             )}
-          </BlurView>
+          </Glass>
         </View>
       ) : null}
 
@@ -389,7 +449,7 @@ function Tile({ p, frame, speaking, big }: { p: Participant; frame: Frame | unde
       {p.tileId !== undefined ? (
         <ChimeVideo tileId={p.tileId} mirror={false} style={StyleSheet.absoluteFill} />
       ) : (
-        <Avatar uri={user?.avatar_url} size={big ? 110 : 76} />
+        <Avatar uri={user?.avatar_url} name={user?.display_name} size={big ? 110 : 76} />
       )}
       <View style={styles.tileLabel}>
         {p.muted ? <Icon name="mic.slash.fill" size={11} color="white" /> : null}
@@ -401,41 +461,55 @@ function Tile({ p, frame, speaking, big }: { p: Participant; frame: Frame | unde
   );
 }
 
-function QuestionDot({ size }: { size: number }) {
+/** The live ? (feature 4): an indigo prominent glass circle. Lives inside a dark Host. */
+function AskButton({ onPress, size }: { onPress: () => void; size: 'large' | 'extraLarge' }) {
   return (
-    <LinearGradient
-      colors={['#A033FF', '#5B51F5', '#3797F0']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }}
-    >
-      <Icon name="questionmark" size={size * 0.42} weight="bold" color="white" />
-    </LinearGradient>
+    <Button
+      label="Explain what was just said"
+      systemImage="questionmark"
+      onPress={onPress}
+      modifiers={[
+        labelStyle('iconOnly'),
+        buttonStyle('glassProminent'),
+        buttonBorderShape('circle'),
+        controlSize(size),
+        imageScale('large'),
+        tint(SYSTEM_INDIGO),
+        bold(),
+      ]}
+    />
   );
 }
 
+/** A round glass call control. `on` fills it white, like FaceTime's muted / camera-off state. */
 function Control({
   icon,
-  active,
+  on,
   label,
   onPress,
 }: {
-  icon: 'mic.fill' | 'mic.slash.fill' | 'video.fill' | 'video.slash.fill';
-  active: boolean;
+  icon: ComponentProps<typeof Button>['systemImage'];
+  on: boolean;
   label: string;
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <Button
+      label={label}
+      systemImage={icon}
       onPress={() => {
         Haptics.selectionAsync();
         onPress();
       }}
-      style={[styles.control, active && styles.controlActive]}
-      accessibilityLabel={label}
-    >
-      <Icon name={icon} size={21} color={active ? '#111' : 'white'} />
-    </Pressable>
+      modifiers={[
+        labelStyle('iconOnly'),
+        buttonStyle(on ? 'glassProminent' : 'glass'),
+        buttonBorderShape('circle'),
+        controlSize('large'),
+        imageScale('large'),
+        ...(on ? [tint('white'), foregroundStyle('black')] : []),
+      ]}
+    />
   );
 }
 
@@ -552,18 +626,7 @@ const styles = StyleSheet.create({
   panelTitles: { flex: 1, minWidth: 0 },
   panelName: { color: 'white', fontSize: 16, fontWeight: '700' },
   panelStatus: { color: colors.textSecondary, fontSize: 13, marginTop: 1 },
-  leave: { backgroundColor: '#FF3B30', height: 34, paddingHorizontal: 16, borderRadius: 17, justifyContent: 'center' },
-  leaveText: { color: 'white', fontSize: 15, fontWeight: '700' },
-  controls: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginTop: 12 },
-  control: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  controlActive: { backgroundColor: 'white' },
+  controls: { alignSelf: 'stretch', marginTop: 12 },
   captionNote: { color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 8 },
   cardWrap: { position: 'absolute', left: 10, right: 10, zIndex: 9 },
   loreWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 8 },
@@ -572,16 +635,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     maxWidth: '88%',
-    height: 40,
-    paddingLeft: 14,
+    height: 44,
+    paddingLeft: 16,
     paddingRight: 12,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(28,28,30,0.55)',
+    borderRadius: 22,
+    borderCurve: 'continuous',
   },
   loreTitle: { color: 'white', fontSize: 14, fontWeight: '600', flexShrink: 1 },
-  loreKeep: { backgroundColor: 'white', borderRadius: 13, height: 26, paddingHorizontal: 12, justifyContent: 'center' },
-  loreKeepText: { color: 'black', fontSize: 13, fontWeight: '700' },
   noticeTitle: { color: colors.text, fontSize: 20, fontWeight: '700', textAlign: 'center' },
   noticeBody: { color: colors.textSecondary, fontSize: 15, lineHeight: 21, textAlign: 'center' },
   noticeBtn: { marginTop: 8, backgroundColor: colors.surface, paddingHorizontal: 22, paddingVertical: 10, borderRadius: 12 },

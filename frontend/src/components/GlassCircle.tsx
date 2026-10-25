@@ -41,15 +41,18 @@ export function GlassCircle({
   onPress,
   children,
   accessibilityLabel,
+  dark = false,
 }: {
   size?: number;
   onPress?: () => void;
   children: ReactNode;
   accessibilityLabel?: string;
+  /** Dark glass, for controls over calls and photos. */
+  dark?: boolean;
 }) {
   return (
     <Pressable onPress={onPress} hitSlop={6} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
-      <Glass interactive style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }]}>
+      <Glass interactive dark={dark} style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }]}>
         {children}
       </Glass>
     </Pressable>

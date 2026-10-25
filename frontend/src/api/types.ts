@@ -209,12 +209,35 @@ export type LoreReplay = {
   captions: LoreCaption[];
 };
 
+export type LoreSnippet = {
+  /** null for spoken lines. */
+  message_id: number | null;
+  user: User | null;
+  text: string;
+  ts: string;
+  reactions: Reaction[];
+  reason: 'caption' | 'reply' | 'reaction' | 'key' | 'spoken' | 'after';
+  /** Spoken lines: offset into the replay, so a tap seeks. */
+  start_ms: number | null;
+  is_me: boolean;
+};
+
+export type LoreEvent = {
+  /** `video` is reserved; nothing builds it yet. */
+  kind: 'photo' | 'replay' | 'quote' | 'video';
+  at: string;
+  /** The photo, or the quote's anchor message. */
+  message: Message | null;
+  replay: LoreReplay | null;
+  snippets: LoreSnippet[];
+};
+
 export type Lore = {
   id: number;
   group_id: number;
   group_name: string;
+  /** The only model-written text in Lore. */
   title: string;
-  story: string;
   status: LoreStatus;
   source: 'chat' | 'call';
   call_id: number | null;
@@ -222,7 +245,12 @@ export type Lore = {
   ended_at: string;
   people: User[];
   terms: { term: string; glossary_id: number | null }[];
-  /** At most one set; both null = a text card. */
+  hero_kind: LoreEvent['kind'];
+  /** events[0] is the hero, the rest oldest first. Feed: ≤3 events, ≤3 snippets each; detail: all events. */
+  events: LoreEvent[];
+  /** ≤6 photo messages for the image row, oldest first. */
+  media: Message[];
+  /** Derived from events[0]; both null = a quote card. */
   cover: { photo: Message | null; replay: LoreReplay | null };
   /** Chat suggestions: the Keep card goes after this message. */
   anchor_message_id: number | null;
@@ -231,6 +259,8 @@ export type Lore = {
   replay_count: number;
   kept_by: User | null;
   kept_at: string | null;
+  /** Pinned by the requesting user. */
+  pinned: boolean;
 };
 
 export type LoreDetail = Lore & {
@@ -240,7 +270,25 @@ export type LoreDetail = Lore & {
   related: Lore[];
 };
 
-export type LoreFeed = { items: Lore[]; next_cursor: string | null };
+/** The feed's kind filter matches a moment's `hero_kind`. */
+export type LoreKind = 'photo' | 'replay' | 'quote';
+
+export type LoreFeedQuery = {
+  group_id?: number;
+  kind?: LoreKind;
+  pinned?: boolean;
+  /** `deck`: pinned (newest pin first), then score/recency/media. `recent`: newest moment first. */
+  sort?: 'deck' | 'recent';
+  /** Title contains (case-insensitive). */
+  q?: string;
+  cursor?: string;
+  limit?: number;
+};
+
+/** Per-kind and pinned totals for the feed's scope (`group_id`, `q`), ignoring `kind` and `pinned`. */
+export type LoreCounts = { photo: number; replay: number; quote: number; pinned: number };
+
+export type LoreFeed = { items: Lore[]; next_cursor: string | null; counts: LoreCounts };
 
 export type ExplainRequest = {
   group_id: number;
@@ -341,13 +389,18 @@ export interface Api {
   /** The ? button: `at_ms` is Date.now() frozen at the tap. */
   explainCall(callId: number, body: { user_id: string; at_ms: number }, signal?: AbortSignal): Promise<Explanation>;
 
-  /** Kept lore across the user's groups, newest moment first. */
-  getLoreFeed(userId: string, query?: { group_id?: number; cursor?: string; limit?: number }): Promise<LoreFeed>;
+  /** Kept lore across the user's groups; newest moment first unless `sort: 'deck'`. */
+  getLoreFeed(userId: string, query?: LoreFeedQuery): Promise<LoreFeed>;
   getLore(loreId: number, userId: string): Promise<LoreDetail>;
   getLoreSuggestions(groupId: number, userId: string): Promise<Lore[]>;
+  /** "Save to Lore" on a message: the moment around it, kept at once (or the lore that already holds it). */
+  saveLore(groupId: number, messageId: number, userId: string): Promise<Lore>;
   keepLore(loreId: number, userId: string): Promise<Lore>;
   dismissLore(loreId: number, userId: string): Promise<Lore>;
   removeLore(loreId: number, userId: string): Promise<Lore>;
+  /** Pins are per user; `kept` stays group-wide. Each pushes `lore.updated` to that user only. */
+  pinLore(loreId: number, userId: string): Promise<Lore>;
+  unpinLore(loreId: number, userId: string): Promise<Lore>;
 
   /** Opens the realtime channel for a user. Returns an unsubscribe/close function. */
   connectRealtime(userId: string, handlers: RealtimeHandlers): () => void;

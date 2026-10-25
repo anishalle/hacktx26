@@ -10,8 +10,6 @@ import type {
   FlaggedTerm,
   GroupDetail,
   InboxItem,
-  Lore,
-  LoreDetail,
   LoreReplay,
   Member,
   MemberAsk,
@@ -22,6 +20,7 @@ import type {
   Span,
 } from '../types';
 import { catchupScript, DAY, glossary, groups, messages, MockGroup, unknownTerms, userById, users } from './data';
+import { loreById, loreDetail, loreView, type MockLore, mustLore, newLoreId, queryFeed, seedLore, setPinned } from './lore';
 
 const NEWCOMER_DAYS = 7;
 const sleep = (ms: number, signal?: AbortSignal) =>
@@ -422,163 +421,32 @@ function mockExplainCall(call: MockCall, userId: string, atMs: number): Explanat
 }
 
 // ---------------------------------------------------------------------------
-// Api
+// Lore (feature 6): the store and event building live in ./lore
 // ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// Lore (feature 6): kept moments built from the mock chat's own messages
-// ---------------------------------------------------------------------------
-type MockLore = Omit<Lore, 'group_name' | 'people' | 'cover' | 'message_count' | 'photo_count' | 'replay_count' | 'kept_by'> & {
-  people: string[];
-  message_ids: number[];
-  replays: LoreReplay[];
-  kept_by: string | null;
-};
-const loreById = new Map<number, MockLore>();
-let nextLoreId = 1;
-
-const LORE_SEEDS: { title: string; story: string; match: RegExp; terms: string[] }[] = [
-  {
-    title: 'Swayam\'s house becomes Grandma\'s',
-    story: 'Someone joked Swayam\'s place felt like a grandma\'s house, and the name stuck. Now it\'s where everyone ends up after games.',
-    match: /grandma/i,
-    terms: ['Grandma\'s'],
-  },
-  {
-    title: 'The usual spot is born',
-    story: 'Parking got so bad that the group settled on one meetup spot before every game, and it never changed.',
-    match: /usual spot/i,
-    terms: ['usual spot'],
-  },
-  {
-    title: 'Code yellow',
-    story: 'The night someone called a code yellow mid-game. Nobody lets it go.',
-    match: /code yellow/i,
-    terms: ['code yellow'],
-  },
-  {
-    title: 'Getting procs',
-    story: 'Roasts started stacking up like video game procs, and the word became the group\'s way of saying someone is getting clowned.',
-    match: /procs?\b/i,
-    terms: ['procs'],
-  },
-];
-
-function seedLore() {
-  if (loreById.size) return;
-  const vb = groupMessages(VOLLEYBALL_ID).filter((m) => m.kind !== 'system');
-  for (const seed of LORE_SEEDS) {
-    const hits = vb.filter((m) => seed.match.test(m.text) || seed.match.test(m.image_description ?? ''));
-    if (!hits.length) continue;
-    const first = hits[0];
-    const at = vb.indexOf(first);
-    const around = vb.slice(Math.max(0, at - 2), at + 4);
-    const ids = [...new Set([...around, ...hits.slice(1, 3)].map((m) => m.id))].sort((a, b) => a - b);
-    const picked = vb.filter((m) => ids.includes(m.id));
-    const id = nextLoreId++;
-    loreById.set(id, {
-      id,
-      group_id: VOLLEYBALL_ID,
-      title: seed.title,
-      story: seed.story,
-      status: 'kept',
-      source: 'chat',
-      call_id: null,
-      started_at: picked[0].ts,
-      ended_at: picked[picked.length - 1].ts,
-      people: [...new Set(picked.map((m) => m.sender_id).filter((x): x is string => !!x))],
-      terms: seed.terms.map((term) => ({ term, glossary_id: glossary.find((g) => g.term.toLowerCase() === term.toLowerCase())?.id ?? null })),
-      anchor_message_id: null,
-      message_ids: ids,
-      replays: [],
-      kept_by: null,
-      kept_at: picked[picked.length - 1].ts,
-    });
-  }
-  // One waiting suggestion near the end of the chat, for the inline Keep card.
-  const tail = vb.slice(-6);
-  const id = nextLoreId++;
-  loreById.set(id, {
-    id,
-    group_id: VOLLEYBALL_ID,
-    title: 'The great carpool debate',
-    story: 'Nobody could agree on who was driving to the game, and it turned into a whole thing.',
-    status: 'suggested',
-    source: 'chat',
-    call_id: null,
-    started_at: tail[0].ts,
-    ended_at: tail[tail.length - 1].ts,
-    people: [...new Set(tail.map((m) => m.sender_id).filter((x): x is string => !!x))],
-    terms: [],
-    anchor_message_id: tail[tail.length - 1].id,
-    message_ids: tail.map((m) => m.id),
-    replays: [],
-    kept_by: null,
-    kept_at: null,
-  });
-}
-const VOLLEYBALL_ID = groups[0].id;
-
-function loreView(l: MockLore, viewer?: string): Lore {
-  const msgs = messages.filter((m) => l.message_ids.includes(m.id));
-  const photos = msgs.filter((m) => m.kind === 'photo');
-  const g = groupOf(l.group_id);
-  return clone({
-    ...l,
-    group_name: viewer ? viewName(g, viewer).name : g.name,
-    people: l.people.map((p) => userById.get(p)).filter((x): x is NonNullable<typeof x> => !!x),
-    cover: { photo: photos[0] ?? null, replay: photos.length ? null : (l.replays[0] ?? null) },
-    message_count: msgs.length,
-    photo_count: photos.length,
-    replay_count: l.replays.length,
-    kept_by: l.kept_by ? (userById.get(l.kept_by) ?? null) : null,
-  });
-}
-
-function loreDetail(l: MockLore, viewer: string): LoreDetail {
-  const msgs = messages.filter((m) => l.message_ids.includes(m.id));
-  const related = [...loreById.values()].filter((x) => x.id !== l.id && x.group_id === l.group_id && x.status === 'kept').slice(0, 6);
-  return clone({
-    ...loreView(l, viewer),
-    messages: msgs,
-    photos: msgs.filter((m) => m.kind === 'photo'),
-    replays: l.replays,
-    related: related.map((r) => loreView(r, viewer)),
-  });
-}
-
-function mustLore(id: number): MockLore {
-  seedLore();
-  const l = loreById.get(id);
-  if (!l) throw new Error('Lore not found');
-  return l;
-}
-
 /** After the scripted call talks about code yellow, suggest it as a replay to everyone on the call. */
 function suggestCallReplay(call: MockCall) {
   seedLore();
   const turns = [...call.turns.values()].filter((t) => t.final);
   if (!turns.length) return;
   const start = Math.min(...turns.map((t) => t.startMs));
+  const id = newLoreId();
   const replay: LoreReplay = {
-    id: nextLoreId * 100,
+    id: id * 100,
     call_id: call.id,
     audio_url: '',
     duration_ms: Math.max(...turns.map((t) => t.endMs)) - start,
     started_at: new Date(start).toISOString(),
     captions: turns.map((t) => ({ user_id: t.userId, text: t.text, start_ms: t.startMs - start, end_ms: t.endMs - start })),
   };
-  const id = nextLoreId++;
-  const now = new Date().toISOString();
   const lore: MockLore = {
     id,
     group_id: call.group_id,
-    title: 'Code yellow, again',
-    story: 'On the call someone brought up code yellow and the whole call lost it.',
+    title: 'Code yellow comes up on the call again',
     status: 'suggested',
     source: 'call',
     call_id: call.id,
     started_at: replay.started_at,
-    ended_at: now,
+    ended_at: new Date().toISOString(),
     people: [...new Set(turns.map((t) => t.userId))],
     terms: [{ term: 'code yellow', glossary_id: null }],
     anchor_message_id: null,
@@ -586,15 +454,21 @@ function suggestCallReplay(call: MockCall) {
     replays: [replay],
     kept_by: null,
     kept_at: null,
+    hero_message_id: null,
+    score: 0.6,
   };
   loreById.set(id, lore);
-  toCall(call, { type: 'lore.updated', data: loreView(lore) });
+  for (const m of call.members) if (!m.left_at) toUser(m.user.id, { type: 'lore.updated', data: loreView(lore, m.user.id) });
 }
 
+/** Each member gets their own view (`pinned` and DM names are per user). */
 function announceLore(l: MockLore) {
-  fanOut(l.group_id, { type: 'lore.updated', data: loreView(l) });
+  for (const m of groupOf(l.group_id).members) toUser(m.user_id, { type: 'lore.updated', data: loreView(l, m.user_id) });
 }
 
+// ---------------------------------------------------------------------------
+// Api
+// ---------------------------------------------------------------------------
 export const mockApi: Api = {
   async getUsers() {
     await latency();
@@ -995,14 +869,7 @@ export const mockApi: Api = {
   async getLoreFeed(userId, q = {}) {
     await latency();
     seedLore();
-    const mine = new Set(groups.filter((g) => g.members.some((m) => m.user_id === userId)).map((g) => g.id));
-    const kept = [...loreById.values()]
-      .filter((l) => l.status === 'kept' && mine.has(l.group_id) && (q.group_id == null || l.group_id === q.group_id))
-      .sort((a, b) => b.ended_at.localeCompare(a.ended_at) || b.id - a.id);
-    const start = q.cursor ? Number(q.cursor) : 0;
-    const limit = q.limit ?? 20;
-    const page = kept.slice(start, start + limit);
-    return { items: page.map((l) => loreView(l, userId)), next_cursor: start + limit < kept.length ? String(start + limit) : null };
+    return queryFeed(userId, q);
   },
 
   async getLore(loreId, userId) {
@@ -1016,6 +883,51 @@ export const mockApi: Api = {
     return [...loreById.values()]
       .filter((l) => l.group_id === groupId && l.status === 'suggested' && l.source === 'chat')
       .map((l) => loreView(l, userId));
+  },
+
+  async saveLore(groupId, messageId, userId) {
+    await latency();
+    seedLore();
+    const g = groupOf(groupId);
+    if (!g.members.some((m) => m.user_id === userId)) throw new Error(`${userId} is not a member of group ${groupId}`);
+    const saved = messages.find((m) => m.id === messageId && m.group_id === groupId);
+    if (!saved) throw new Error('Message not found');
+    if (saved.kind === 'system') throw new Error('Only messages and photos can be saved to Lore');
+    const held = [...loreById.values()].find(
+      (l) => l.group_id === groupId && (l.status === 'kept' || l.status === 'suggested') && l.message_ids.includes(messageId),
+    );
+    if (held) return mockApi.keepLore(held.id, userId);
+    // No Muse here: the moment is the saved message and the next few lines within 15 min, titled with what was said.
+    const at = new Date(saved.ts).getTime();
+    const picked = messages
+      .filter((m) => m.group_id === groupId && m.kind !== 'system' && m.id >= saved.id && new Date(m.ts).getTime() - at <= 15 * 60_000)
+      .slice(0, 4);
+    const words = saved.text.split(/\s+/).filter(Boolean).join(' ');
+    const name = userById.get(saved.sender_id ?? '')?.display_name.split(' ')[0] ?? 'Someone';
+    const now = new Date().toISOString();
+    const id = newLoreId();
+    const l: MockLore = {
+      id,
+      group_id: groupId,
+      title: words ? (words.length <= 48 ? words : `${words.slice(0, 47).trimEnd()}…`) : `${name}’s photo`,
+      status: 'kept',
+      source: 'chat',
+      call_id: null,
+      started_at: picked[0].ts,
+      ended_at: picked[picked.length - 1].ts,
+      people: [...new Set(picked.map((m) => m.sender_id).filter((x): x is string => !!x))],
+      terms: [],
+      anchor_message_id: saved.id,
+      message_ids: picked.map((m) => m.id),
+      replays: [],
+      kept_by: userId,
+      kept_at: now,
+      hero_message_id: saved.kind === 'photo' ? saved.id : null,
+      score: 0.7,
+    };
+    loreById.set(id, l);
+    announceLore(l);
+    return loreView(l, userId);
   },
 
   async keepLore(loreId, userId) {
@@ -1047,6 +959,24 @@ export const mockApi: Api = {
     l.status = 'removed';
     announceLore(l);
     return loreView(l, userId);
+  },
+
+  async pinLore(loreId, userId) {
+    await latency();
+    const l = mustLore(loreId);
+    setPinned(l, userId, true);
+    const view = loreView(l, userId);
+    toUser(userId, { type: 'lore.updated', data: view });
+    return view;
+  },
+
+  async unpinLore(loreId, userId) {
+    await latency();
+    const l = mustLore(loreId);
+    setPinned(l, userId, false);
+    const view = loreView(l, userId);
+    toUser(userId, { type: 'lore.updated', data: view });
+    return view;
   },
 
   connectRealtime(userId, handlers) {
