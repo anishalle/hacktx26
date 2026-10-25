@@ -196,14 +196,14 @@ The decision in the middle is the whole product: a confident, sourced answer whe
 
 - Store every message as `{id, group_id, sender_id, ts, text, reply_to}`.
 - Keyword index (BM25/Postgres full-text) over message text.
-- Embedding index over windows of \~10 consecutive messages (not single messages, so a definition and its usage land in the same chunk).
+- Embedding index over windows of 10 consecutive messages (not single messages, so a definition and its usage land in the same chunk), embedded with Amazon Bedrock Titan Text Embeddings v2 (1024 dimensions) and searched with pgvector. New windows are embedded in the background as they fill; without AWS credentials retrieval runs on full text alone.
 - **Auto-glossary pass:** one LLM sweep over the history in chunks that extracts recurring non-literal terms — nicknames, place aliases, event names, slang — with `{term, aliases, meaning, confidence, first_seen_ts, source_message_ids}`. This table is what feature 2 uses to detect inside references in a draft, and it is the first thing feature 1 checks.
 
 **2. Query-time, per ? (feature 1 and feature 4)**
 
 1. Extract candidate terms from the pressed message or transcript window: one small LLM call that returns terms that look non-literal, plus proper nouns. Fallback heuristic: capitalized words, quoted words, tokens absent from a common-English list.
 2. For each term: glossary lookup → exact keyword hits → semantic hits. Take the top \~8 windows, preferring (a) glossary entries, (b) the earliest occurrences, (c) messages containing definitional language ("X means", "we call it", "aka"), (d) messages from before the newcomer's join date.
-3. Generate with Claude: inputs are the pressed message with its 20 neighbours, the retrieved windows, member list and join date. Output is JSON: `{term, meaning, confidence (0–1), source_message_ids, kind: nickname|place|event|slang|person|plain}`. Prompt rules: lead with the meaning, ≤ 3 sentences, cite only retrieved messages, return `confidence < 0.4` rather than guessing.
+3. Generate with the LLM: inputs are the pressed message with its 20 neighbours, the glossary entries, the retrieved windows, any private answers members gave this newcomer, the member list and join date. Output is JSON: `{term, meaning, confidence (0–1), kind: nickname|place|event|slang|person|inside_joke|plain|unknown, general, source_message_ids, glossary_ids, ask_ids}`. Prompt rules: lead with the meaning, ≤ 3 sentences, cite only supplied evidence, return `confidence < 0.4` rather than guessing. The server drops citations outside the context; an uncited or low-confidence answer becomes the not-found fallback. Follow-ups reuse the stored context.
 4. Budget: ≤ \~4k tokens of context per request so the answer comes back in \~2–3 s.
 
 **3. Not-found fallback (feature 1 and the second case of feature 2)**
@@ -222,11 +222,11 @@ If the term is absent from this group but is common slang, answer from general k
 
 ## System architecture
 
-One React Native app (Expo) for iOS and Android, one API server, Postgres with pgvector (on Timescale Cloud) for history and embeddings, Claude for every language task, and a streaming speech-to-text service for calls. Everything is hackathon-simple: no auth, hardcoded demo users, one group chat seeded from a real export.
+One React Native app (Expo) for iOS and Android, one API server, Postgres with pgvector (on Timescale Cloud) for history and embeddings, Meta's Muse for every language task, and a streaming speech-to-text service for calls. Everything is hackathon-simple: no auth, hardcoded demo users, one group chat seeded from a real export.
 
 &#91;embedded content: system architecture · client, API, data and AI services\]
 
-The three screens of the mobile app all talk to one API; the API is the only thing that talks to the database, Claude, or the STT service. The app runs on a real phone through Expo Go (or a dev build where native modules need it), which is also how we demo.
+The three screens of the mobile app all talk to one API; the API is the only thing that talks to the database, the LLM, or the STT service. The app runs on a real phone through Expo Go (or a dev build where native modules need it), which is also how we demo.
 
 **Stack (proposed; swap freely if the team is faster in something else)**
 
@@ -238,10 +238,10 @@ The three screens of the mobile app all talk to one API; the API is the only thi
 | Calls | Daily or LiveKit React Native SDK (wraps `react-native-webrtc`) | Hosted rooms with 2–4 tiles; needs an Expo dev build, not Expo Go |
 | Call audio to STT | Raw mic stream from the call SDK (or `expo-av` recording in short chunks) sent over WebSocket to the API, which forwards it to STT | Keeps STT keys off the device; one transcript store per call |
 | Pronunciation audio | `expo-av` record and playback; upload to the API as m4a | Feature 5 with no extra native code |
-| API | FastAPI (Python) | Same language as the import/indexing scripts and the Claude SDK |
+| API | FastAPI (Python) | Same language as the import/indexing scripts and the LLM SDKs |
 | Database | Postgres + pgvector, hosted on Timescale Cloud (local Docker Postgres for tests) | Messages, members, glossary and embeddings in one place; full-text search built in; one shared connection string with no cloud networking to set up |
-| LLM | Claude (Sonnet for extract/explain/rewrite, Haiku for the glossary sweep) | Fast JSON-mode answers; cheap for the bulk pass |
-| Embeddings | Voyage or OpenAI text-embedding-3-small | Only used for the semantic leg of retrieval |
+| LLM | Meta Muse (`muse-spark-1.3`, minimal reasoning) through the OpenAI-compatible Meta Model API | Fast JSON-mode answers; one model for explain, rewrite, digests and catch-up |
+| Embeddings | Amazon Bedrock Titan Text Embeddings v2 | Only used for the semantic leg of retrieval; the Meta Model API has no embedding model |
 | STT | Deepgram streaming (fallback: Whisper streaming) | Sub-second partials; speaker labels |
 
 **React Native notes**
@@ -273,16 +273,17 @@ The three screens of the mobile app all talk to one API; the API is the only thi
 | --- | --- |
 | `GET /groups/{id}/messages?before=&limit=` | Paged history |
 | `POST /groups/{id}/messages` | Send; fans out over WebSocket |
-| `POST /explain/message` `{group_id, message_id, user_id, follow_up?}` | Feature 1; returns `{answers[], sources[], not_found_terms[]}` |
+| `POST /explain` `{group_id, user_id, message_id? \| term?, explanation_id?, follow_up?}` | Feature 1; returns one grounded explanation with sources (see `docs/API.md`) |
 | `POST /explain/call` `{call_id, user_id, at_ms, follow_up?}` | Feature 4; slices transcript window server-side |
 | `POST /nudge/check` `{group_id, user_id, draft}` | Feature 2; returns `{flagged_terms[], newcomers[], unknown_terms[]}` |
 | `POST /nudge/rewrite` `{group_id, user_id, draft, flagged_terms[]}` | Feature 2; returns the rewritten draft with diff spans |
 | `POST /catchup` `{group_id, user_id, since_message_id}` | Feature 3 |
-| `POST /ask-member` `{group_id, for_user_id, term, message_id}` | Fallback; creates a `member_asks` row and pings the member |
-| `POST /ask-member/{id}/answer` | Member replies; writes glossary, notifies the newcomer |
+| `POST /ask-member` `{group_id, user_id, term, message_id?}` | Fallback; creates a `member_asks` row and pings the member |
+| `POST /ask-member/{id}/answer` `{user_id, answer?, decline?, post_in_chat?}` | Member replies, posts it in chat, or passes; writes glossary, notifies the newcomer |
+| `GET /users/{id}/asks` | The member's incoming and outgoing asks (the Requests sheet) |
 | `PUT /users/{id}/pronunciation` | Feature 5 audio upload |
 
-**Realtime events (WebSocket)**: `message.new`, `member.ask` (to one member), `member.answered` (to one newcomer), `call.transcript.partial` (to the call).
+**Realtime events (WebSocket)**: `message.new`, `ask.new` (to the asked member), `ask.updated` (to both people on the ask), `call.transcript.partial` (to the call).
 
 ## Demo data
 
@@ -293,8 +294,8 @@ The demo group chat is seeded from a real group chat export, so every explanatio
 1. Read `message_1.json` … `message_N.json` for the chosen thread; Messenger splits long threads across files, newest first.
 2. Normalize: `sender_name → user_id`, `timestamp_ms → ts`, `content → text`; drop reactions, stickers and empty media-only messages; fix Messenger's mojibake (decode `content.encode('latin1').decode('utf8')`).
 3. Insert into `messages`; build the full-text column.
-4. Window into chunks of 10 messages → embed → `message_windows`.
-5. Run the glossary sweep (Haiku, \~3k-token chunks) → `glossary`. Review the output once by hand before the demo and fix anything wrong; a human-corrected glossary row is marked `source: human`.
+4. Window into chunks of 10 messages → embed (Bedrock Titan v2) → `message_windows`.
+5. Run the glossary sweep (\~3k-token chunks) → `glossary`. Review the output once by hand before the demo and fix anything wrong; a human-corrected glossary row is marked `source: human`.
 6. Create the demo users and memberships. Set one user's `joined_at` to "today" so they are the newcomer.
 
 **Demo script data to plant**
@@ -354,13 +355,13 @@ Two people on text, two on video, one shared API and database. The text track is
 - [ ] Export this doc to Markdown as `plan.md` in the repo root and feed it to Claude Code as the spec.
 - [ ] Scaffold: `mobile/` (Expo React Native, TypeScript), `api/` (FastAPI), `scripts/`, `data/` (gitignored), `docker-compose.yml` with Postgres + pgvector.
 - [ ] Agree on the API contract above so both tracks can build against it before it exists (stub responses are fine).
-- [ ] Get API keys into `.env`: Claude, embeddings, STT, WebRTC room service.
+- [ ] Get API keys into `.env`: Meta Model API, AWS (embeddings), STT, WebRTC room service.
 
 **Build order (text track)**
 
 1. Schema + import script on the real Messenger export; confirm the three planted terms are in the data.
 2. Chat screen with paged history and live send over WebSocket.
-3. `POST /explain/message` end to end: extract → retrieve → Claude → JSON. Verify on the three planted terms before touching UI polish.
+3. `POST /explain` end to end: extract → retrieve → LLM → JSON. Verify on the three planted terms before touching UI polish.
 4. Hold-to-explain sheet with sources and follow-up.
 5. Glossary sweep + `POST /nudge/check` + `/nudge/rewrite`; composer banner.
 6. Ask-the-member fallback (`member_asks` + WebSocket ping + answer flow).

@@ -3,10 +3,13 @@ import { readSse } from '../sse';
 import type {
   Api,
   CatchupEvent,
+  ExplainRequest,
+  Explanation,
   FlaggedTerm,
   GroupDetail,
   InboxItem,
   Member,
+  MemberAsk,
   Message,
   MessagePage,
   RealtimeFrame,
@@ -138,6 +141,131 @@ function rewriteFor(term: string, matched: string) {
   if (lower === 'usual spot') return `${matched} (the back lot behind the rec center)`;
   const entry = glossary.find((e) => e.term.toLowerCase() === lower);
   return entry ? `${matched} (${entry.meaning.replace(/\.$/, '').toLowerCase()})` : matched;
+}
+
+// ---------------------------------------------------------------------------
+// Feature 1: explain + private asks
+// ---------------------------------------------------------------------------
+function toUser(userId: string, frame: RealtimeFrame) {
+  listeners.get(userId)?.forEach((h) => setTimeout(() => h.onFrame(clone(frame)), 30));
+}
+
+/** Common slang with no in-chat definition: answered from general knowledge and labelled so. */
+const generalSlang: { pattern: RegExp; term: string; meaning: string }[] = [
+  { pattern: /^bet!*$/i, term: 'bet', meaning: '**Bet** is slang for "okay, sounds good."' },
+  { pattern: /\bno cap\b/i, term: 'no cap', meaning: '**No cap** means "for real, not lying."' },
+  { pattern: /\brizz\b/i, term: 'rizz', meaning: '**Rizz** is charm, especially when flirting.' },
+];
+
+const asks: MemberAsk[] = [];
+const explanations = new Map<number, { term: string | null; meaning: string; status: Explanation['status'] }>();
+let nextAskId = 1;
+let nextExplanationId = 1;
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const termPattern = (term: string) => new RegExp(`\\b${escapeRe(term)}\\b`, 'i');
+
+function askView(a: MemberAsk): MemberAsk {
+  return clone(a);
+}
+
+/** Who knows a term: the sender of the held message, else the member who uses it most. */
+function whoToAsk(groupId: number, requester: string, term: string, message?: Message) {
+  if (message?.sender_id && message.sender_id !== requester) return userById.get(message.sender_id) ?? null;
+  const counts = new Map<string, number>();
+  const re = termPattern(term);
+  for (const m of groupMessages(groupId)) {
+    if (m.sender_id && m.sender_id !== requester && re.test(m.text)) counts.set(m.sender_id, (counts.get(m.sender_id) ?? 0) + 1);
+  }
+  const top = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+  return top ? (userById.get(top) ?? null) : null;
+}
+
+function humanSources(groupId: number, userId: string, term: string) {
+  return asks
+    .filter((a) => a.group_id === groupId && a.for_user.id === userId && a.status === 'answered' && a.term.toLowerCase() === term.toLowerCase())
+    .map((a) => ({ ask_id: a.id, user: clone(a.asked_user), answer: a.answer!, answered_at: a.answered_at! }));
+}
+
+function mockExplain(body: ExplainRequest): Explanation {
+  const g = groupOf(body.group_id);
+  const me = g.members.find((m) => m.user_id === body.user_id);
+  const message = body.message_id !== undefined ? messages.find((m) => m.id === body.message_id && m.group_id === g.id) : undefined;
+  const text = message?.text ?? body.term ?? '';
+  const base = {
+    explanation_id: nextExplanationId++,
+    group_id: g.id,
+    message_id: message?.id ?? null,
+    follow_up: body.follow_up ?? null,
+    sources: [] as Message[],
+    human_sources: [] as Explanation['human_sources'],
+    person: null,
+    ask: null,
+  };
+
+  if (body.follow_up && body.explanation_id !== undefined) {
+    const prev = explanations.get(body.explanation_id);
+    const entry = prev?.term ? glossary.find((e) => e.group_id === g.id && e.term.toLowerCase() === prev.term!.toLowerCase()) : undefined;
+    const meaning = entry
+      ? `All the group has said about **${entry.term}**: ${entry.meaning}`
+      : "The chat doesn't say more about that than what's above.";
+    return { ...base, term: prev?.term ?? null, status: prev?.status ?? 'plain', kind: entry?.kind ?? 'plain', meaning, confidence: entry ? 0.8 : 0.5 };
+  }
+
+  const entries = glossary.filter((e) => {
+    e.pattern.lastIndex = 0;
+    const hit = e.pattern.test(text) || e.term.toLowerCase() === text.toLowerCase();
+    e.pattern.lastIndex = 0;
+    return e.group_id === g.id && hit;
+  });
+  let result: Explanation;
+  if (entries.length) {
+    const joined = me ? new Date(me.joined_at).getTime() : Date.now();
+    const sources = groupMessages(g.id)
+      .filter((m) => m.kind === 'text' && m.id !== message?.id && new Date(m.ts).getTime() < joined && entries.some((e) => termPattern(e.term).test(m.text)))
+      .slice(0, 3);
+    const meaning = entries.map((e) => `**${e.term}**: ${e.meaning}`).join('\n');
+    result = {
+      ...base,
+      term: entries[0].term,
+      status: 'explained',
+      kind: entries[0].kind,
+      meaning: entries.length === 1 ? `**${entries[0].term}**: ${entries[0].meaning}` : meaning,
+      confidence: entries[0].confidence ?? 0.9,
+      sources: clone(sources),
+      human_sources: entries.flatMap((e) => humanSources(g.id, body.user_id, e.term)),
+    };
+  } else {
+    const person = users.find((x) => g.members.some((m) => m.user_id === x.id) && x.display_name.split(' ')[0].toLowerCase() === text.trim().toLowerCase());
+    const slang = generalSlang.find((s) => s.pattern.test(text.trim()));
+    const unknown = unknownTerms.find((x) => x.pattern.test(text));
+    if (person) {
+      result = { ...base, term: person.display_name, status: 'explained', kind: 'person', meaning: `**${person.display_name.split(' ')[0]}** is ${person.display_name}, a member of this group.`, confidence: 0.95, person: clone(person) };
+    } else if (unknown || slang) {
+      const term = unknown?.term ?? slang!.term;
+      const human = humanSources(g.id, body.user_id, term);
+      const who = whoToAsk(g.id, body.user_id, term, message);
+      const existing = asks.find((a) => a.group_id === g.id && a.for_user.id === body.user_id && a.term.toLowerCase() === term.toLowerCase()) ?? null;
+      result = {
+        ...base,
+        term,
+        status: human.length ? 'explained' : slang ? 'general' : 'unknown',
+        kind: human.length ? 'inside_joke' : slang ? 'slang' : 'unknown',
+        meaning: human.length
+          ? `**${term}**: ${human[0].answer}`
+          : slang
+            ? slang.meaning
+            : `I couldn't find where **${term}** is explained in this group's history.`,
+        confidence: human.length ? 0.9 : slang ? 0.7 : 0,
+        human_sources: human,
+        ask: !human.length && who ? { user: clone(who), existing: existing ? askView(existing) : null } : null,
+      };
+    } else {
+      result = { ...base, term: null, status: 'plain', kind: 'plain', meaning: 'Nothing here looks like an inside reference. It means what it says.', confidence: 0.9 };
+    }
+  }
+  explanations.set(result.explanation_id, { term: result.term, meaning: result.meaning, status: result.status });
+  return result;
 }
 
 function encodeSse(event: string, data: unknown) {
@@ -441,6 +569,80 @@ export const mockApi: Api = {
       answer: "Saturday is still on: Grandma's (Swayam's house) at 8pm. Bring snacks. The one open question is who's driving.",
       sources: [src(3), src(5)],
     };
+  },
+
+  async explain(body, signal) {
+    await sleep(900 + Math.random() * 700, signal);
+    return mockExplain(body);
+  },
+
+  async askMember({ group_id, user_id, term, message_id }) {
+    await latency();
+    const g = groupOf(group_id);
+    const message = message_id !== undefined ? messages.find((m) => m.id === message_id) : undefined;
+    const pending = asks.find(
+      (a) => a.group_id === group_id && a.for_user.id === user_id && a.status === 'pending' && a.term.toLowerCase() === term.toLowerCase(),
+    );
+    if (pending) return askView(pending);
+    const asked = whoToAsk(group_id, user_id, term, message);
+    if (!asked) throw new Error('Nobody in this group to ask about that.');
+    const ask: MemberAsk = {
+      id: nextAskId++,
+      group_id,
+      group_name: g.name,
+      term,
+      message: message ? clone(message) : null,
+      for_user: clone(userById.get(user_id)!),
+      asked_user: clone(asked),
+      status: 'pending',
+      answer: null,
+      posted_message_id: null,
+      created_at: new Date().toISOString(),
+      answered_at: null,
+    };
+    asks.unshift(ask);
+    toUser(asked.id, { type: 'ask.new', data: ask });
+    return askView(ask);
+  },
+
+  async getAsks(userId) {
+    await latency();
+    return {
+      incoming: asks.filter((a) => a.asked_user.id === userId).map(askView),
+      outgoing: asks.filter((a) => a.for_user.id === userId).map(askView),
+    };
+  },
+
+  async answerAsk(askId, { user_id, answer, decline, post_in_chat }) {
+    await latency();
+    const ask = asks.find((a) => a.id === askId && a.asked_user.id === user_id);
+    if (!ask) throw new Error('Request not found.');
+    if (ask.status !== 'pending') throw new Error('This request has already been resolved.');
+    const text = answer?.trim();
+    if (!decline && !text) throw new Error('Write an answer or pass on the request.');
+    ask.status = decline ? 'declined' : 'answered';
+    ask.answer = decline ? null : text!;
+    ask.answered_at = new Date().toISOString();
+    if (!decline && !glossary.some((e) => e.group_id === ask.group_id && e.term.toLowerCase() === ask.term.toLowerCase())) {
+      glossary.push({
+        id: Math.max(...glossary.map((g) => g.id)) + 1,
+        group_id: ask.group_id,
+        term: ask.term,
+        aliases: [],
+        meaning: text!,
+        kind: 'inside_joke',
+        source: 'human',
+        pattern: new RegExp(`\\b${escapeRe(ask.term)}\\b`, 'gi'),
+        first_seen_ts: new Date().toISOString(),
+        last_explained_ts: null,
+      });
+    }
+    if (!decline && post_in_chat) {
+      const posted = await mockApi.sendMessage(ask.group_id, { sender_id: user_id, text: text! });
+      ask.posted_message_id = posted.id;
+    }
+    for (const uid of [ask.for_user.id, ask.asked_user.id]) toUser(uid, { type: 'ask.updated', data: ask });
+    return askView(ask);
   },
 
   connectRealtime(userId, handlers) {

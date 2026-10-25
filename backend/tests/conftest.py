@@ -7,6 +7,8 @@
   background code that use them hit the test database.
 - Every test has a FakeLLM installed (an unexpected LLM call fails the test);
   request `fake_llm` to script it. See app/services/llm.py.
+- Every test has a FakeEmbedder installed (never Bedrock); see
+  app/services/embeddings.py.
 """
 
 import json
@@ -29,7 +31,7 @@ from app.core.config import settings
 from app.main import app
 from app.models import Base
 from app.seed import FIXTURES_DIR, LoadedFixture, load_fixture_data
-from app.services import llm
+from app.services import embeddings, llm
 from app.services.realtime import hub
 
 LoadFixture = Callable[..., Awaitable[LoadedFixture]]
@@ -80,6 +82,15 @@ def fake_llm() -> Iterator[llm.FakeLLM]:
     llm.set_llm_backend(fake)
     yield fake
     llm.set_llm_backend(None)
+
+
+@pytest.fixture(autouse=True)
+async def fake_embedder() -> AsyncIterator[embeddings.FakeEmbedder]:
+    fake = embeddings.FakeEmbedder()
+    embeddings.set_embedder(fake)
+    yield fake
+    await embeddings.drain()
+    embeddings.set_embedder(None)
 
 
 @pytest.fixture

@@ -8,6 +8,7 @@ import type { InboxItem } from '@/api';
 import { Icon } from '@/components/Icon';
 import { InboxRow } from '@/components/inbox/InboxRow';
 import { NotesRow } from '@/components/inbox/NotesRow';
+import { useAsks } from '@/state/asks';
 import { useInbox } from '@/state/inbox';
 import { useMe, useSession } from '@/state/session';
 import { colors } from '@/theme';
@@ -18,17 +19,24 @@ export default function InboxScreen() {
   const me = useMe();
   const { users, userById } = useSession();
   const { items, status, error, refresh } = useInbox();
+  const { pendingIncoming, refresh: refreshAsks } = useAsks();
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh]),
+      refreshAsks();
+    }, [refresh, refreshAsks]),
   );
 
   const openSwitcher = () => {
     Haptics.selectionAsync();
     router.push('/switch-user');
+  };
+
+  const openRequests = () => {
+    Haptics.selectionAsync();
+    router.push('/requests');
   };
 
   const openThread = useCallback(
@@ -55,7 +63,14 @@ export default function InboxScreen() {
           <Text style={styles.sectionTitle}>Messages</Text>
           <Icon name="bell.slash" size={17} color={colors.text} />
         </View>
-        <Text style={styles.requests}>Requests</Text>
+        <Pressable onPress={openRequests} hitSlop={8} style={styles.requestsBtn}>
+          <Text style={[styles.requests, pendingIncoming > 0 && { color: colors.blue }]}>Requests</Text>
+          {pendingIncoming > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{pendingIncoming}</Text>
+            </View>
+          ) : null}
+        </Pressable>
       </View>
     </View>
   );
@@ -135,7 +150,18 @@ const styles = StyleSheet.create({
   },
   sectionLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  requestsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   requests: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
+  badge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    backgroundColor: colors.red,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { color: 'white', fontSize: 11, fontWeight: '700' },
   empty: { paddingTop: 60, alignItems: 'center', paddingHorizontal: 32 },
   emptyText: { color: colors.textSecondary, fontSize: 15, textAlign: 'center' },
 });

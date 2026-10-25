@@ -1,5 +1,5 @@
-// Feature 1 (hold-to-explain) hook point. Owned by a teammate: replace the body of
-// `useExplain` with the real flow. Everything that wants an explanation calls `onExplain`.
+// Feature 1 (hold-to-explain): everything that wants an explanation (the message menu, catch-up
+// term chips) calls `onExplain`, which opens the private explain sheet.
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 

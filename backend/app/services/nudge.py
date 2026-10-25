@@ -347,7 +347,7 @@ def _first_name(m: Membership) -> str:
     return (m.user.display_name or m.user_id).split()[0]
 
 
-def _member_names(memberships: list[Membership]) -> set[str]:
+def member_names(memberships: list[Membership]) -> set[str]:
     names: set[str] = set()
     for m in memberships:
         names.add(m.user_id.lower())
@@ -753,7 +753,7 @@ async def unknown(
     if not newcomers or len(body.draft.split()) < 3:
         return schemas.NudgeUnknown(show=False)
     index = await glossary_index(session, body.group_id)
-    names = _member_names(memberships)
+    names = member_names(memberships)
     dismissed = await _dismissed(session, body.group_id, body.user_id)
     dismissed_words = {
         v for d in dismissed for w in _WORD.findall(d) for v in _word_variants(w)

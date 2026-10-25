@@ -10,8 +10,6 @@ against this file; change it here first, then in code.
   demo-user switcher.
 - Errors: FastAPI default `{"detail": "..."}` with a 4xx/5xx status.
 
-Feature 1 (hold-to-explain, `/explain/*`, `/ask-member/*`) is owned by another teammate and is not
-specified here beyond the tables it shares (see "Data model").
 
 ## Shapes
 
@@ -124,8 +122,76 @@ every group the user is in:
 | `message.new` | `Message` |
 | `reaction.updated` | `{ group_id, message_id, reactions: Reaction[] }` |
 | `read.updated` | `{ group_id, user_id, message_id }` |
+| `ask.new` | `MemberAsk`, sent only to the member being asked |
+| `ask.updated` | `MemberAsk`, sent to both people on the ask when it is answered or declined |
 
 The client may send `{ "type": "ping" }`; the server answers `{ "type": "pong" }`.
+
+## Feature 1: hold-to-explain
+
+Long-press a message → **Explain** opens a private sheet. Catch-up term chips open the same sheet
+with a bare `term`. Nothing is posted to the group, and nobody else sees that the user asked.
+
+| Method | Path | Body / query | Returns |
+| --- | --- | --- | --- |
+| POST | `/explain` | `{ group_id, user_id, message_id?, term?, explanation_id?, follow_up? }` | `Explanation` |
+| POST | `/ask-member` | `{ group_id, user_id, term, message_id? }` | `MemberAsk` (201); pushes `ask.new` |
+| GET | `/users/{user_id}/asks` | | `{ incoming: MemberAsk[], outgoing: MemberAsk[] }`, newest first |
+| POST | `/ask-member/{ask_id}/answer` | `{ user_id, answer?, decline?, post_in_chat? }` | `MemberAsk`; pushes `ask.updated` |
+
+- `/explain` needs `message_id` or `term`. A follow-up sends `explanation_id` (from the first answer)
+  plus `follow_up`; it reuses that explanation's context and only works for the user who asked.
+- `/ask-member` is the newcomer's explicit opt-in. The server picks who to ask: the message's sender,
+  else the member who uses the term most. Asking again while one is pending returns the same ask.
+- Only the asked member can answer, once. `answer` saves the term to the glossary with
+  `source: "human"` (feature 2 sees it too). `post_in_chat: true` also sends the answer to the group
+  as a normal message from them. `decline: true` passes without answering.
+
+```ts
+type ExplainStatus =
+  | "explained"   // grounded in this group's history
+  | "general"     // not defined in this chat; common slang from general knowledge (label it so)
+  | "plain"       // nothing unusual; the sheet offers catch-up instead
+  | "unknown";    // no reliable explanation; the sheet offers `ask`
+
+type Explanation = {
+  explanation_id: number;     // pass back with follow_up
+  group_id: number;
+  message_id: number | null;
+  term: string | null;        // main term, null when plain
+  status: ExplainStatus;
+  kind: GlossaryKind | "plain" | "unknown";
+  meaning: string;            // 1-3 short sentences; terms wrapped in **double asterisks**
+  confidence: number;         // 0-1
+  follow_up: string | null;   // the question this answers, for follow-ups
+  sources: Message[];         // up to 3 evidence messages, oldest first; tap → thread around=id
+  human_sources: { ask_id: number; user: User; answer: string; answered_at: string }[];
+  person: User | null;        // kind "person" naming a member: show their profile card
+  ask: { user: User; existing: MemberAsk | null } | null; // unknown/general: who to ask privately
+};
+
+type MemberAsk = {
+  id: number;
+  group_id: number;
+  group_name: string;
+  term: string;
+  message: Message | null;    // the message the newcomer held on
+  for_user: User;             // the newcomer who asked
+  asked_user: User;
+  status: "pending" | "answered" | "declined";
+  answer: string | null;
+  posted_message_id: number | null; // set when answered with post_in_chat
+  created_at: string;
+  answered_at: string | null;
+};
+```
+
+Server design (not part of the contract): the model sees the pressed message with its 20
+neighbours, the glossary entries it mentions, and up to 8 retrieved windows (full-text and
+embedding hits fused by rank, preferring definitional and pre-join messages), about 4k tokens.
+Every answer must cite supplied message, glossary or private-answer ids; uncited or low-confidence
+(< 0.4) answers become `unknown`. Windows of 10 messages are embedded with Bedrock Titan v2 in the
+background; without AWS credentials retrieval falls back to full-text only.
 
 ## Feature 2: pre-send clarity nudge
 
@@ -228,8 +294,7 @@ over the digests in range plus the raw undigested tail, so the first bullet appe
 
 ## Data model
 
-Defined in `backend/app/models.py`, created on startup with `CREATE EXTENSION vector`. Feature 1 owns
-filling in `message_windows.embedding` and the `explanations` / `member_asks` flows.
+Defined in `backend/app/models.py`, created on startup with `CREATE EXTENSION vector`.
 
 | Table | Key fields |
 | --- | --- |
@@ -242,5 +307,5 @@ filling in `message_windows.embedding` and the `explanations` / `member_asks` fl
 | `glossary` | `id, group_id, term, aliases text[], meaning, kind, confidence, source (seed/auto/human), first_seen_ts, last_explained_ts, source_message_ids bigint[]` |
 | `nudge_dismissals` | `user_id, group_id, term` |
 | `chunk_digests` | `id, group_id, start_message_id, end_message_id, start_ts, end_ts, message_count, digest jsonb` |
-| `explanations` | `id, group_id, user_id, message_id, answer jsonb, created_at` (feature 1) |
-| `member_asks` | `id, group_id, asked_user_id, for_user_id, term, message_id, status, answer` (feature 1) |
+| `explanations` | `id, group_id, user_id, message_id, answer jsonb (answer + context snapshot), created_at` |
+| `member_asks` | `id, group_id, asked_user_id, for_user_id, term, message_id, status, answer, posted_message_id, created_at, answered_at` |

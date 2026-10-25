@@ -142,10 +142,61 @@ export type CatchupEvent =
   | { event: 'done'; data: { elapsed_ms: number } }
   | { event: 'error'; data: { message: string } };
 
+export type ExplainStatus = 'explained' | 'general' | 'plain' | 'unknown';
+
+export type HumanSource = { ask_id: number; user: User; answer: string; answered_at: string };
+
+export type AskStatus = 'pending' | 'answered' | 'declined';
+
+export type MemberAsk = {
+  id: number;
+  group_id: number;
+  group_name: string;
+  term: string;
+  message: Message | null;
+  for_user: User;
+  asked_user: User;
+  status: AskStatus;
+  answer: string | null;
+  posted_message_id: number | null;
+  created_at: string;
+  answered_at: string | null;
+};
+
+export type Explanation = {
+  explanation_id: number;
+  group_id: number;
+  message_id: number | null;
+  term: string | null;
+  status: ExplainStatus;
+  kind: GlossaryKind | 'plain' | 'unknown';
+  /** 1-3 short sentences; terms wrapped in **double asterisks**. */
+  meaning: string;
+  confidence: number;
+  follow_up: string | null;
+  sources: Message[];
+  human_sources: HumanSource[];
+  person: User | null;
+  ask: { user: User; existing: MemberAsk | null } | null;
+};
+
+export type ExplainRequest = {
+  group_id: number;
+  user_id: string;
+  message_id?: number;
+  term?: string;
+  explanation_id?: number;
+  follow_up?: string;
+};
+
+export type Asks = { incoming: MemberAsk[]; outgoing: MemberAsk[] };
+
 export type RealtimeFrame =
   | { type: 'message.new'; data: Message }
   | { type: 'reaction.updated'; data: { group_id: number; message_id: number; reactions: Reaction[] } }
   | { type: 'read.updated'; data: { group_id: number; user_id: string; message_id: number } }
+  | { type: 'ask.new'; data: MemberAsk }
+  | { type: 'ask.updated'; data: MemberAsk }
   | { type: 'pong'; data?: unknown };
 
 /** The full client surface. `real.ts` and `mock/` both implement it. */
@@ -178,6 +229,14 @@ export interface Api {
     since_message_id?: number;
     question: string;
   }): Promise<CatchupAnswer>;
+
+  explain(body: ExplainRequest, signal?: AbortSignal): Promise<Explanation>;
+  askMember(body: { group_id: number; user_id: string; term: string; message_id?: number }): Promise<MemberAsk>;
+  getAsks(userId: string): Promise<Asks>;
+  answerAsk(
+    askId: number,
+    body: { user_id: string; answer?: string; decline?: boolean; post_in_chat?: boolean },
+  ): Promise<MemberAsk>;
 
   /** Opens the realtime channel for a user. Returns an unsubscribe/close function. */
   connectRealtime(userId: string, handlers: RealtimeHandlers): () => void;

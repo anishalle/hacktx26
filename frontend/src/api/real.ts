@@ -5,12 +5,15 @@ import { readSse } from './sse';
 import type {
   Api,
   AsideResult,
+  Asks,
   CatchupAnswer,
   CatchupEvent,
   CatchupPreview,
+  Explanation,
   GlossaryEntry,
   GroupDetail,
   InboxItem,
+  MemberAsk,
   Message,
   MessagePage,
   MessageQuery,
@@ -177,6 +180,11 @@ export const realApi: Api = {
   catchupPreview: (groupId, userId) => get<CatchupPreview>(`/groups/${groupId}/catchup/preview`, { user_id: userId }),
   catchupStream,
   catchupAsk: (body) => post<CatchupAnswer>('/catchup/ask', body),
+
+  explain: (body, signal) => post<Explanation>('/explain', body, signal),
+  askMember: (body) => post<MemberAsk>('/ask-member', body),
+  getAsks: (userId) => get<Asks>(`/users/${encodeURIComponent(userId)}/asks`),
+  answerAsk: (askId, body) => post<MemberAsk>(`/ask-member/${askId}/answer`, body),
 
   connectRealtime,
 };

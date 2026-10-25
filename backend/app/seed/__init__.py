@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import db
 from app.models import Glossary, Group, Membership, Message, Reaction, User
-from app.services import digests
+from app.services import digests, embeddings
 
 log = logging.getLogger(__name__)
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -176,11 +176,13 @@ def fixture_paths() -> list[Path]:
 async def seed(
     *,
     digests_enabled: bool = True,
+    embeddings_enabled: bool = True,
     paths: list[Path] | None = None,
     now: datetime | None = None,
 ) -> None:
-    """Drop and recreate every table, load fixtures, then backfill digests. `now`
-    overrides the load time (default: real time, aligned to each fixture's anchor)."""
+    """Drop and recreate every table, load fixtures, then embed message windows and
+    backfill digests. `now` overrides the load time (default: real time, aligned to
+    each fixture's anchor)."""
     await db.init_db(drop=True)
     loaded = LoadedFixture()
     async with db.SessionLocal() as session:
@@ -189,6 +191,10 @@ async def seed(
             result = await load_fixture_data(session, data, now=now)
             loaded.merge(result)
             log.info("loaded %s (%d groups)", path.name, len(result.groups))
+        if embeddings_enabled:
+            for key, group in loaded.groups.items():
+                n = await embeddings.index_group(session, group.id)
+                log.info("embedded %s: %d windows", key, n)
         if not digests_enabled:
             return
         for key, group in loaded.groups.items():

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
 from app.models import Group, Membership, Message, Reaction
-from app.services import digests
+from app.services import digests, embeddings
 from app.services.realtime import broadcast_group
 
 
@@ -117,6 +117,7 @@ async def send_message(
     out = schemas.Message.model_validate(message)
     await broadcast_group(session, group_id, "message.new", out)
     digests.schedule_digest(group_id)
+    embeddings.schedule_index(group_id)
     from app.services import nudge  # local: nudge imports this module
 
     await nudge.record_explanations(session, group_id, message.text, message.ts)

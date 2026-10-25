@@ -1,8 +1,9 @@
 # Seed fixtures
 
 ```sh
-uv run python -m app.seed                # drop + recreate all tables, load fixtures/*.json, backfill digests
+uv run python -m app.seed                # drop + recreate all tables, load fixtures/*.json, embed windows, backfill digests
 uv run python -m app.seed --no-digests   # skip the (LLM-backed) digest backfill
+uv run python -m app.seed --no-embeddings  # skip embedding message windows (Bedrock)
 uv run python -m app.seed path/a.json    # load only these files
 uv run python -m app.seed --no-anchor    # end every story at load time (see "anchor" below)
 ```

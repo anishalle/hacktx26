@@ -12,6 +12,7 @@ async def main(args: argparse.Namespace) -> None:
     try:
         await seed(
             digests_enabled=not args.no_digests,
+            embeddings_enabled=not args.no_embeddings,
             paths=args.fixtures or None,
             now=datetime.now(UTC) if args.no_anchor else None,
         )
@@ -25,6 +26,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--no-digests", action="store_true", help="skip digest backfill"
+    )
+    parser.add_argument(
+        "--no-embeddings",
+        action="store_true",
+        help="skip embedding message windows (Bedrock)",
     )
     parser.add_argument(
         "--no-anchor",

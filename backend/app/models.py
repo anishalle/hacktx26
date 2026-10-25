@@ -118,6 +118,7 @@ class Reaction(Base):
 
 class MessageWindow(Base):
     __tablename__ = "message_windows"
+    __table_args__ = (UniqueConstraint("group_id", "start_message_id"),)
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     group_id: Mapped[int] = mapped_column(_group_fk(), index=True)
@@ -182,10 +183,10 @@ class Explanation(Base):
     id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
     group_id: Mapped[int] = mapped_column(_group_fk(), index=True)
     user_id: Mapped[str] = mapped_column(_user_fk())
-    message_id: Mapped[int] = mapped_column(
+    message_id: Mapped[int | None] = mapped_column(
         ForeignKey("messages.id", ondelete="CASCADE")
-    )
-    answer: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    )  # null when a bare term was explained (catch-up term chips)
+    answer: Mapped[dict[str, Any]] = mapped_column(JSONB)  # answer + context snapshot
     created_at: Mapped[datetime] = _now()
 
 
@@ -204,4 +205,8 @@ class MemberAsk(Base):
         String(16), default="pending"
     )  # pending|answered|declined
     answer: Mapped[str | None] = mapped_column(Text)
+    posted_message_id: Mapped[int | None] = mapped_column(
+        ForeignKey("messages.id", ondelete="SET NULL")
+    )
     created_at: Mapped[datetime] = _now()
+    answered_at: Mapped[datetime | None]

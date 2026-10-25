@@ -20,7 +20,10 @@ uv run uvicorn app.main:app --reload       # tables are also created on startup
 
 Seed options and the fixture format: [`backend/app/seed/README.md`](backend/app/seed/README.md).
 The LLM is Meta's Muse through the OpenAI-compatible Meta Model API (`MODEL_API_BASE_URL`,
-`MODEL_API_KEY`, `LLM_MODEL`, `LLM_REASONING_EFFORT`). Environment variables override `.env`.
+`MODEL_API_KEY`, `LLM_MODEL`, `LLM_REASONING_EFFORT`). Feature 1's embeddings use Amazon Bedrock
+Titan v2 through the default AWS credential chain (`aws configure`, region `AWS_REGION`, default
+`us-east-1`); without credentials, hold-to-explain retrieval is full-text only. Environment variables
+override `.env`.
 The shared database is Postgres + pgvector on Timescale Cloud: paste its `postgres://...?sslmode=require`
 connection string into `DATABASE_URL` as-is. It listens on a non-standard port that some venue
 Wi-Fi blocks; use a VPN or hotspot if connections time out. Running `app.seed` against it wipes
@@ -37,12 +40,15 @@ backend/app/
   api/
     main.py          # Collect feature routers
     deps.py          # SessionDep
-    routes/          # home, users, groups, ws, nudge (feature 2), catchup (feature 3)
+    routes/          # home, users, groups, ws, explain (feature 1), nudge (feature 2), catchup (feature 3)
   services/
     messages.py      # Send / react / read / paging; fan-out + digest hook
     realtime.py      # In-process WebSocket hub
     llm.py           # Muse client: complete_json, complete_text, stream_text (+ test seam)
     digests.py       # Background chunk digests for catch-up
+    explain.py       # Feature 1: retrieval + grounded answer
+    asks.py          # Feature 1: private ask to the member who knows
+    embeddings.py    # Feature 1: Bedrock Titan windows (+ test seam)
     nudge.py         # Feature 2
     catchup.py       # Feature 3
   seed/              # python -m app.seed + fixtures/*.json

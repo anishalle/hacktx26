@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { API_URL } from '@/api';
+import { AsksProvider } from '@/state/asks';
 import { InboxProvider } from '@/state/inbox';
 import { RealtimeProvider } from '@/state/realtime';
 import { SessionProvider, useSession } from '@/state/session';
@@ -44,13 +45,16 @@ function Gate() {
   return (
     <RealtimeProvider userId={me.id}>
       <InboxProvider key={me.id} userId={me.id}>
+      <AsksProvider key={me.id} userId={me.id}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="thread/[id]" />
         <Stack.Screen name="catchup" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
-        <Stack.Screen name="explain" options={{ ...sheet, sheetAllowedDetents: [0.38] }} />
+        <Stack.Screen name="explain" options={{ ...sheet, sheetAllowedDetents: [0.55, 1], sheetCornerRadius: 28 }} />
+        <Stack.Screen name="requests" options={{ ...sheet, sheetAllowedDetents: [0.62, 1], sheetCornerRadius: 28 }} />
         <Stack.Screen name="switch-user" options={{ ...sheet, sheetAllowedDetents: [0.6, 1] }} />
       </Stack>
+      </AsksProvider>
       </InboxProvider>
     </RealtimeProvider>
   );

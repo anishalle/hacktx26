@@ -114,7 +114,14 @@ class GlossaryEntry(Schema):
 
 
 class WsEvent(Schema):
-    type: Literal["message.new", "reaction.updated", "read.updated", "pong"]
+    type: Literal[
+        "message.new",
+        "reaction.updated",
+        "read.updated",
+        "ask.new",
+        "ask.updated",
+        "pong",
+    ]
     data: dict[str, Any] | None = None
 
 
@@ -128,6 +135,86 @@ class ReadUpdated(Schema):
     group_id: int
     user_id: str
     message_id: int
+
+
+# Feature 1: hold-to-explain
+
+ExplainStatus = Literal["explained", "general", "plain", "unknown"]
+ExplainKind = Literal[
+    "nickname", "place", "event", "slang", "person", "inside_joke", "plain", "unknown"
+]
+AskStatus = Literal["pending", "answered", "declined"]
+
+
+class ExplainRequest(Schema):
+    group_id: int
+    user_id: str
+    message_id: int | None = None
+    term: str | None = Field(default=None, max_length=200)
+    explanation_id: int | None = None
+    follow_up: str | None = Field(default=None, max_length=1000)
+
+
+class MemberAsk(Schema):
+    id: int
+    group_id: int
+    group_name: str
+    term: str
+    message: Message | None
+    for_user: User
+    asked_user: User
+    status: AskStatus
+    answer: str | None
+    posted_message_id: int | None
+    created_at: UtcDatetime
+    answered_at: UtcDatetime | None
+
+
+class HumanSource(Schema):
+    ask_id: int
+    user: User
+    answer: str
+    answered_at: UtcDatetime
+
+
+class AskTarget(Schema):
+    user: User
+    existing: MemberAsk | None
+
+
+class Explanation(Schema):
+    explanation_id: int
+    group_id: int
+    message_id: int | None
+    term: str | None
+    status: ExplainStatus
+    kind: ExplainKind
+    meaning: str
+    confidence: float
+    follow_up: str | None
+    sources: list[Message]
+    human_sources: list[HumanSource]
+    person: User | None
+    ask: AskTarget | None
+
+
+class AskCreate(Schema):
+    group_id: int
+    user_id: str
+    term: str = Field(min_length=1, max_length=200)
+    message_id: int | None = None
+
+
+class AskAnswer(Schema):
+    user_id: str
+    answer: str | None = Field(default=None, max_length=1000)
+    decline: bool = False
+    post_in_chat: bool = False
+
+
+class AskList(Schema):
+    incoming: list[MemberAsk]
+    outgoing: list[MemberAsk]
 
 
 # Feature 2: pre-send clarity nudge
