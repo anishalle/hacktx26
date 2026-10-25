@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models import Lore, LoreReplay
+from app.models import Glossary, Lore, LoreReplay
 from app.seed import LoadedFixture
 from app.services import embeddings, llm, lore, nudge, replays
 from tests.conftest import WsConnect
@@ -388,6 +388,58 @@ async def test_explanation_lore_ranks_term_then_pressed_then_sources(
         "Birth of procs",
         "Tuesday tacos plan",
     ]
+
+
+async def test_explanation_lore_prefers_term_in_title_then_primary(
+    session: AsyncSession, sample: LoadedFixture
+) -> None:
+    gid = sample.group_id("volleyball")
+    pressed = sample.msg("volleyball", 36)
+    session.add(
+        Glossary(
+            group_id=gid, term="zorbs", aliases=["zorb"], meaning="m", kind="slang"
+        )
+    )
+
+    def row(title: str, terms: list[str], score: float, ids: list[int] = []) -> Lore:
+        return Lore(
+            group_id=gid,
+            title=title,
+            story="s",
+            status="kept",
+            source="chat",
+            started_at=sample.now,
+            ended_at=sample.now,
+            terms=terms,
+            message_ids=ids,
+            score=score,
+        )
+
+    session.add_all(
+        [
+            # The reported case: a merged entry picked "zorbs" up as a side term.
+            row("The Incident", ["the Incident", "zorbs", "jester boy"], 0.95),
+            row("Pookie hour", ["zorbs"], 0.9),
+            row("Late night", ["jester boy"], 0.3),
+            row("Mike Collects Zorbs Like Stones", [], 0.6, [pressed]),
+            row("The Birth of Zorb", ["zorb", "proc farm"], 0.5),
+            row("Unrelated pressed", [], 0.99, [pressed]),
+        ]
+    )
+    await session.commit()
+    nudge.invalidate_glossary()
+
+    async def titles(term: str | None, pressed_id: int | None = None) -> list[str]:
+        out = await lore.for_explanation(session, gid, term, pressed_id, [])
+        return [entry.title for entry in out]
+
+    # Term (or its alias) in the title first, primary term breaking the tie.
+    assert await titles("ZORBS", pressed) == [
+        "The Birth of Zorb",
+        "Mike Collects Zorbs Like Stones",
+    ]
+    # Without title matches: primary term beats a side term with a higher score.
+    assert await titles("jester boy") == ["Late night", "The Incident"]
 
 
 # ------------------------------------------------------------------- replays

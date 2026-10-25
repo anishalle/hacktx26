@@ -25,7 +25,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import case, func, or_, select, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
@@ -351,30 +351,66 @@ async def for_explanation(
     pressed_id: int | None,
     source_ids: list[int],
 ) -> list[schemas.Lore]:
-    """Kept lore an explanation belongs to, best first: lore about the explained term,
-    then lore containing the pressed message, then lore sharing one of its sources."""
-    ranks = []
+    """Kept lore an explanation belongs to, best first. Lore about the explained term
+    (or a glossary alias of it) leads: the term in its title, then as its first term,
+    then anywhere in its terms. Then lore holding the pressed message, then lore
+    sharing a cited source; score only breaks the remaining ties."""
+    forms: list[str] = []
     if term:
-        ranks.append((text(":term ILIKE ANY (lore.terms)").bindparams(term=term), 0))
-    if pressed_id:
-        ranks.append((Lore.message_ids.contains([pressed_id]), 1))
-    ids = [i for i in source_ids if i and i != pressed_id]
-    if ids:
-        ranks.append((Lore.message_ids.overlap(ids), 2))
-    if not ranks:
-        return []
-    rank = case(*ranks, else_=3)
-    rows = await session.scalars(
-        select(Lore)
-        .where(
-            Lore.group_id == group_id,
-            Lore.status == "kept",
-            or_(*(c for c, _ in ranks)),
+        known = (await nudge.glossary_index(session, group_id)).resolve(term)
+        forms = [term, *((known.term, *known.aliases) if known else ())]
+        forms = list({_term_key(f): f for f in forms if _term_key(f)}.values())
+    sources = {i for i in source_ids if i and i != pressed_id}
+    conds = []
+    for f in forms:
+        conds.append(
+            text(f":t{len(conds)} ILIKE ANY (lore.terms)").bindparams(
+                **{f"t{len(conds)}": f}
+            )
         )
-        .order_by(rank, Lore.score.desc(), Lore.id)
-        .limit(2)
+        conds.append(Lore.title.ilike(f"%{f}%"))
+    if pressed_id:
+        conds.append(Lore.message_ids.contains([pressed_id]))
+    if sources:
+        conds.append(Lore.message_ids.overlap(list(sources)))
+    if not conds:
+        return []
+    rows = await session.scalars(
+        select(Lore).where(
+            Lore.group_id == group_id, Lore.status == "kept", or_(*conds)
+        )
     )
-    return [await view(session, r) for r in rows]
+    keys = {_term_key(f) for f in forms}
+    in_title = (
+        re.compile(
+            r"(?<!\w)(?:"
+            + "|".join(re.escape(k) for k in sorted(keys, key=len, reverse=True))
+            + r")(?:'s|es|s)?(?!\w)"
+        )
+        if keys
+        else None
+    )
+
+    def rank(r: Lore) -> tuple[int, ...]:
+        terms = [_term_key(t) for t in r.terms]
+        titled = bool(in_title and in_title.search(r.title.lower().replace("’", "'")))
+        primary = bool(terms) and terms[0] in keys
+        tagged = bool(keys & set(terms))
+        pressed = bool(pressed_id) and pressed_id in r.message_ids
+        shared = bool(sources & set(r.message_ids))
+        tier = next(
+            (
+                i
+                for i, hit in enumerate((titled, primary, tagged, pressed, shared))
+                if hit
+            ),
+            5,  # a loose title substring match only
+        )
+        # Within a tier the later signals still count before score does.
+        return (tier, not primary, not tagged, not pressed, not shared)
+
+    ranked = sorted(rows, key=lambda r: (*rank(r), -r.score, r.id))
+    return [await view(session, r) for r in ranked if rank(r)[0] < 5][:2]
 
 
 # --------------------------------------------------------------- detection
