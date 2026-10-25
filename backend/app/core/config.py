@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     FRONTEND_HOST: str = "http://localhost:5173"
     FASTAPI_ENV: Literal["development", "staging", "production"] = "development"
     SENTRY_DSN: HttpUrl | None = None
+    AWS_REGION: str = "us-east-1"
+    DATABASE_CLUSTER_ARN: str = ""
+    DATABASE_SECRET_ARN: str = ""
+    DATABASE_NAME: str = "newcomer"
+    GENERATION_MODEL_ID: str = "amazon.nova-lite-v1:0"
+    CALLS_DEMO_API_KEY: str = ""
 
 
 settings = Settings()

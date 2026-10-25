@@ -18,6 +18,20 @@ Parameters:
     Default: amazon.titan-embed-text-v2:0
 
 Resources:
+  CallsDemoKey:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Shared prototype key for creating and joining HackTX calls
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: key
+        PasswordLength: 40
+        ExcludePunctuation: true
+  ChimeTranscriptionRole:
+    Type: AWS::IAM::ServiceLinkedRole
+    Properties:
+      AWSServiceName: transcription.chime.amazonaws.com
+      Description: Allows Chime SDK meetings to use Amazon Transcribe
   DatabaseVpc:
     Type: AWS::EC2::VPC
     Properties:
@@ -194,8 +208,19 @@ Resources:
           APPSYNC_REALTIME_ENDPOINT: !Sub 'wss://${EventsApi.Dns.Realtime}/event/realtime'
           GENERATION_MODEL_ID: !Ref GenerationModelId
           EMBEDDING_MODEL_ID: !Ref EmbeddingModelId
+          CALLS_DEMO_API_KEY: !Sub '{{resolve:secretsmanager:${CallsDemoKey}:SecretString:key}}'
       Policies:
         - Statement:
+            - Effect: Allow
+              # Transcription control does not support resource-level permissions.
+              Action: [chime:CreateMeeting, chime:StartMeetingTranscription]
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - chime:CreateAttendee
+                - chime:DeleteAttendee
+                - chime:DeleteMeeting
+              Resource: !Sub 'arn:${AWS::Partition}:chime:*:${AWS::AccountId}:meeting/*'
             - Effect: Allow
               Action:
                 - rds-data:ExecuteStatement
@@ -224,6 +249,22 @@ Resources:
                 - !Sub 'arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/${GenerationModelId}'
                 - !Sub 'arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/${EmbeddingModelId}'
       Events:
+        CreateCall:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/v1/calls
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        CallOperations:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/v1/calls/{proxy+}
+            Method: ANY
+            Auth:
+              Authorizer: NONE
         Health:
           Type: HttpApi
           Properties:
@@ -240,6 +281,8 @@ Resources:
             Method: ANY
 
 Outputs:
+  CallsDemoKeySecretArn:
+    Value: !Ref CallsDemoKey
   ApiUrl:
     Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}'
   ApiFunctionName:

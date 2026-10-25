@@ -74,5 +74,6 @@ npx expo start
 
 See [infra/README.md](infra/README.md) for the single-stack AWS deployment,
 service configuration, verification command, and cleanup instructions.
-The deployment provisions services and hosts this scaffold; chat and AI features
-still need to be implemented.
+The deployment provisions services and hosts the backend. Text-chat features
+still need to be implemented. The [Chime call API](docs/CALLS_API.md) supports
+meeting creation/joining, transcript storage, and private Bedrock explanations.

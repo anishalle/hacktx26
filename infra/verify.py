@@ -27,6 +27,8 @@ def main() -> None:
                 "export-credentials",
                 "--profile",
                 profile,
+                "--region",
+                region,
                 "--format",
                 "process",
             ],

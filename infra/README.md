@@ -17,8 +17,10 @@ The deploy script checks the account ID before making changes.
 
 ## Resources and boundaries
 
-- API Gateway HTTP API and ordinary Lambda running the current FastAPI scaffold.
-  `/api/v1/health` is public; other API routes require AWS SigV4 authentication.
+- API Gateway HTTP API and ordinary Lambda running FastAPI.
+  `/api/v1/health` is public. Call routes use a shared prototype key for
+  create/join and per-participant tokens thereafter; other API routes require
+  AWS SigV4 authentication.
 - AppSync Events with IAM authentication and `groups` / `users` namespaces.
   This is infrastructure only: client authentication, per-group access checks,
   and application publishing/subscription logic still need implementation.
@@ -29,14 +31,17 @@ The deploy script checks the account ID before making changes.
   No NAT gateway, RDS Proxy, provisioned concurrency, or additional vector DB.
 - Private encrypted S3 bucket for recordings/imports.
 - Lambda IAM permissions for SQL, its generated database secret, the media bucket,
-  publishing to the two AppSync namespaces, and the configured Bedrock models.
+  publishing to AppSync, Bedrock, and Chime meeting/transcription control.
+- Chime Transcribe service-linked role and a generated demo key in Secrets Manager.
+  Meetings are created on demand by the backend, not as permanent stack resources.
 - Seven-day API/Lambda logs. No message bodies or credentials in access logs.
 
 The runtime has `DATABASE_CLUSTER_ARN`, `DATABASE_SECRET_ARN`, `DATABASE_NAME`,
 `MEDIA_BUCKET`, `APPSYNC_HTTP_ENDPOINT`, `APPSYNC_REALTIME_ENDPOINT`,
 `GENERATION_MODEL_ID`, and `EMBEDDING_MODEL_ID` environment variables. The backend
 database module is currently a stub; deploying services does not implement chat,
-retrieval, glossary extraction, or call transcription.
+retrieval or glossary extraction. The Chime backend stores transcript events
+forwarded by clients and explains recent speech. See [the call API contract](../docs/CALLS_API.md).
 
 Bedrock is an account/region service, not a server deployed by CloudFormation.
 The stack grants invocation permissions; model access and actual inference must
@@ -61,7 +66,7 @@ operations separately; a healthy scaffold is not an end-to-end chat latency test
 
 The database has a nonzero minimum capacity and bills while idle. Lambda,
 API Gateway, AppSync and Bedrock are usage-based; S3, secrets, and logs also bill.
-There are no video/call resources in this baseline.
+Chime meeting usage and live Transcribe sessions incur usage charges.
 
 Delete the stack when finished, using the console or `aws cloudformation
 delete-stack`. Aurora takes a final snapshot and the media bucket is retained to

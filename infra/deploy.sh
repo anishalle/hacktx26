@@ -32,3 +32,5 @@ aws cloudformation describe-stacks \
   --stack-name "$stack_name" --profile "$aws_profile" --region "$aws_region" \
   --query 'Stacks[0].Outputs' --output json > "$infra_dir/.build/outputs.json"
 echo "Stack outputs saved to infra/.build/outputs.json"
+AWS_PROFILE="$aws_profile" AWS_REGION="$aws_region" STACK_NAME="$stack_name" \
+  EXPECTED_AWS_ACCOUNT_ID="$expected_account" python3 "$infra_dir/migrate_calls.py"
