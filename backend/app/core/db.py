@@ -29,6 +29,7 @@ UPGRADES = [
     "ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_description text",
     "ALTER TABLE lore ADD COLUMN IF NOT EXISTS events jsonb",
     "ALTER TABLE lore ADD COLUMN IF NOT EXISTS hero_message_id bigint",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS about text",
 ]
 
 

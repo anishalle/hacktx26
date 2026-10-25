@@ -21,6 +21,7 @@ type User = {
   avatar_url: string | null;  // null → app shows the default gray silhouette
   phonetic_hint: string | null;
   pronunciation_audio_url: string | null;
+  about: string | null;       // who they are in a line or two ("Dad. 52, engineer. ..."); explanations are written for it
 };
 
 type Reaction = { emoji: string; user_id: string };
@@ -29,13 +30,14 @@ type Message = {
   id: number;
   group_id: number;
   sender_id: string | null;   // null when kind == "system"
-  kind: "text" | "system" | "photo"; // system: "aakash added priya", shown centered
+  kind: "text" | "system" | "photo" | "game"; // system: "aakash added priya", shown centered; game: feature 7
   text: string;
   ts: string;
   reply_to: number | null;
   image: { url: string; width: number; height: number } | null; // kind "photo"; text is its caption ("" if none)
   image_description: string | null; // the AI's description of the photo (alt text); null until ready
   reactions: Reaction[];
+  game: LoreGame | null;      // kind "game" (feature 7), as the viewer sees it; null otherwise
 };
 
 type Member = {
@@ -97,14 +99,14 @@ type GlossaryEntry = {
 | Method | Path | Body / query | Returns |
 | --- | --- | --- | --- |
 | GET | `/users` | | `User[]` (demo users for the switcher) |
-| GET | `/users/{user_id}/inbox` | | `InboxItem[]`, newest activity first |
+| GET | `/users/{user_id}/inbox` | | `InboxItem[]`, newest activity first (a game `last_message` carries its `game`) |
 
 ## Groups and messages
 
 | Method | Path | Body / query | Returns |
 | --- | --- | --- | --- |
 | GET | `/groups/{group_id}` | `?user_id=` | `GroupDetail` |
-| GET | `/groups/{group_id}/messages` | `?before=&after=&around=&limit=50` (max 200) | `{ messages: Message[], has_more_before: boolean, has_more_after: boolean }` |
+| GET | `/groups/{group_id}/messages` | `?before=&after=&around=&limit=50` (max 200), `&user_id=` (the viewer: fills each game's `my_vote` and `can_reveal`) | `{ messages: Message[], has_more_before: boolean, has_more_after: boolean }` |
 | POST | `/groups/{group_id}/messages` | `{ sender_id, text, reply_to? }` | `Message` (201); fans out `message.new` |
 | POST | `/groups/{group_id}/photos` | multipart: `file` (JPEG or PNG, ≤ 15 MB), `sender_id`, `text?` (caption), `reply_to?` | `Message` with `kind: "photo"` (201); fans out `message.new` |
 | POST | `/groups/{group_id}/messages/{message_id}/reactions` | `{ user_id, emoji }` | `Message`; one reaction per user (same emoji removes it, a different one replaces it); fans out `reaction.updated` |
@@ -129,6 +131,7 @@ every group the user is in:
 | type | data |
 | --- | --- |
 | `message.new` | `Message` |
+| `message.updated` | `Message`, the whole message again when it changes; replace it by `id`. Today: a game message on every vote, hint or reveal, sent to each member with the game as they see it (feature 7) |
 | `reaction.updated` | `{ group_id, message_id, reactions: Reaction[] }` |
 | `read.updated` | `{ group_id, user_id, message_id }` |
 | `ask.new` | `MemberAsk`, sent only to the member being asked |
@@ -410,6 +413,65 @@ On a call the server keeps the last ~30 s of everyone's mic audio (mixed) and ca
 "no way" / "remember when", glossary terms said aloud) save a replay a few seconds later, at most
 one per moment.
 
+## Feature 7: Guess that Lore
+
+A guessing round played in the chat like a poll. Any member starts one (the Game app in the
+apps strip): a `game` message lands for everyone showing a kept moment of this group with the
+names masked ("Someone's 59.7 MPG Victory Lap") and "Who was it?" with 2-4 members to pick from.
+Each member votes once (changeable until the reveal); anyone can unlock the next of 3 shared
+hints. It reveals when every member has voted, when the starter taps Reveal, or when anyone does
+24 h after it started; a `system` message then posts "🎉 It was Dad: Dad's 59.7 MPG Victory Lap"
+(a family member is named by the relation their `about` starts with, else by first name).
+Names, usernames, nickname glossary terms and kinship words (Dad, Mom, Thatha...) are masked in
+the prompt and hints. Votes, hints and reveals on one game are serialized (row lock), so a round
+reveals once. Game messages reach the AI as "Guess that Lore: <prompt> (about lore #N)" and are
+left out of Lore detection; talk within 30 min of a round that matches its lore merges into it.
+
+| Method | Path | Body / query | Returns |
+| --- | --- | --- | --- |
+| POST | `/groups/{group_id}/games` | `{ user_id }` | `Message` with `kind: "game"`, text "Guess that Lore 🎲" (201). Picks a random kept lore of this group with a member in it, preferring ones not used in the group's last 5 games; 409 when there is none (or the group has one member), 403 for a non-member. Fans out `message.new` per member |
+| POST | `/games/{game_id}/vote` | `{ user_id, choice }` | `Message`; `choice` is an option's user id (else 422). Voting again replaces the vote. The last member's vote reveals. 409 once revealed |
+| POST | `/games/{game_id}/hint` | `{ user_id }` | `Message`; the next hint is shown to everyone. 409 when none are left or once revealed |
+| POST | `/games/{game_id}/reveal` | `{ user_id }` | `Message`; the starter any time, anyone once every member voted or 24 h passed (else 403). 409 once revealed. Also posts the `system` line |
+
+Every change fans out `message.updated` with the game message to each member, as they see it.
+
+```ts
+type LoreGame = {
+  id: number;
+  group_id: number;
+  message_id: number;
+  lore_id: number;            // "Open Lore" after the reveal → /lore/{lore_id}
+  started_by: string | null;
+  prompt: string;             // the moment's title with names masked, ≤ 60 chars
+  question: string;           // "Who was it?"
+  hints: string[];            // the unlocked ones, vague → specific (all of them once revealed)
+  hints_total: number;        // 3
+  options: {
+    user: User;
+    votes: number;            // counts are always shown
+    voters: User[];           // who picked it: empty until revealed
+  }[];
+  my_vote: string | null;     // the viewer's pick (user id)
+  total_votes: number;
+  member_count: number;       // "3 of 4 voted"
+  can_reveal: boolean;        // the viewer may tap Reveal now
+  status: "open" | "revealed";
+  answer: User | null;        // revealed only
+  lore_title: string | null;  // revealed only
+  created_at: string;
+  revealed_at: string | null;
+};
+```
+
+Server design (not part of the contract): Muse gets the moment's title, story, a few of its
+messages and the member list (with `about`) and returns a masked prompt, the subject and 3 hints.
+A prompt that still contains a member's name or username, or one of the group's nickname/person
+glossary terms, is retried once, then the title is masked deterministically (each name becomes
+"Someone") with plain hints (when it happened, what it holds, the first letter of the name).
+Hints that name names are replaced the same way. Options are the subject plus up to 3 other
+members, shuffled with the game id as seed.
+
 ## Feature 2: pre-send clarity nudge
 
 Flow in the composer:
@@ -517,7 +579,7 @@ computed then, once.
 
 | Table | Key fields |
 | --- | --- |
-| `users` | `id (slug), username, display_name, avatar_url, phonetic_hint, pronunciation_audio_url` |
+| `users` | `id (slug), username, display_name, avatar_url, phonetic_hint, pronunciation_audio_url, about` |
 | `groups` | `id, name, avatar_url, is_dm, created_at` |
 | `memberships` | `group_id, user_id, joined_at, last_read_message_id` |
 | `messages` | `id, group_id, sender_id, kind, text, ts, reply_to, image_path, image_width, image_height, image_description, tsv (generated over text + image_description, GIN)` |
@@ -534,3 +596,5 @@ computed then, once.
 | `lore` | `id, group_id, title, story (not served), status, source, call_id, started_at, ended_at, people text[], terms text[], message_ids bigint[], replay_ids int[], anchor_message_id, events jsonb, hero_message_id, score, embedding vector, kept_by, kept_at, created_at` |
 | `lore_pins` | `user_id, lore_id, pinned_at` (primary key `user_id, lore_id`) |
 | `lore_replays` | `id, call_id, group_id, audio_path, duration_ms, started_at, captions jsonb, signal, created_at` |
+| `lore_games` | `id, group_id, lore_id, message_id (unique: the game message), started_by, prompt, question, hints jsonb, hints_shown, options jsonb (user ids), answer_id, status (open/revealed), created_at, revealed_at` |
+| `lore_game_votes` | `game_id, user_id, choice, voted_at` (primary key `game_id, user_id`) |

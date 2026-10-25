@@ -3,7 +3,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { InboxItem, User } from '@/api';
-import { conversationPreview, inboxTime, memberAvatars } from '@/lib/conversations';
+import { conversationPreview, inboxTime, memberAvatars, memberNames } from '@/lib/conversations';
 import { colors } from '@/theme';
 
 import { Avatar, GroupAvatar } from '../Avatar';
@@ -36,7 +36,7 @@ export function ConversationAvatar({
 }: Pick<Props, 'item' | 'meId' | 'members'> & { size: number }) {
   const { group } = item;
   const pair = !group.avatar_url && !group.is_dm ? memberAvatars(members, meId) : null;
-  if (pair) return <GroupAvatar uris={pair} size={size} />;
+  if (pair) return <GroupAvatar uris={pair} names={memberNames(members, meId)} size={size} />;
   return <Avatar uri={group.avatar_url} name={group.name} size={size} />;
 }
 

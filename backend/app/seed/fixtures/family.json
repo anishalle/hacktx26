@@ -1,0 +1,3017 @@
+{
+ "anchor": {
+  "local": "2026-10-25T12:00:00",
+  "tz": "America/Chicago"
+ },
+ "users": [
+  {
+   "id": "ravi",
+   "username": "ravi.varma",
+   "display_name": "Ravi Varma",
+   "phonetic_hint": "RUH-vee",
+   "about": "Dad. 52, engineer. Texts in English and Telugu. Doesn't know internet slang or memes."
+  },
+  {
+   "id": "lakshmi",
+   "username": "lakshmi.v",
+   "display_name": "Lakshmi Varma",
+   "phonetic_hint": "LUCK-shmee",
+   "about": "Mom. 49, teacher. English and Telugu. Knows some slang from her students, not memes."
+  },
+  {
+   "id": "thatha",
+   "username": "narayana.v",
+   "display_name": "Narayana Varma",
+   "phonetic_hint": "nah-RAH-yuh-nuh",
+   "about": "Grandpa. 78, retired professor. Forwards long messages. English is formal; slang and emoji meanings are new to him."
+  },
+  {
+   "id": "arjun",
+   "username": "arjun.v",
+   "display_name": "Arjun Varma",
+   "phonetic_hint": "AR-jun",
+   "about": "College junior. Fluent in Gen Z slang. Understands some Telugu but not every word his family uses."
+  },
+  {
+   "id": "diya",
+   "username": "diya.v",
+   "display_name": "Diya Varma",
+   "phonetic_hint": "DEE-yah",
+   "about": "High schooler. Very online. Sends memes. Understands little Telugu."
+  },
+  {
+   "id": "padma",
+   "username": "padma.c",
+   "display_name": "Padma Chintala",
+   "phonetic_hint": "PUD-muh",
+   "about": "Arjun and Diya's aunt (their dad's sister, 'Padma atha'). Sends greetings in fancy fonts."
+  },
+  {
+   "id": "kiran",
+   "username": "kiran.m",
+   "display_name": "Kiran Mallela",
+   "phonetic_hint": "KEE-run",
+   "about": "Arjun and Diya's uncle (their mom's brother, 'Kiran mamayya'). Forwards travel tips."
+  }
+ ],
+ "groups": [
+  {
+   "key": "varma_home",
+   "name": "Varma Home 🏠",
+   "is_dm": false,
+   "created_offset_s": 59184000,
+   "members": [
+    {
+     "user_id": "ravi",
+     "joined_offset_s": 59184000,
+     "last_read_idx": 259
+    },
+    {
+     "user_id": "lakshmi",
+     "joined_offset_s": 59184000,
+     "last_read_idx": 263
+    },
+    {
+     "user_id": "arjun",
+     "joined_offset_s": 59184000,
+     "last_read_idx": 262
+    },
+    {
+     "user_id": "diya",
+     "joined_offset_s": 59184000,
+     "last_read_idx": 264
+    }
+   ],
+   "messages": [
+    {
+     "idx": 0,
+     "sender_id": "ravi",
+     "text": "Morning.. slept well? 😊",
+     "offset_s": 1825680
+    },
+    {
+     "idx": 1,
+     "sender_id": "lakshmi",
+     "text": "Arjun is still sleeping. Diya also.",
+     "offset_s": 1824600
+    },
+    {
+     "idx": 2,
+     "sender_id": "lakshmi",
+     "text": "Breakfast at 10. Pesarattu.",
+     "offset_s": 1824540
+    },
+    {
+     "idx": 3,
+     "sender_id": "ravi",
+     "text": "Arjun check tire pressure before you drive back. Front left was low.",
+     "offset_s": 1822800,
+     "kind": "photo",
+     "image": "car-tire.jpg",
+     "image_description": "Close-up of a car's front tire and gray alloy wheel parked on concrete. The sidewall reads \"215/45ZR18 93Y\", \"EXTRA LOAD\" and \"TREADWEAR 500 TRACTION AA TEMPERATURE A\"."
+    },
+    {
+     "idx": 4,
+     "sender_id": "ravi",
+     "text": "Gas station near temple has free air. Fill to 36.",
+     "offset_s": 1822740
+    },
+    {
+     "idx": 5,
+     "sender_id": "arjun",
+     "text": "ok will do",
+     "offset_s": 1820280
+    },
+    {
+     "idx": 6,
+     "sender_id": "arjun",
+     "text": "just woke up sorry",
+     "offset_s": 1820220
+    },
+    {
+     "idx": 7,
+     "sender_id": "diya",
+     "text": "i'm awake i just don't want to be",
+     "offset_s": 1820160
+    },
+    {
+     "idx": 8,
+     "sender_id": "lakshmi",
+     "text": "Arjun I packed pulihora and 2 boxes chapati in the blue bag. Don't forget, put in fridge.",
+     "offset_s": 1810500
+    },
+    {
+     "idx": 9,
+     "sender_id": "arjun",
+     "text": "ok thank you",
+     "offset_s": 1810440
+    },
+    {
+     "idx": 10,
+     "sender_id": "arjun",
+     "text": "leaving now",
+     "offset_s": 1807800
+    },
+    {
+     "idx": 11,
+     "sender_id": "ravi",
+     "text": "Drive safe nanna 👍 Text when you reach.",
+     "offset_s": 1807740
+    },
+    {
+     "idx": 12,
+     "sender_id": "ravi",
+     "text": "Did you check tire?",
+     "offset_s": 1807080
+    },
+    {
+     "idx": 13,
+     "sender_id": "arjun",
+     "text": "yes it was 29, i filled it",
+     "offset_s": 1807020
+    },
+    {
+     "idx": 14,
+     "sender_id": "ravi",
+     "text": "Good 👏",
+     "offset_s": 1806960
+    },
+    {
+     "idx": 15,
+     "sender_id": "arjun",
+     "text": "made it back",
+     "offset_s": 1792920
+    },
+    {
+     "idx": 16,
+     "sender_id": "ravi",
+     "text": "Ok , good. Next time text immediately when you reach.. we were waiting 😊",
+     "offset_s": 1791600
+    },
+    {
+     "idx": 17,
+     "sender_id": "arjun",
+     "text": "forgot to text sorry 😅",
+     "offset_s": 1791540
+    },
+    {
+     "idx": 18,
+     "sender_id": "lakshmi",
+     "text": "Put food in fridge first.",
+     "offset_s": 1791480
+    },
+    {
+     "idx": 19,
+     "sender_id": "arjun",
+     "text": "done 👍",
+     "offset_s": 1791000,
+     "reactions": [
+      {
+       "user_id": "lakshmi",
+       "emoji": "👍"
+      }
+     ]
+    },
+    {
+     "idx": 20,
+     "sender_id": "ravi",
+     "text": "Arjun, portal shows 91 in Signals and Systems..",
+     "offset_s": 1743300
+    },
+    {
+     "idx": 21,
+     "sender_id": "ravi",
+     "text": "Grades by end of month.. let us see 95 😊",
+     "offset_s": 1743240
+    },
+    {
+     "idx": 22,
+     "sender_id": "lakshmi",
+     "text": "Let him wake up first 🤣",
+     "offset_s": 1740600
+    },
+    {
+     "idx": 23,
+     "sender_id": "arjun",
+     "text": "dad that's before the curve",
+     "offset_s": 1734480
+    },
+    {
+     "idx": 24,
+     "sender_id": "arjun",
+     "text": "and the midterm is only 20%",
+     "offset_s": 1734473
+    },
+    {
+     "idx": 25,
+     "sender_id": "arjun",
+     "text": "dw i got it figured out",
+     "offset_s": 1734420
+    },
+    {
+     "idx": 26,
+     "sender_id": "ravi",
+     "text": "Ok , plan is good. Execution is better 👍",
+     "offset_s": 1734000,
+     "reply_to_idx": 25
+    },
+    {
+     "idx": 27,
+     "sender_id": "diya",
+     "text": "execution 😭",
+     "offset_s": 1733940
+    },
+    {
+     "idx": 28,
+     "sender_id": "diya",
+     "text": "dad sounds like a movie villain",
+     "offset_s": 1733933
+    },
+    {
+     "idx": 29,
+     "sender_id": "ravi",
+     "text": "Diya, your chem grade also I can see 😊",
+     "offset_s": 1732800
+    },
+    {
+     "idx": 30,
+     "sender_id": "diya",
+     "text": "ok i'm going back to class bye",
+     "offset_s": 1732740
+    },
+    {
+     "idx": 31,
+     "sender_id": "lakshmi",
+     "text": "🤣🤣",
+     "offset_s": 1732733
+    },
+    {
+     "idx": 32,
+     "sender_id": "ravi",
+     "text": "Who ordered 3 phone chargers on Amazon? Subscribe and Save is sending every month..",
+     "offset_s": 1554300
+    },
+    {
+     "idx": 33,
+     "sender_id": "ravi",
+     "text": "This is 4th month.",
+     "offset_s": 1554240
+    },
+    {
+     "idx": 34,
+     "sender_id": "diya",
+     "text": "oops",
+     "offset_s": 1552800
+    },
+    {
+     "idx": 35,
+     "sender_id": "diya",
+     "text": "that was me in june, i thought it was one time",
+     "offset_s": 1552793
+    },
+    {
+     "idx": 36,
+     "sender_id": "ravi",
+     "text": "Ok cancelled. Refund requested for this month 👍",
+     "offset_s": 1552680
+    },
+    {
+     "idx": 37,
+     "sender_id": "lakshmi",
+     "text": "Now we have 12 chargers and still nobody can find one 🤣",
+     "offset_s": 1552620,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 38,
+     "sender_id": "arjun",
+     "text": "can i have one of them",
+     "offset_s": 1552200
+    },
+    {
+     "idx": 39,
+     "sender_id": "ravi",
+     "text": "Come home and take 😊",
+     "offset_s": 1552140
+    },
+    {
+     "idx": 40,
+     "sender_id": "lakshmi",
+     "text": "Diya bus at 3:40 or I should pick you?",
+     "offset_s": 1542600
+    },
+    {
+     "idx": 41,
+     "sender_id": "diya",
+     "text": "bus is fine",
+     "offset_s": 1542420
+    },
+    {
+     "idx": 42,
+     "sender_id": "diya",
+     "text": "actually can you pick me up it's raining",
+     "offset_s": 1542360
+    },
+    {
+     "idx": 43,
+     "sender_id": "lakshmi",
+     "text": "Coming in 10 min.",
+     "offset_s": 1542353
+    },
+    {
+     "idx": 44,
+     "sender_id": "ravi",
+     "text": "Temple tomorrow morning. Diya ready by 8:15.",
+     "offset_s": 1356900
+    },
+    {
+     "idx": 45,
+     "sender_id": "diya",
+     "text": "why so early 😭",
+     "offset_s": 1356000
+    },
+    {
+     "idx": 46,
+     "sender_id": "ravi",
+     "text": "Abhishekam at 9. Less traffic early also.",
+     "offset_s": 1355940
+    },
+    {
+     "idx": 47,
+     "sender_id": "lakshmi",
+     "text": "And your father wants to drive slow, so we need extra time 🤣",
+     "offset_s": 1355880
+    },
+    {
+     "idx": 48,
+     "sender_id": "ravi",
+     "text": "Not slow.. efficient 😊",
+     "offset_s": 1355820
+    },
+    {
+     "idx": 49,
+     "sender_id": "ravi",
+     "text": "59.7 MPG 👏👏",
+     "offset_s": 1306680,
+     "kind": "photo",
+     "image": "ev-trip-summary.jpg",
+     "image_description": "A hybrid car's dashboard screen titled \"Trip Summary\": Trip Distance 11.7 miles, Trip Time 00:24, EV Driving Ratio 65 %, Trip Average 59.7 MPG.",
+     "reactions": [
+      {
+       "user_id": "lakshmi",
+       "emoji": "🤣"
+      },
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "👏"
+      }
+     ]
+    },
+    {
+     "idx": 50,
+     "sender_id": "ravi",
+     "text": "Home to temple. New record. Previous best 58.1",
+     "offset_s": 1306673
+    },
+    {
+     "idx": 51,
+     "sender_id": "ravi",
+     "text": "Your mother said I drive slow",
+     "offset_s": 1306620
+    },
+    {
+     "idx": 52,
+     "sender_id": "lakshmi",
+     "text": "He drove 40 the whole way. Cars were passing us like we are parked 🤣",
+     "offset_s": 1306200,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 53,
+     "sender_id": "lakshmi",
+     "text": "One truck honked.",
+     "offset_s": 1306140
+    },
+    {
+     "idx": 54,
+     "sender_id": "ravi",
+     "text": "He was jealous 😊",
+     "offset_s": 1306080
+    },
+    {
+     "idx": 55,
+     "sender_id": "diya",
+     "text": "dad 😭",
+     "offset_s": 1305000
+    },
+    {
+     "idx": 56,
+     "sender_id": "diya",
+     "text": "you made us almost late for that",
+     "offset_s": 1304940
+    },
+    {
+     "idx": 57,
+     "sender_id": "ravi",
+     "text": "We reached 8:58. Not late. Perfect timing 👏",
+     "offset_s": 1304933
+    },
+    {
+     "idx": 58,
+     "sender_id": "arjun",
+     "text": "wait is that good? my car gets like 30",
+     "offset_s": 1302300
+    },
+    {
+     "idx": 59,
+     "sender_id": "ravi",
+     "text": "Hybrid nanna. 65% electric. Brake slowly, accelerate slowly, battery charges itself",
+     "offset_s": 1302000
+    },
+    {
+     "idx": 60,
+     "sender_id": "ravi",
+     "text": "If you drive like me you will save 40 dollars a month",
+     "offset_s": 1301940
+    },
+    {
+     "idx": 61,
+     "sender_id": "arjun",
+     "text": "if i drive like you i'll get to class next week",
+     "offset_s": 1301880,
+     "reactions": [
+      {
+       "user_id": "lakshmi",
+       "emoji": "🤣"
+      },
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 62,
+     "sender_id": "lakshmi",
+     "text": "🤣🤣🤣",
+     "offset_s": 1301400
+    },
+    {
+     "idx": 63,
+     "sender_id": "diya",
+     "text": "arjun 😭",
+     "offset_s": 1301280
+    },
+    {
+     "idx": 64,
+     "sender_id": "ravi",
+     "text": "Showed to Kiran in temple parking lot also.. he has Camry. He was quiet after that 😊",
+     "offset_s": 1296900
+    },
+    {
+     "idx": 65,
+     "sender_id": "lakshmi",
+     "text": "He showed to everybody. Even the priest.",
+     "offset_s": 1296840
+    },
+    {
+     "idx": 66,
+     "sender_id": "diya",
+     "text": "he showed the PRIEST??",
+     "offset_s": 1296780
+    },
+    {
+     "idx": 67,
+     "sender_id": "ravi",
+     "text": "Priest asked how is the car. I answered correctly.",
+     "offset_s": 1296720
+    },
+    {
+     "idx": 68,
+     "sender_id": "arjun",
+     "text": "this is the best thing that's happened all week",
+     "offset_s": 1296713
+    },
+    {
+     "idx": 69,
+     "sender_id": "diya",
+     "text": "proud of you dad 👏",
+     "offset_s": 1296600
+    },
+    {
+     "idx": 70,
+     "sender_id": "ravi",
+     "text": "Thank you Diya 😊 At least one person appreciates",
+     "offset_s": 1296540
+    },
+    {
+     "idx": 71,
+     "sender_id": "lakshmi",
+     "text": "Tinnava? Eat properly.. not only ramen",
+     "offset_s": 1207800,
+     "kind": "photo",
+     "image": "home-plate.jpg",
+     "image_description": "A home-cooked plate on a dark coffee table: three pieces of spiced, pan-seared salmon, two boiled eggs, seasoned rice, roasted carrot and beet fries, broccoli and sliced cucumber."
+    },
+    {
+     "idx": 72,
+     "sender_id": "lakshmi",
+     "text": "Salmon, eggs, carrot fry, broccoli. This is lunch.",
+     "offset_s": 1207740
+    },
+    {
+     "idx": 73,
+     "sender_id": "arjun",
+     "text": "how do you even know about the ramen",
+     "offset_s": 1205700
+    },
+    {
+     "idx": 74,
+     "sender_id": "lakshmi",
+     "text": "Your friend posted on her story. 11 pm ramen.",
+     "offset_s": 1205640
+    },
+    {
+     "idx": 75,
+     "sender_id": "diya",
+     "text": "she has sources 😭",
+     "offset_s": 1205633
+    },
+    {
+     "idx": 76,
+     "sender_id": "arjun",
+     "text": "that was one time",
+     "offset_s": 1205520
+    },
+    {
+     "idx": 77,
+     "sender_id": "lakshmi",
+     "text": "Still. Eat vegetables. Cucumber at least.",
+     "offset_s": 1205460
+    },
+    {
+     "idx": 78,
+     "sender_id": "arjun",
+     "text": "ok i'll buy vegetables this week",
+     "offset_s": 1205400
+    },
+    {
+     "idx": 79,
+     "sender_id": "ravi",
+     "text": "Send photo when you buy 😊",
+     "offset_s": 1205340
+    },
+    {
+     "idx": 80,
+     "sender_id": "arjun",
+     "text": "dad",
+     "offset_s": 1205333
+    },
+    {
+     "idx": 81,
+     "sender_id": "ravi",
+     "text": "Trust but verify 👍",
+     "offset_s": 1205280,
+     "reactions": [
+      {
+       "user_id": "lakshmi",
+       "emoji": "🤣"
+      }
+     ]
+    },
+    {
+     "idx": 82,
+     "sender_id": "arjun",
+     "text": "that plate looks really good though",
+     "offset_s": 1203600
+    },
+    {
+     "idx": 83,
+     "sender_id": "lakshmi",
+     "text": "Come home and eat. Diwali is Nov 8.",
+     "offset_s": 1203540
+    },
+    {
+     "idx": 84,
+     "sender_id": "ravi",
+     "text": "Shall I get the loaded potato for you? 😊 The steakhouse one you like",
+     "offset_s": 1203480
+    },
+    {
+     "idx": 85,
+     "sender_id": "arjun",
+     "text": "yes please 🙏",
+     "offset_s": 1203300,
+     "reactions": [
+      {
+       "user_id": "ravi",
+       "emoji": "👍"
+      }
+     ]
+    },
+    {
+     "idx": 86,
+     "sender_id": "ravi",
+     "text": "Up early today? Breakfast is ready 😊",
+     "offset_s": 1054200
+    },
+    {
+     "idx": 87,
+     "sender_id": "diya",
+     "text": "no",
+     "offset_s": 1053000
+    },
+    {
+     "idx": 88,
+     "sender_id": "ravi",
+     "text": "Arjun, career fair Thursday in your student center. Take printed resume. 10 copies.",
+     "offset_s": 1052940
+    },
+    {
+     "idx": 89,
+     "sender_id": "arjun",
+     "text": "i know dad i already registered",
+     "offset_s": 1046700
+    },
+    {
+     "idx": 90,
+     "sender_id": "ravi",
+     "text": "Good 👏 Wear the blue shirt.",
+     "offset_s": 1046640
+    },
+    {
+     "idx": 91,
+     "sender_id": "arjun",
+     "text": "it's more of a hoodie kind of fair",
+     "offset_s": 1046633
+    },
+    {
+     "idx": 92,
+     "sender_id": "ravi",
+     "text": "No such thing.",
+     "offset_s": 1046580
+    },
+    {
+     "idx": 93,
+     "sender_id": "lakshmi",
+     "text": "Blue shirt. Iron it.",
+     "offset_s": 1046520
+    },
+    {
+     "idx": 94,
+     "sender_id": "diya",
+     "text": "😭😭",
+     "offset_s": 1046513
+    },
+    {
+     "idx": 95,
+     "sender_id": "diya",
+     "text": "found the switzerland pics 😭 throwback",
+     "offset_s": 919200
+    },
+    {
+     "idx": 96,
+     "sender_id": "diya",
+     "text": "",
+     "offset_s": 919193,
+     "kind": "photo",
+     "image": "mountain-view.jpg",
+     "image_description": "View from a mountain summit on a clear day: deep blue sky, dark forested slopes below and a city spread along a blue lake in the valley, with cable-car wires crossing the frame.",
+     "reactions": [
+      {
+       "user_id": "lakshmi",
+       "emoji": "😍"
+      },
+      {
+       "user_id": "ravi",
+       "emoji": "👏"
+      }
+     ]
+    },
+    {
+     "idx": 97,
+     "sender_id": "diya",
+     "text": "and this. the chocolate store.",
+     "offset_s": 919140,
+     "kind": "photo",
+     "image": "chocolate-bags.jpg",
+     "image_description": "A shop display of big gold Lindt Lindor bags of assorted chocolate truffles (1 kg each) lined up on a round red stand, with a mint-green Lindor bag behind them.",
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "lakshmi",
+       "emoji": "😊"
+      }
+     ]
+    },
+    {
+     "idx": 98,
+     "sender_id": "diya",
+     "text": "also mom took a picture of a salad because it was on sale 😭",
+     "offset_s": 919080,
+     "kind": "photo",
+     "image": "salad-40-off.jpg",
+     "image_description": "A packaged mixed salad with egg (\"Mischsalat & Ei\", 200 g) from a Coop store, with an orange sticker reading \"40%\" and \"4.15 statt 6.95\" next to a green \"Verwenden statt Verschwenden\" label."
+    },
+    {
+     "idx": 99,
+     "sender_id": "lakshmi",
+     "text": "40% off.. chala cheap 😊 4.15 instead of 6.95 francs",
+     "offset_s": 918960
+    },
+    {
+     "idx": 100,
+     "sender_id": "lakshmi",
+     "text": "Savings is savings.",
+     "offset_s": 918953
+    },
+    {
+     "idx": 101,
+     "sender_id": "arjun",
+     "text": "i remember the salad",
+     "offset_s": 918900
+    },
+    {
+     "idx": 102,
+     "sender_id": "arjun",
+     "text": "i don't remember the mountain because i fell asleep in the cable car",
+     "offset_s": 918893
+    },
+    {
+     "idx": 103,
+     "sender_id": "ravi",
+     "text": "2100 metres. You missed the best view. I told you, sleep early that night",
+     "offset_s": 918780
+    },
+    {
+     "idx": 104,
+     "sender_id": "arjun",
+     "text": "the chocolate store though 😭",
+     "offset_s": 918600
+    },
+    {
+     "idx": 105,
+     "sender_id": "arjun",
+     "text": "mom bought every single bag",
+     "offset_s": 918540,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 106,
+     "sender_id": "lakshmi",
+     "text": "Only 6 bags.",
+     "offset_s": 918480
+    },
+    {
+     "idx": 107,
+     "sender_id": "diya",
+     "text": "they were 1 kg each mom",
+     "offset_s": 918473
+    },
+    {
+     "idx": 108,
+     "sender_id": "lakshmi",
+     "text": "Gifts for everybody.. Padma atha, Kiran mamayya, neighbours, your teachers",
+     "offset_s": 918420
+    },
+    {
+     "idx": 109,
+     "sender_id": "ravi",
+     "text": "I carried them through 3 trains and 2 airports 😱",
+     "offset_s": 918360,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 110,
+     "sender_id": "arjun",
+     "text": "we had to buy a whole new suitcase",
+     "offset_s": 918300
+    },
+    {
+     "idx": 111,
+     "sender_id": "diya",
+     "text": "the great lindt run 😭",
+     "offset_s": 918293,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 112,
+     "sender_id": "lakshmi",
+     "text": "Nobody complained when they got chocolate 🤣",
+     "offset_s": 918240
+    },
+    {
+     "idx": 113,
+     "sender_id": "ravi",
+     "text": "Padma still has 2 bags in her fridge. She told me.",
+     "offset_s": 918120
+    },
+    {
+     "idx": 114,
+     "sender_id": "diya",
+     "text": "best trip ever though",
+     "offset_s": 918060
+    },
+    {
+     "idx": 115,
+     "sender_id": "lakshmi",
+     "text": "Yes 😊 next summer again?",
+     "offset_s": 918000
+    },
+    {
+     "idx": 116,
+     "sender_id": "ravi",
+     "text": "Next summer.. if grades are 95 😊",
+     "offset_s": 917940
+    },
+    {
+     "idx": 117,
+     "sender_id": "arjun",
+     "text": "😭",
+     "offset_s": 917933
+    },
+    {
+     "idx": 118,
+     "sender_id": "arjun",
+     "text": "going to a lake house with friends this weekend btw, back sunday",
+     "offset_s": 754800
+    },
+    {
+     "idx": 119,
+     "sender_id": "lakshmi",
+     "text": "Which friends? Send address.",
+     "offset_s": 754680
+    },
+    {
+     "idx": 120,
+     "sender_id": "arjun",
+     "text": "theo marcus sana jules nikhil",
+     "offset_s": 754200
+    },
+    {
+     "idx": 121,
+     "sender_id": "arjun",
+     "text": "i'll share my location",
+     "offset_s": 754140
+    },
+    {
+     "idx": 122,
+     "sender_id": "ravi",
+     "text": "Ok , drive carefully. No speeding. Check tire 👍",
+     "offset_s": 754080
+    },
+    {
+     "idx": 123,
+     "sender_id": "ravi",
+     "text": "Who is driving?",
+     "offset_s": 754020
+    },
+    {
+     "idx": 124,
+     "sender_id": "arjun",
+     "text": "marcus",
+     "offset_s": 753900
+    },
+    {
+     "idx": 125,
+     "sender_id": "ravi",
+     "text": "Marcus drives slow?",
+     "offset_s": 753893
+    },
+    {
+     "idx": 126,
+     "sender_id": "arjun",
+     "text": "nobody drives as slow as you dad",
+     "offset_s": 753840,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 127,
+     "sender_id": "diya",
+     "text": "😭",
+     "offset_s": 753833
+    },
+    {
+     "idx": 128,
+     "sender_id": "ravi",
+     "text": "That is why I have 59.7 😊",
+     "offset_s": 753780
+    },
+    {
+     "idx": 129,
+     "sender_id": "lakshmi",
+     "text": "Tinnava?",
+     "offset_s": 696600
+    },
+    {
+     "idx": 130,
+     "sender_id": "arjun",
+     "text": "yes we made pancakes",
+     "offset_s": 690600
+    },
+    {
+     "idx": 131,
+     "sender_id": "lakshmi",
+     "text": "Good 👍 Send photos",
+     "offset_s": 690540
+    },
+    {
+     "idx": 132,
+     "sender_id": "arjun",
+     "text": "boat tour",
+     "offset_s": 679200,
+     "kind": "photo",
+     "image": "bayou-cypress.jpg",
+     "image_description": "Taken from a small tour boat: tall cypress trees draped in Spanish moss standing in dark, rippling swamp water with patches of bright green duckweed, under a blue sky with big white clouds. A metal boat frame edges the left side and a dark blur covers a top corner.",
+     "reactions": [
+      {
+       "user_id": "lakshmi",
+       "emoji": "😍"
+      },
+      {
+       "user_id": "diya",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 133,
+     "sender_id": "lakshmi",
+     "text": "Beautiful.. wearing life jacket?",
+     "offset_s": 678900
+    },
+    {
+     "idx": 134,
+     "sender_id": "arjun",
+     "text": "yes mom",
+     "offset_s": 678840
+    },
+    {
+     "idx": 135,
+     "sender_id": "ravi",
+     "text": "Alligators there? 😱",
+     "offset_s": 678000
+    },
+    {
+     "idx": 136,
+     "sender_id": "arjun",
+     "text": "we saw one far away",
+     "offset_s": 677880
+    },
+    {
+     "idx": 137,
+     "sender_id": "lakshmi",
+     "text": "Ayyo.. stay inside the boat.",
+     "offset_s": 677820
+    },
+    {
+     "idx": 138,
+     "sender_id": "arjun",
+     "text": "back home safe",
+     "offset_s": 594000
+    },
+    {
+     "idx": 139,
+     "sender_id": "ravi",
+     "text": "Good 👍 Texted on time, thank you nanna 😊",
+     "offset_s": 593880
+    },
+    {
+     "idx": 140,
+     "sender_id": "lakshmi",
+     "text": "Laundry today itself. Don't wait.",
+     "offset_s": 593700
+    },
+    {
+     "idx": 141,
+     "sender_id": "ravi",
+     "text": "Boarding. Back Thursday night.",
+     "offset_s": 541200
+    },
+    {
+     "idx": 142,
+     "sender_id": "lakshmi",
+     "text": "Ok. Text when you land.",
+     "offset_s": 541140
+    },
+    {
+     "idx": 143,
+     "sender_id": "ravi",
+     "text": "Reached hotel 👍",
+     "offset_s": 513600
+    },
+    {
+     "idx": 144,
+     "sender_id": "ravi",
+     "text": "Very humid here.",
+     "offset_s": 513540
+    },
+    {
+     "idx": 145,
+     "sender_id": "diya",
+     "text": "dad can you bring back snacks",
+     "offset_s": 496800
+    },
+    {
+     "idx": 146,
+     "sender_id": "ravi",
+     "text": "Will see 😊",
+     "offset_s": 495000
+    },
+    {
+     "idx": 147,
+     "sender_id": "ravi",
+     "text": "Happy birthday Diya nanna 🎂🎉 Sixteen already..",
+     "offset_s": 451800,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "lakshmi",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 148,
+     "sender_id": "lakshmi",
+     "text": "Happy birthday Diya 🎂💐 Cake after school.",
+     "offset_s": 450900
+    },
+    {
+     "idx": 149,
+     "sender_id": "arjun",
+     "text": "happy birthday diya!! 🎂",
+     "offset_s": 449400
+    },
+    {
+     "idx": 150,
+     "sender_id": "diya",
+     "text": "thank youu 🥹",
+     "offset_s": 449280
+    },
+    {
+     "idx": 151,
+     "sender_id": "diya",
+     "text": "dad i miss you come back",
+     "offset_s": 449220
+    },
+    {
+     "idx": 152,
+     "sender_id": "ravi",
+     "text": "Thursday nanna. I will bring something 😊",
+     "offset_s": 448800
+    },
+    {
+     "idx": 153,
+     "sender_id": "ravi",
+     "text": "Good morning from hotel.. clouds sitting on the hills. Rain every afternoon 🌧️",
+     "offset_s": 447600,
+     "kind": "photo",
+     "image": "misty-hills.jpg",
+     "image_description": "View from a high window over a green valley: low clouds and fog drifting across a forested hillside, with palm fronds and a grassy clearing in the foreground.",
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "😍"
+      }
+     ]
+    },
+    {
+     "idx": 154,
+     "sender_id": "lakshmi",
+     "text": "Very green 😊 Take umbrella.",
+     "offset_s": 447300
+    },
+    {
+     "idx": 155,
+     "sender_id": "diya",
+     "text": "that's so pretty",
+     "offset_s": 447000
+    },
+    {
+     "idx": 156,
+     "sender_id": "lakshmi",
+     "text": "Cake cutting at 7:30. Video call?",
+     "offset_s": 415200
+    },
+    {
+     "idx": 157,
+     "sender_id": "ravi",
+     "text": "Yes. Same time zone here 👍",
+     "offset_s": 415140
+    },
+    {
+     "idx": 158,
+     "sender_id": "ravi",
+     "text": "Iddaru baga chesaru 👏 Diya cake was beautiful. Arjun thank you for the gift card.",
+     "offset_s": 403320
+    },
+    {
+     "idx": 159,
+     "sender_id": "diya",
+     "text": "what did i do 😭",
+     "offset_s": 403200
+    },
+    {
+     "idx": 160,
+     "sender_id": "diya",
+     "text": "i just ate cake",
+     "offset_s": 403140
+    },
+    {
+     "idx": 161,
+     "sender_id": "arjun",
+     "text": "i think it's a good thing",
+     "offset_s": 403080
+    },
+    {
+     "idx": 162,
+     "sender_id": "lakshmi",
+     "text": "🤣🤣",
+     "offset_s": 403020
+    },
+    {
+     "idx": 163,
+     "sender_id": "ravi",
+     "text": "Diya emaindi? No reply since afternoon. Mom said you are upset.",
+     "offset_s": 316200
+    },
+    {
+     "idx": 164,
+     "sender_id": "diya",
+     "text": "nothing i'm fine",
+     "offset_s": 315600
+    },
+    {
+     "idx": 165,
+     "sender_id": "diya",
+     "text": "chem test friday and i don't understand stoichiometry",
+     "offset_s": 315540
+    },
+    {
+     "idx": 166,
+     "sender_id": "ravi",
+     "text": "Ayyo.. that is easy. Call me after 9, I will explain 😊",
+     "offset_s": 315480
+    },
+    {
+     "idx": 167,
+     "sender_id": "diya",
+     "text": "dad you're in a hotel",
+     "offset_s": 315420
+    },
+    {
+     "idx": 168,
+     "sender_id": "ravi",
+     "text": "Hotel has wifi 👍",
+     "offset_s": 315413
+    },
+    {
+     "idx": 169,
+     "sender_id": "diya",
+     "text": "ok dad actually explained it really well",
+     "offset_s": 310500
+    },
+    {
+     "idx": 170,
+     "sender_id": "lakshmi",
+     "text": "He is engineer. Use him 😊",
+     "offset_s": 310440,
+     "reactions": [
+      {
+       "user_id": "ravi",
+       "emoji": "😊"
+      }
+     ]
+    },
+    {
+     "idx": 171,
+     "sender_id": "ravi",
+     "text": "Boarded 👍",
+     "offset_s": 245520
+    },
+    {
+     "idx": 172,
+     "sender_id": "ravi",
+     "text": "Ok , sitting on the plane.. 30 min delay",
+     "offset_s": 244200
+    },
+    {
+     "idx": 173,
+     "sender_id": "lakshmi",
+     "text": "Ok. Tell me when you take off.",
+     "offset_s": 244140
+    },
+    {
+     "idx": 174,
+     "sender_id": "ravi",
+     "text": "Took off. Bye bye rain 🌧️",
+     "offset_s": 242520,
+     "kind": "photo",
+     "image": "plane-window.jpg",
+     "image_description": "View from an airplane window after takeoff: the wing over a sprawling city, with a hazy skyline and mountains under heavy gray clouds.",
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 175,
+     "sender_id": "diya",
+     "text": "safe flight dad!!",
+     "offset_s": 242400
+    },
+    {
+     "idx": 176,
+     "sender_id": "arjun",
+     "text": "safe flight 🙏",
+     "offset_s": 241680
+    },
+    {
+     "idx": 177,
+     "sender_id": "ravi",
+     "text": "Landed 👍",
+     "offset_s": 227100,
+     "reactions": [
+      {
+       "user_id": "lakshmi",
+       "emoji": "👍"
+      },
+      {
+       "user_id": "diya",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 178,
+     "sender_id": "lakshmi",
+     "text": "I am at arrivals door 4.",
+     "offset_s": 227040
+    },
+    {
+     "idx": 179,
+     "sender_id": "ravi",
+     "text": "Coming. Bag also came out first, first time ever 😊",
+     "offset_s": 226980
+    },
+    {
+     "idx": 180,
+     "sender_id": "diya",
+     "text": "welcome home dad",
+     "offset_s": 225000
+    },
+    {
+     "idx": 181,
+     "sender_id": "diya",
+     "text": "where are the snacks",
+     "offset_s": 224940
+    },
+    {
+     "idx": 182,
+     "sender_id": "ravi",
+     "text": "In bag. Tomorrow 😊",
+     "offset_s": 224880
+    },
+    {
+     "idx": 183,
+     "sender_id": "ravi",
+     "text": "All the best Diya for chem test 👍 Read the question two times.",
+     "offset_s": 190500
+    },
+    {
+     "idx": 184,
+     "sender_id": "lakshmi",
+     "text": "Eat breakfast first.",
+     "offset_s": 190440
+    },
+    {
+     "idx": 185,
+     "sender_id": "diya",
+     "text": "thank you 🙏",
+     "offset_s": 189600
+    },
+    {
+     "idx": 186,
+     "sender_id": "diya",
+     "text": "me after finishing my chem test",
+     "offset_s": 159120,
+     "kind": "photo",
+     "image": "manga-meme.jpg",
+     "image_description": "A black-and-white manga panel of a grinning, white-haired sorcerer in a dark uniform, one hand raised by his head and the other pointing down, with speech bubbles reading \"Throughout heaven and earth...\" and \"...I alone am the honored one.\" It is the \"I alone am the honored one\" meme: Gojo Satoru's line from the manga and anime Jujutsu Kaisen, a popular format for jokingly showing off.",
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 187,
+     "sender_id": "lakshmi",
+     "text": "🤣 So test went well?",
+     "offset_s": 159000
+    },
+    {
+     "idx": 188,
+     "sender_id": "diya",
+     "text": "yes i think i got like a 95",
+     "offset_s": 158880
+    },
+    {
+     "idx": 189,
+     "sender_id": "ravi",
+     "text": "95 👏👏 See, stoichiometry is easy 😊",
+     "offset_s": 158820
+    },
+    {
+     "idx": 190,
+     "sender_id": "ravi",
+     "text": "Who is this white hair man?",
+     "offset_s": 158700,
+     "reply_to_idx": 186
+    },
+    {
+     "idx": 191,
+     "sender_id": "diya",
+     "text": "dad 😭 it's a meme",
+     "offset_s": 158640
+    },
+    {
+     "idx": 192,
+     "sender_id": "arjun",
+     "text": "nice diya 👏",
+     "offset_s": 158520
+    },
+    {
+     "idx": 193,
+     "sender_id": "arjun",
+     "text": "i have 3 exams next week btw so i'll be slow to reply",
+     "offset_s": 157800
+    },
+    {
+     "idx": 194,
+     "sender_id": "diya",
+     "text": "arjun is cooked for finals",
+     "offset_s": 157680,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 195,
+     "sender_id": "ravi",
+     "text": "What is cooked? He is not food..",
+     "offset_s": 157200,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "lakshmi",
+       "emoji": "🤣"
+      }
+     ],
+     "reply_to_idx": 194
+    },
+    {
+     "idx": 196,
+     "sender_id": "diya",
+     "text": "😭😭😭",
+     "offset_s": 157140
+    },
+    {
+     "idx": 197,
+     "sender_id": "diya",
+     "text": "it means he's cooked dad. like. cooked",
+     "offset_s": 157133
+    },
+    {
+     "idx": 198,
+     "sender_id": "ravi",
+     "text": "Ayyo. Arjun emaindi? Exams problem?",
+     "offset_s": 157080
+    },
+    {
+     "idx": 199,
+     "sender_id": "arjun",
+     "text": "diya stop 😭",
+     "offset_s": 156600
+    },
+    {
+     "idx": 200,
+     "sender_id": "arjun",
+     "text": "i'm fine dad. they're midterms not finals",
+     "offset_s": 156593
+    },
+    {
+     "idx": 201,
+     "sender_id": "arjun",
+     "text": "its handled, i made a schedule",
+     "offset_s": 156540
+    },
+    {
+     "idx": 202,
+     "sender_id": "lakshmi",
+     "text": "Every week same plan 🤣",
+     "offset_s": 156480,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "ravi",
+       "emoji": "🤣"
+      }
+     ]
+    },
+    {
+     "idx": 203,
+     "sender_id": "ravi",
+     "text": "Ok. 3 exams.. then grades 95 😊",
+     "offset_s": 156000
+    },
+    {
+     "idx": 204,
+     "sender_id": "ravi",
+     "text": "Made chicken pakoda. Diya's celebration 😊",
+     "offset_s": 145800,
+     "kind": "photo",
+     "image": "fried-snack.jpg",
+     "image_description": "A blurry close-up of a crispy, golden-brown fried piece of food on a white plate, with the arm of a gray couch behind it.",
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 205,
+     "sender_id": "arjun",
+     "text": "not fair 😭",
+     "offset_s": 145680
+    },
+    {
+     "idx": 206,
+     "sender_id": "ravi",
+     "text": "Come home Diwali. Pakoda and loaded potato both 👍",
+     "offset_s": 145620
+    },
+    {
+     "idx": 207,
+     "sender_id": "diya",
+     "text": "dad this is the best pakoda you've ever made",
+     "offset_s": 145500
+    },
+    {
+     "idx": 208,
+     "sender_id": "lakshmi",
+     "text": "He used my recipe.",
+     "offset_s": 145440
+    },
+    {
+     "idx": 209,
+     "sender_id": "ravi",
+     "text": "My execution 😊",
+     "offset_s": 145433
+    },
+    {
+     "idx": 210,
+     "sender_id": "lakshmi",
+     "text": "Costco has the big Lindt bags 2 for 1 this week.. Diwali gifts 👍",
+     "offset_s": 99600
+    },
+    {
+     "idx": 211,
+     "sender_id": "diya",
+     "text": "not another lindt run 😭",
+     "offset_s": 99540
+    },
+    {
+     "idx": 212,
+     "sender_id": "ravi",
+     "text": "I am not carrying this time 😊",
+     "offset_s": 99300
+    },
+    {
+     "idx": 213,
+     "sender_id": "lakshmi",
+     "text": "Only 4 bags. Car will carry.",
+     "offset_s": 99240
+    },
+    {
+     "idx": 214,
+     "sender_id": "lakshmi",
+     "text": "Diwali clothes ordered iddariki 😊 Arjun send your size",
+     "offset_s": 90000
+    },
+    {
+     "idx": 215,
+     "sender_id": "arjun",
+     "text": "medium",
+     "offset_s": 88800
+    },
+    {
+     "idx": 216,
+     "sender_id": "diya",
+     "text": "wait can i pick mine",
+     "offset_s": 88740
+    },
+    {
+     "idx": 217,
+     "sender_id": "lakshmi",
+     "text": "Already picked. Pink. You will like.",
+     "offset_s": 88680
+    },
+    {
+     "idx": 218,
+     "sender_id": "diya",
+     "text": "😭",
+     "offset_s": 88673
+    },
+    {
+     "idx": 219,
+     "sender_id": "diya",
+     "text": "Guess that Lore 🎲",
+     "offset_s": 71280,
+     "kind": "game",
+     "game": {
+      "lore_title": "Dad's 59.7 MPG Victory Lap",
+      "started_by": "diya",
+      "prompt": "Someone turned a short drive into a whole announcement",
+      "hints": [
+       "It happened on the way to a weekly family outing",
+       "A dashboard screen was involved",
+       "The number on the screen was just short of 60"
+      ],
+      "hints_shown": 2,
+      "options": [
+       "lakshmi",
+       "ravi",
+       "arjun",
+       "diya"
+      ],
+      "answer": "ravi",
+      "status": "revealed",
+      "votes": [
+       {
+        "user_id": "diya",
+        "choice": "ravi"
+       },
+       {
+        "user_id": "lakshmi",
+        "choice": "ravi"
+       },
+       {
+        "user_id": "ravi",
+        "choice": "arjun"
+       },
+       {
+        "user_id": "arjun",
+        "choice": "ravi"
+       }
+      ],
+      "revealed_offset_s": 69960
+     }
+    },
+    {
+     "idx": 220,
+     "sender_id": "diya",
+     "text": "ok everyone vote",
+     "offset_s": 71220
+    },
+    {
+     "idx": 221,
+     "sender_id": "lakshmi",
+     "text": "What is this?",
+     "offset_s": 71160
+    },
+    {
+     "idx": 222,
+     "sender_id": "diya",
+     "text": "it's a game. it picks something from our chat and you guess who it was",
+     "offset_s": 71100
+    },
+    {
+     "idx": 223,
+     "sender_id": "ravi",
+     "text": "Someone turned a short drive into announcement.. hmm 🤔",
+     "offset_s": 70800
+    },
+    {
+     "idx": 224,
+     "sender_id": "arjun",
+     "text": "i have a guess",
+     "offset_s": 70680
+    },
+    {
+     "idx": 225,
+     "sender_id": "ravi",
+     "text": "I pressed hint. It says dashboard 😱",
+     "offset_s": 70560
+    },
+    {
+     "idx": 226,
+     "sender_id": "lakshmi",
+     "text": "🤣🤣",
+     "offset_s": 70500
+    },
+    {
+     "idx": 227,
+     "sender_id": "ravi",
+     "text": "I voted Arjun. He drives too much.",
+     "offset_s": 70140
+    },
+    {
+     "idx": 228,
+     "sender_id": "arjun",
+     "text": "dad 😭",
+     "offset_s": 70020
+    },
+    {
+     "idx": 229,
+     "sender_id": null,
+     "text": "🎉 It was Dad: Dad's 59.7 MPG Victory Lap",
+     "offset_s": 69960,
+     "kind": "system"
+    },
+    {
+     "idx": 230,
+     "sender_id": "diya",
+     "text": "DAD 😭😭",
+     "offset_s": 69900,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 231,
+     "sender_id": "diya",
+     "text": "you voted against yourself",
+     "offset_s": 69893
+    },
+    {
+     "idx": 232,
+     "sender_id": "lakshmi",
+     "text": "he showed that screen to the whole temple parking lot 🤣",
+     "offset_s": 69840,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 233,
+     "sender_id": "ravi",
+     "text": "60 MPG is not a joke.. 😊",
+     "offset_s": 69720
+    },
+    {
+     "idx": 234,
+     "sender_id": "ravi",
+     "text": "Still my record",
+     "offset_s": 69713,
+     "kind": "photo",
+     "image": "ev-trip-summary.jpg",
+     "image_description": "A hybrid car's dashboard screen titled \"Trip Summary\": Trip Distance 11.7 miles, Trip Time 00:24, EV Driving Ratio 65 %, Trip Average 59.7 MPG.",
+     "reactions": [
+      {
+       "user_id": "lakshmi",
+       "emoji": "🤣"
+      },
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 235,
+     "sender_id": "diya",
+     "text": "dad is the main character fr",
+     "offset_s": 69660,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 236,
+     "sender_id": "arjun",
+     "text": "ok this is lowkey the best thing in this gc",
+     "offset_s": 69600,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "lakshmi",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 237,
+     "sender_id": "lakshmi",
+     "text": "Remember he showed the priest also",
+     "offset_s": 69540
+    },
+    {
+     "idx": 238,
+     "sender_id": "diya",
+     "text": "the PRIEST 😭",
+     "offset_s": 69480
+    },
+    {
+     "idx": 239,
+     "sender_id": "arjun",
+     "text": "and kiran mamayya just stood there with his camry",
+     "offset_s": 69420
+    },
+    {
+     "idx": 240,
+     "sender_id": "ravi",
+     "text": "Kiran bought hybrid last week. Coincidence? 😊",
+     "offset_s": 69300,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 241,
+     "sender_id": "diya",
+     "text": "NO WAY",
+     "offset_s": 69293
+    },
+    {
+     "idx": 242,
+     "sender_id": "arjun",
+     "text": "dad changed a man's life",
+     "offset_s": 69240
+    },
+    {
+     "idx": 243,
+     "sender_id": "lakshmi",
+     "text": "Now both of them compare every Saturday 🤣",
+     "offset_s": 69180
+    },
+    {
+     "idx": 244,
+     "sender_id": "ravi",
+     "text": "Kiran got 51. Beginner 😊",
+     "offset_s": 69120,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "lakshmi",
+       "emoji": "🤣"
+      }
+     ]
+    },
+    {
+     "idx": 245,
+     "sender_id": "diya",
+     "text": "this is the funniest thing our family has ever done",
+     "offset_s": 69060
+    },
+    {
+     "idx": 246,
+     "sender_id": "arjun",
+     "text": "we need to play this again",
+     "offset_s": 69000
+    },
+    {
+     "idx": 247,
+     "sender_id": "lakshmi",
+     "text": "Biryani ready. Diya come down.",
+     "offset_s": 56700
+    },
+    {
+     "idx": 248,
+     "sender_id": "ravi",
+     "text": "Morning.. eat something before class 😊",
+     "offset_s": 10500
+    },
+    {
+     "idx": 249,
+     "sender_id": "diya",
+     "text": "that biryani was bussin no cap",
+     "offset_s": 8400,
+     "reactions": [
+      {
+       "user_id": "lakshmi",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 250,
+     "sender_id": "arjun",
+     "text": "wait there was biryani??",
+     "offset_s": 8340
+    },
+    {
+     "idx": 251,
+     "sender_id": "lakshmi",
+     "text": "Diwali I will make again. Come Friday.",
+     "offset_s": 8220
+    },
+    {
+     "idx": 252,
+     "sender_id": "ravi",
+     "text": "Arjun your grades are bussin? 😊",
+     "offset_s": 7320
+    },
+    {
+     "idx": 253,
+     "sender_id": "diya",
+     "text": "PLEASE never say that again 😭",
+     "offset_s": 7260,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "‼️"
+      }
+     ],
+     "reply_to_idx": 252
+    },
+    {
+     "idx": 254,
+     "sender_id": "arjun",
+     "text": "dad no 😭😭",
+     "offset_s": 7200
+    },
+    {
+     "idx": 255,
+     "sender_id": "arjun",
+     "text": "and they're fine",
+     "offset_s": 7140
+    },
+    {
+     "idx": 256,
+     "sender_id": "ravi",
+     "text": "Diya said bussin means very good. I am using correctly 🤣",
+     "offset_s": 7020
+    },
+    {
+     "idx": 257,
+     "sender_id": "diya",
+     "text": "it's not about correctly it's about YOU saying it",
+     "offset_s": 6960
+    },
+    {
+     "idx": 258,
+     "sender_id": "lakshmi",
+     "text": "Let him enjoy.. he learned one new word this year 🤣",
+     "offset_s": 6840,
+     "reactions": [
+      {
+       "user_id": "ravi",
+       "emoji": "😊"
+      }
+     ]
+    },
+    {
+     "idx": 259,
+     "sender_id": "ravi",
+     "text": "Going to temple. Back by 12.",
+     "offset_s": 5400
+    },
+    {
+     "idx": 260,
+     "sender_id": "diya",
+     "text": "dad when the dashboard says 59.7",
+     "offset_s": 1740,
+     "kind": "photo",
+     "image": "manga-meme.jpg",
+     "image_description": "A black-and-white manga panel of a grinning, white-haired sorcerer in a dark uniform, one hand raised by his head and the other pointing down, with speech bubbles reading \"Throughout heaven and earth...\" and \"...I alone am the honored one.\" It is the \"I alone am the honored one\" meme: Gojo Satoru's line from the manga and anime Jujutsu Kaisen, a popular format for jokingly showing off.",
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "lakshmi",
+       "emoji": "🤣"
+      }
+     ]
+    },
+    {
+     "idx": 261,
+     "sender_id": "diya",
+     "text": "throughout heaven and earth he alone is the hybrid one 😭",
+     "offset_s": 1680
+    },
+    {
+     "idx": 262,
+     "sender_id": "arjun",
+     "text": "😭😭 this is too accurate",
+     "offset_s": 1200
+    },
+    {
+     "idx": 263,
+     "sender_id": "lakshmi",
+     "text": "🤣🤣 I will show him when he comes back",
+     "offset_s": 960
+    },
+    {
+     "idx": 264,
+     "sender_id": "diya",
+     "text": "dad you're lowkey iconic for that ngl",
+     "offset_s": 480
+    }
+   ],
+   "glossary": [
+    {
+     "term": "59.7",
+     "aliases": [
+      "59.7 MPG",
+      "60 MPG",
+      "59.7 mpg"
+     ],
+     "meaning": "Dad's record fuel economy: 59.7 MPG on the hybrid, driving home to the temple on a Saturday. He showed the dashboard screen to everyone in the temple parking lot, the priest included, and brings it up whenever anyone mentions driving.",
+     "kind": "inside_joke",
+     "first_seen_idx": 49,
+     "source_idxs": [
+      49,
+      51,
+      64,
+      128
+     ]
+    },
+    {
+     "term": "Lindt run",
+     "aliases": [
+      "the great lindt run",
+      "lindt run",
+      "another lindt run"
+     ],
+     "meaning": "On the family's Switzerland trip this summer Mom bought six 1 kg bags of Lindt chocolate as gifts for the relatives, and Dad carried them through three trains and two airports. Any big chocolate shopping trip is now a 'Lindt run'.",
+     "kind": "inside_joke",
+     "first_seen_idx": 111,
+     "source_idxs": [
+      97,
+      105,
+      111,
+      211
+     ]
+    },
+    {
+     "term": "nanna",
+     "aliases": [],
+     "meaning": "Telugu for 'dad'. Telugu parents also call their children 'nanna' as an affectionate 'dear', which is how Dad uses it with Arjun and Diya.",
+     "kind": "nickname",
+     "first_seen_idx": 11,
+     "source_idxs": [
+      11
+     ]
+    },
+    {
+     "term": "iddaru",
+     "aliases": [
+      "iddariki"
+     ],
+     "meaning": "Telugu for 'both of you' ('iddariki' = 'for both of you'). Dad and Mom use it when talking to Arjun and Diya together.",
+     "kind": "slang",
+     "first_seen_idx": 158,
+     "source_idxs": [
+      158,
+      214
+     ]
+    },
+    {
+     "term": "baga chesaru",
+     "aliases": [
+      "baga"
+     ],
+     "meaning": "Telugu for 'you did well' ('baga' = well, good). Praise from a parent.",
+     "kind": "slang",
+     "first_seen_idx": 158,
+     "source_idxs": [
+      158
+     ]
+    },
+    {
+     "term": "emaindi",
+     "aliases": [],
+     "meaning": "Telugu for 'what happened?'. A worried parent's check-in.",
+     "kind": "slang",
+     "first_seen_idx": 163,
+     "source_idxs": [
+      163
+     ]
+    },
+    {
+     "term": "tinnava",
+     "aliases": [],
+     "meaning": "Telugu for 'did you eat?'. Mom's way of checking in.",
+     "kind": "slang",
+     "first_seen_idx": 71,
+     "source_idxs": [
+      71,
+      129
+     ]
+    },
+    {
+     "term": "ayyo",
+     "aliases": [],
+     "meaning": "Telugu exclamation, roughly 'oh no!'. Sympathy or alarm.",
+     "kind": "slang",
+     "first_seen_idx": 166,
+     "source_idxs": [
+      166
+     ]
+    },
+    {
+     "term": "chala",
+     "aliases": [],
+     "meaning": "Telugu for 'very' ('chala cheap' = very cheap).",
+     "kind": "slang",
+     "first_seen_idx": 99,
+     "source_idxs": [
+      99
+     ]
+    }
+   ],
+   "lore": [
+    {
+     "title": "Dad's 59.7 MPG Victory Lap",
+     "story": "Dad hit 59.7 MPG on the hybrid driving to the temple, posted the dashboard, and showed it to everyone in the parking lot, Kiran and the priest included. Mom says he drove 40 the whole way.",
+     "message_idxs": [
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70
+     ],
+     "hero_idx": 49,
+     "people": [
+      "ravi",
+      "lakshmi"
+     ],
+     "terms": [
+      "59.7"
+     ],
+     "score": 0.86
+    },
+    {
+     "title": "Mom Bought Every Lindt Bag on the Swiss Trip",
+     "story": "Diya found the Switzerland photos: the mountain view, the 40%-off salad Mom photographed, and the chocolate store where Mom bought six 1 kg bags of Lindt as gifts while Dad carried them home.",
+     "message_idxs": [
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116
+     ],
+     "hero_idx": 97,
+     "people": [
+      "lakshmi",
+      "ravi",
+      "diya",
+      "arjun"
+     ],
+     "terms": [
+      "Lindt run"
+     ],
+     "score": 0.8
+    }
+   ]
+  },
+  {
+   "key": "varma_family",
+   "name": "Varma Family 🙏",
+   "is_dm": false,
+   "created_offset_s": 79596000,
+   "members": [
+    {
+     "user_id": "thatha",
+     "joined_offset_s": 79596000,
+     "last_read_idx": 67
+    },
+    {
+     "user_id": "ravi",
+     "joined_offset_s": 79596000,
+     "last_read_idx": 67
+    },
+    {
+     "user_id": "lakshmi",
+     "joined_offset_s": 79596000,
+     "last_read_idx": 67
+    },
+    {
+     "user_id": "padma",
+     "joined_offset_s": 79596000,
+     "last_read_idx": 67
+    },
+    {
+     "user_id": "kiran",
+     "joined_offset_s": 79596000,
+     "last_read_idx": 67
+    },
+    {
+     "user_id": "arjun",
+     "joined_offset_s": 79596000,
+     "last_read_idx": 63
+    },
+    {
+     "user_id": "diya",
+     "joined_offset_s": 79596000,
+     "last_read_idx": 63
+    }
+   ],
+   "messages": [
+    {
+     "idx": 0,
+     "sender_id": "thatha",
+     "text": "🌅 *Good Morning* 🌅\n\nA cup of tea is best enjoyed slowly. So is life ☕\nDo not hurry. Do not worry.\nSmile at the first person you meet today 😊\n\nHave a blessed Sunday 🙏🌸",
+     "offset_s": 1835100
+    },
+    {
+     "idx": 1,
+     "sender_id": "padma",
+     "text": "Good morning nanna 🙏🌸",
+     "offset_s": 1833600
+    },
+    {
+     "idx": 2,
+     "sender_id": "kiran",
+     "text": "Good morning 🙏",
+     "offset_s": 1831800
+    },
+    {
+     "idx": 3,
+     "sender_id": "ravi",
+     "text": "Good morning 🙏",
+     "offset_s": 1828680
+    },
+    {
+     "idx": 4,
+     "sender_id": "thatha",
+     "text": "☘️ #Common_Mistakes ☘️\n\nDon't say ❌ \"I am having two brothers\"\nSay ✅ \"I have two brothers\"\n\nDon't say ❌ \"Please revert back to me\"\nSay ✅ \"Please reply to me\" (revert already means go back)\n\nDon't say ❌ \"We discussed about the matter\"\nSay ✅ \"We discussed the matter\"\n\nDon't say ❌ \"He is my cousin brother\"\nSay ✅ \"He is my cousin\"\n\nShare with your children and grandchildren 🙏",
+     "offset_s": 1744200,
+     "reactions": [
+      {
+       "user_id": "padma",
+       "emoji": "👍"
+      },
+      {
+       "user_id": "kiran",
+       "emoji": "👍"
+      },
+      {
+       "user_id": "ravi",
+       "emoji": "👍"
+      }
+     ]
+    },
+    {
+     "idx": 5,
+     "sender_id": "padma",
+     "text": "Very useful 👌👌",
+     "offset_s": 1741800
+    },
+    {
+     "idx": 6,
+     "sender_id": "kiran",
+     "text": "True. 'Revert back' I see in office every day 🤣",
+     "offset_s": 1741680
+    },
+    {
+     "idx": 7,
+     "sender_id": "lakshmi",
+     "text": "I will show this to my class 😊",
+     "offset_s": 1740000
+    },
+    {
+     "idx": 8,
+     "sender_id": "thatha",
+     "text": "Very good Lakshmi. Teach them early 👍",
+     "offset_s": 1738800
+    },
+    {
+     "idx": 9,
+     "sender_id": "kiran",
+     "text": "Planning to go to the city Saturday for Diwali shopping. Indian stores have very good collection this year 👌",
+     "offset_s": 1533600
+    },
+    {
+     "idx": 10,
+     "sender_id": "padma",
+     "text": "Waste traffic in that city 👎👎👎👎",
+     "offset_s": 1532400
+    },
+    {
+     "idx": 11,
+     "sender_id": "padma",
+     "text": "Last time 2 hours one way. Order online only.",
+     "offset_s": 1532340
+    },
+    {
+     "idx": 12,
+     "sender_id": "kiran",
+     "text": "Online saree colour never matches 🤔",
+     "offset_s": 1531800
+    },
+    {
+     "idx": 13,
+     "sender_id": "lakshmi",
+     "text": "True 🤣",
+     "offset_s": 1531740
+    },
+    {
+     "idx": 14,
+     "sender_id": "padma",
+     "text": "Then go Tuesday morning. Saturday 👎",
+     "offset_s": 1531200
+    },
+    {
+     "idx": 15,
+     "sender_id": "kiran",
+     "text": "*Useful tips for airport journey* ✈️\n\n1. Keep a copy of passport and visa in your email\n2. Put one set of clothes in hand luggage, checked bag can come late\n3. Take photo of your bag before check-in\n4. Empty water bottle is allowed, fill after security\n5. Reach 3 hours early for international, 2 hours for domestic\n6. Wear comfortable shoes, long walk in big airports 👟",
+     "offset_s": 1529100
+    },
+    {
+     "idx": 16,
+     "sender_id": "kiran",
+     "text": "Kindly watch above, very helpful for travel friends 🙏",
+     "offset_s": 1529040
+    },
+    {
+     "idx": 17,
+     "sender_id": "ravi",
+     "text": "Point 2 is very important. Our bag came late on Swiss trip 😱",
+     "offset_s": 1528200
+    },
+    {
+     "idx": 18,
+     "sender_id": "thatha",
+     "text": "Very good information Kiran 👌",
+     "offset_s": 1528140
+    },
+    {
+     "idx": 19,
+     "sender_id": "kiran",
+     "text": "Ravi showed me his car mileage at temple today 😊 59.7.. very proud man",
+     "offset_s": 1294200,
+     "reactions": [
+      {
+       "user_id": "padma",
+       "emoji": "🤣"
+      },
+      {
+       "user_id": "lakshmi",
+       "emoji": "🤣"
+      }
+     ]
+    },
+    {
+     "idx": 20,
+     "sender_id": "padma",
+     "text": "🤣🤣 Ravi always like this from childhood. Cycle also he used to measure",
+     "offset_s": 1294080
+    },
+    {
+     "idx": 21,
+     "sender_id": "ravi",
+     "text": "Facts are facts 😊",
+     "offset_s": 1293900
+    },
+    {
+     "idx": 22,
+     "sender_id": "thatha",
+     "text": "Fuel saving is a good habit. Proud of you Ravi 👏",
+     "offset_s": 1293600
+    },
+    {
+     "idx": 23,
+     "sender_id": "ravi",
+     "text": "Thank you nanna 🙏",
+     "offset_s": 1293540
+    },
+    {
+     "idx": 24,
+     "sender_id": "lakshmi",
+     "text": "Diya found our Switzerland photos 😊🏔️",
+     "offset_s": 917400,
+     "kind": "photo",
+     "image": "mountain-view.jpg",
+     "image_description": "View from a mountain summit on a clear day: deep blue sky, dark forested slopes below and a city spread along a blue lake in the valley, with cable-car wires crossing the frame.",
+     "reactions": [
+      {
+       "user_id": "padma",
+       "emoji": "😍"
+      },
+      {
+       "user_id": "kiran",
+       "emoji": "👍"
+      },
+      {
+       "user_id": "thatha",
+       "emoji": "🙏"
+      }
+     ]
+    },
+    {
+     "idx": 25,
+     "sender_id": "padma",
+     "text": "Beautiful 😍 Lindt chocolates still in my fridge, thank you Lakshmi 🙏",
+     "offset_s": 917280
+    },
+    {
+     "idx": 26,
+     "sender_id": "kiran",
+     "text": "Very nice 👌 next time take us also",
+     "offset_s": 917100
+    },
+    {
+     "idx": 27,
+     "sender_id": "thatha",
+     "text": "Wonderful view. God's creation 🙏",
+     "offset_s": 916800
+    },
+    {
+     "idx": 28,
+     "sender_id": "kiran",
+     "text": "Took delivery of new car today 🙏🚗",
+     "offset_s": 586800
+    },
+    {
+     "idx": 29,
+     "sender_id": "padma",
+     "text": "Congratulations 💐💐",
+     "offset_s": 586500
+    },
+    {
+     "idx": 30,
+     "sender_id": "lakshmi",
+     "text": "Congratulations anna 💐",
+     "offset_s": 586440
+    },
+    {
+     "idx": 31,
+     "sender_id": "ravi",
+     "text": "Hybrid? 😊",
+     "offset_s": 586200
+    },
+    {
+     "idx": 32,
+     "sender_id": "kiran",
+     "text": "Yes. Now I will beat your 59.7 🤣",
+     "offset_s": 586080,
+     "reactions": [
+      {
+       "user_id": "ravi",
+       "emoji": "😊"
+      },
+      {
+       "user_id": "lakshmi",
+       "emoji": "🤣"
+      }
+     ]
+    },
+    {
+     "idx": 33,
+     "sender_id": "ravi",
+     "text": "We will see 😊",
+     "offset_s": 586020
+    },
+    {
+     "idx": 34,
+     "sender_id": "thatha",
+     "text": "Congratulations Kiran. Drive carefully 👍",
+     "offset_s": 585600
+    },
+    {
+     "idx": 35,
+     "sender_id": "arjun",
+     "text": "congrats mamayya! 🎉",
+     "offset_s": 585000
+    },
+    {
+     "idx": 36,
+     "sender_id": "padma",
+     "text": "𝑯𝒂𝒑𝒑𝒚 𝑩𝒊𝒓𝒕𝒉𝒅𝒂𝒚 𝑫𝒊𝒚𝒂 💐🎂🎊\n𝑴𝒂𝒚 𝑮𝒐𝒅 𝒃𝒍𝒆𝒔𝒔 𝒚𝒐𝒖 𝒘𝒊𝒕𝒉 𝒈𝒐𝒐𝒅 𝒉𝒆𝒂𝒍𝒕𝒉, 𝒉𝒂𝒑𝒑𝒊𝒏𝒆𝒔𝒔 𝒂𝒏𝒅 𝒔𝒖𝒄𝒄𝒆𝒔𝒔 🙏",
+     "offset_s": 453300,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "lakshmi",
+       "emoji": "🙏"
+      }
+     ]
+    },
+    {
+     "idx": 37,
+     "sender_id": "thatha",
+     "text": "Happy Birthday to my dear granddaughter Diya 🎂 May you study well, be healthy and become a great scientist. Blessings from Thatha 🙏🌸",
+     "offset_s": 451800,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 38,
+     "sender_id": "kiran",
+     "text": "𝐌𝐚𝐧𝐲 𝐌𝐚𝐧𝐲 𝐇𝐚𝐩𝐩𝐲 𝐑𝐞𝐭𝐮𝐫𝐧𝐬 𝐨𝐟 𝐭𝐡𝐞 𝐃𝐚𝐲 𝐃𝐢𝐲𝐚 🎂🎉🎊",
+     "offset_s": 450000,
+     "reactions": [
+      {
+       "user_id": "diya",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 39,
+     "sender_id": "ravi",
+     "text": "Thank you all 🙏",
+     "offset_s": 449700
+    },
+    {
+     "idx": 40,
+     "sender_id": "lakshmi",
+     "text": "Thank you 🙏😊",
+     "offset_s": 448200
+    },
+    {
+     "idx": 41,
+     "sender_id": "diya",
+     "text": "thank you atha 🥹❤️",
+     "offset_s": 447600,
+     "reply_to_idx": 36
+    },
+    {
+     "idx": 42,
+     "sender_id": "diya",
+     "text": "thank you mamayya 🙏",
+     "offset_s": 447540,
+     "reply_to_idx": 38
+    },
+    {
+     "idx": 43,
+     "sender_id": "diya",
+     "text": "thank you thatha ❤️",
+     "offset_s": 447480,
+     "reply_to_idx": 37
+    },
+    {
+     "idx": 44,
+     "sender_id": "padma",
+     "text": "Sixteen already 😍 I still remember her first birthday, she cried when everyone sang",
+     "offset_s": 446400
+    },
+    {
+     "idx": 45,
+     "sender_id": "diya",
+     "text": "😭",
+     "offset_s": 446100
+    },
+    {
+     "idx": 46,
+     "sender_id": "kiran",
+     "text": "Sweet sixteen 🎂 party when?",
+     "offset_s": 445800
+    },
+    {
+     "idx": 47,
+     "sender_id": "lakshmi",
+     "text": "Small one this evening at home 😊",
+     "offset_s": 445500
+    },
+    {
+     "idx": 48,
+     "sender_id": "arjun",
+     "text": "happy birthday diya 🎂",
+     "offset_s": 441000
+    },
+    {
+     "idx": 49,
+     "sender_id": "lakshmi",
+     "text": "Cake cutting done 🎂 Thank you everyone for the wishes 🙏",
+     "offset_s": 399600,
+     "reactions": [
+      {
+       "user_id": "padma",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "kiran",
+       "emoji": "👍"
+      }
+     ]
+    },
+    {
+     "idx": 50,
+     "sender_id": "padma",
+     "text": "𝓖𝓸𝓭 𝓑𝓵𝓮𝓼𝓼 🙏💐",
+     "offset_s": 399000
+    },
+    {
+     "idx": 51,
+     "sender_id": "thatha",
+     "text": "😀😀 *Laugh a little* 😀😀\n\nDoctor told a man: \"You must walk 5 km every day for one month.\"\nAfter one month the man called the doctor: \"Doctor, I did exactly as you said. I walked 150 km. Now I am very far from home. How to come back?\" 😀\n\nKeep smiling. Smiling is free medicine 🙏",
+     "offset_s": 277200,
+     "reactions": [
+      {
+       "user_id": "padma",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "ravi",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 52,
+     "sender_id": "padma",
+     "text": "🤣🤣",
+     "offset_s": 275400
+    },
+    {
+     "idx": 53,
+     "sender_id": "kiran",
+     "text": "😀👌",
+     "offset_s": 274800
+    },
+    {
+     "idx": 54,
+     "sender_id": "padma",
+     "text": "Diwali at our house this year? Nov 8 Sunday. Everybody come 🪔",
+     "offset_s": 93600
+    },
+    {
+     "idx": 55,
+     "sender_id": "kiran",
+     "text": "Yes 👍 I will bring sweets",
+     "offset_s": 93300
+    },
+    {
+     "idx": 56,
+     "sender_id": "lakshmi",
+     "text": "Yes 😊 I will make biryani",
+     "offset_s": 93000
+    },
+    {
+     "idx": 57,
+     "sender_id": "ravi",
+     "text": "We will come 👍 Arjun also coming home Friday",
+     "offset_s": 92880
+    },
+    {
+     "idx": 58,
+     "sender_id": "thatha",
+     "text": "Very happy. All together after a long time 🙏",
+     "offset_s": 92400
+    },
+    {
+     "idx": 59,
+     "sender_id": "padma",
+     "text": "Arjun Diya you both come early, help decorate 🪔",
+     "offset_s": 91800
+    },
+    {
+     "idx": 60,
+     "sender_id": "arjun",
+     "text": "will do atha 🙏",
+     "offset_s": 90000
+    },
+    {
+     "idx": 61,
+     "sender_id": "diya",
+     "text": "yes!!",
+     "offset_s": 89700
+    },
+    {
+     "idx": 62,
+     "sender_id": "thatha",
+     "text": "Diya, tomorrow evening call me. I will teach you the Lakshmi puja slokas for Diwali 🙏",
+     "offset_s": 64800
+    },
+    {
+     "idx": 63,
+     "sender_id": "diya",
+     "text": "bet thatha",
+     "offset_s": 63600
+    },
+    {
+     "idx": 64,
+     "sender_id": "thatha",
+     "text": "🌞 *Good Morning* 🌞\n\nThe best exercise for the heart is to bend down and lift someone up 🤝\nThe best medicine is a smile 😊\nThe best day is today.\n\nHappy Sunday to all my family 🙏🌸",
+     "offset_s": 20700
+    },
+    {
+     "idx": 65,
+     "sender_id": "padma",
+     "text": "Good morning nanna 🙏🌸",
+     "offset_s": 18000
+    },
+    {
+     "idx": 66,
+     "sender_id": "kiran",
+     "text": "Good morning 🙏",
+     "offset_s": 16800
+    },
+    {
+     "idx": 67,
+     "sender_id": "ravi",
+     "text": "Good morning 🙏",
+     "offset_s": 14100
+    }
+   ],
+   "glossary": [
+    {
+     "term": "atha",
+     "aliases": [
+      "padma atha"
+     ],
+     "meaning": "Telugu for aunt, specifically your father's sister. Here: Padma, Dad's sister.",
+     "kind": "nickname",
+     "first_seen_idx": 41,
+     "source_idxs": [
+      41
+     ]
+    },
+    {
+     "term": "mamayya",
+     "aliases": [
+      "kiran mamayya"
+     ],
+     "meaning": "Telugu for uncle, specifically your mother's brother. Here: Kiran, Mom's brother.",
+     "kind": "nickname",
+     "first_seen_idx": 35,
+     "source_idxs": [
+      35
+     ]
+    },
+    {
+     "term": "Thatha",
+     "aliases": [
+      "thathayya"
+     ],
+     "meaning": "Telugu for grandpa. Here: Narayana, Dad's father.",
+     "kind": "nickname",
+     "first_seen_idx": 37,
+     "source_idxs": [
+      37,
+      43
+     ]
+    },
+    {
+     "term": "anna",
+     "aliases": [],
+     "meaning": "Telugu for elder brother. Mom calls Kiran 'anna'.",
+     "kind": "nickname",
+     "first_seen_idx": 30,
+     "source_idxs": [
+      30
+     ]
+    },
+    {
+     "term": "nanna",
+     "aliases": [],
+     "meaning": "Telugu for 'dad'. Padma and Ravi call Thatha 'nanna'; Thatha also uses it for the grandkids as 'dear'.",
+     "kind": "nickname",
+     "first_seen_idx": 1,
+     "source_idxs": [
+      1
+     ]
+    }
+   ]
+  },
+  {
+   "key": "dm_thatha_arjun",
+   "name": "",
+   "is_dm": true,
+   "created_offset_s": 62229600,
+   "members": [
+    {
+     "user_id": "thatha",
+     "joined_offset_s": 62229600,
+     "last_read_idx": 23
+    },
+    {
+     "user_id": "arjun",
+     "joined_offset_s": 62229600,
+     "last_read_idx": 21
+    }
+   ],
+   "messages": [
+    {
+     "idx": 0,
+     "sender_id": "thatha",
+     "text": "Good morning nanna ☀️ Have a nice week. Study well 📚",
+     "offset_s": 1746000
+    },
+    {
+     "idx": 1,
+     "sender_id": "arjun",
+     "text": "good morning thatha 🙏",
+     "offset_s": 1727400
+    },
+    {
+     "idx": 2,
+     "sender_id": "thatha",
+     "text": "☘️ #Common_Mistakes ☘️\n\nDon't say ❌ \"Today morning I went for walk\"\nSay ✅ \"This morning I went for a walk\"\n\nDon't say ❌ \"Kindly do the needful\"\nSay ✅ \"Please take care of it\"\n\nDon't say ❌ \"Let us prepone the meeting\"\nSay ✅ \"Let us move the meeting earlier\"\n\nSmall corrections make a big impression 👌 Forwarded as received.",
+     "offset_s": 1656000
+    },
+    {
+     "idx": 3,
+     "sender_id": "arjun",
+     "text": "will do 🙏",
+     "offset_s": 1603200
+    },
+    {
+     "idx": 4,
+     "sender_id": "thatha",
+     "text": "😀 Teacher: Why are you late again?\nStudent: Sir, on the road there was a board, \"School ahead, go slow\" 🐢\nTeacher: 🤦\n\n😀 Moral: Read the full sign before you follow it 😀😀",
+     "offset_s": 1393200
+    },
+    {
+     "idx": 5,
+     "sender_id": "arjun",
+     "text": "haha thatha 😂",
+     "offset_s": 1377900,
+     "reply_to_idx": 4
+    },
+    {
+     "idx": 6,
+     "sender_id": "thatha",
+     "text": "*Health tips after 50* 🌿 (forwarded as received)\n\n👉 Drink one glass of warm water when you wake up ✅\n👉 Walk 30 minutes daily, even slowly ✅\n👉 Finish dinner before 8 pm ✅\n👉 Less sugar, less salt, more smiling ✅\n👉 Sleep 7 hours, keep phone away from bed ✅\n\nShare with all your near and dear ones 🙏",
+     "offset_s": 1139400
+    },
+    {
+     "idx": 7,
+     "sender_id": "thatha",
+     "text": "Your mother says you are eating only noodles. Eat dal and rice, it is good for the brain 🧠",
+     "offset_s": 1051200
+    },
+    {
+     "idx": 8,
+     "sender_id": "arjun",
+     "text": "i eat vegetables too thatha 😅",
+     "offset_s": 1035000
+    },
+    {
+     "idx": 9,
+     "sender_id": "thatha",
+     "text": "Good boy 👍",
+     "offset_s": 1034100
+    },
+    {
+     "idx": 10,
+     "sender_id": "thatha",
+     "text": "Good morning nanna. Exams when?",
+     "offset_s": 882000
+    },
+    {
+     "idx": 11,
+     "sender_id": "arjun",
+     "text": "in about two weeks thatha",
+     "offset_s": 834600
+    },
+    {
+     "idx": 12,
+     "sender_id": "thatha",
+     "text": "Read one hour extra daily. Do not study after 12 at night, memory will not stay 🙏",
+     "offset_s": 834300
+    },
+    {
+     "idx": 13,
+     "sender_id": "arjun",
+     "text": "will do 🙏",
+     "offset_s": 833400
+    },
+    {
+     "idx": 14,
+     "sender_id": "thatha",
+     "text": "🌸 *Good Morning* 🌸\n\nSunday is for family, rest and gratitude.\nCall someone you have not called in a long time 📞\n\nHave a peaceful Sunday 🙏",
+     "offset_s": 624600
+    },
+    {
+     "idx": 15,
+     "sender_id": "thatha",
+     "text": "👉 Tip: Keep the phone away 30 minutes before sleep ✅\nEyes and brain will thank you 😊",
+     "offset_s": 536400
+    },
+    {
+     "idx": 16,
+     "sender_id": "arjun",
+     "text": "haha thatha",
+     "offset_s": 490800
+    },
+    {
+     "idx": 17,
+     "sender_id": "thatha",
+     "text": "Today is Diya's birthday. Did you wish her? Call her today.",
+     "offset_s": 450600
+    },
+    {
+     "idx": 18,
+     "sender_id": "arjun",
+     "text": "yes thatha i texted her, calling tonight",
+     "offset_s": 449100
+    },
+    {
+     "idx": 19,
+     "sender_id": "thatha",
+     "text": "Good 👍",
+     "offset_s": 449040
+    },
+    {
+     "idx": 20,
+     "sender_id": "thatha",
+     "text": "*A small story* 📖\n\nA boy asked his grandfather why he was planting a mango tree, when he would not live long enough to eat its fruit. The grandfather smiled and said: \"I ate mangoes from trees my grandfather planted. Now it is my turn.\" 🌳\n\nMoral: Do good things even if you do not see the result. Someone will enjoy the shade 🙏\n\nForwarded as received.",
+     "offset_s": 276900,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 21,
+     "sender_id": "arjun",
+     "text": "that's a nice one thatha ❤️",
+     "offset_s": 226800
+    },
+    {
+     "idx": 22,
+     "sender_id": "thatha",
+     "text": "Good morning nanna ☀️",
+     "offset_s": 13500
+    },
+    {
+     "idx": 23,
+     "sender_id": "thatha",
+     "text": "What is meaning of 'bet'? Diya wrote 'bet' to me. I asked her to call me for Diwali slokas. Is she betting something? 🤔",
+     "offset_s": 13440
+    }
+   ]
+  }
+ ]
+}

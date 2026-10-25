@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api, type GroupDetail, type Message, type Reaction } from '@/api';
+import { newerGame } from '@/lib/games';
 import { useRealtime } from '@/state/realtime';
 
 const PAGE = 50;
@@ -26,13 +27,13 @@ export function useThread(groupId: number, meId: string, { live = true }: { live
   const tempId = useRef(-1);
 
   const loadLatest = useCallback(async () => {
-    const page = await api.getMessages(groupId, { limit: PAGE });
+    const page = await api.getMessages(groupId, { user_id: meId, limit: PAGE });
     setState({ messages: page.messages, hasMoreBefore: page.has_more_before, hasMoreAfter: false });
-  }, [groupId]);
+  }, [groupId, meId]);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([api.getGroup(groupId, meId), api.getMessages(groupId, { limit: PAGE })])
+    Promise.all([api.getGroup(groupId, meId), api.getMessages(groupId, { user_id: meId, limit: PAGE })])
       .then(([g, page]) => {
         if (cancelled) return;
         setGroup(g);
@@ -54,7 +55,7 @@ export function useThread(groupId: number, meId: string, { live = true }: { live
     if (loadingOlder.current || !s.hasMoreBefore || !s.messages.length) return;
     loadingOlder.current = true;
     try {
-      const page = await api.getMessages(groupId, { before: s.messages[0].id, limit: PAGE });
+      const page = await api.getMessages(groupId, { user_id: meId, before: s.messages[0].id, limit: PAGE });
       setState((prev) => {
         const known = new Set(prev.messages.map((m) => m.id));
         return {
@@ -68,7 +69,7 @@ export function useThread(groupId: number, meId: string, { live = true }: { live
     } finally {
       loadingOlder.current = false;
     }
-  }, [groupId]);
+  }, [groupId, meId]);
 
   const loadNewer = useCallback(async () => {
     const s = stateRef.current;
@@ -77,7 +78,7 @@ export function useThread(groupId: number, meId: string, { live = true }: { live
     try {
       const last = s.messages.filter((m) => m.id > 0).at(-1);
       if (!last) return;
-      const page = await api.getMessages(groupId, { after: last.id, limit: PAGE });
+      const page = await api.getMessages(groupId, { user_id: meId, after: last.id, limit: PAGE });
       setState((prev) => {
         const known = new Set(prev.messages.map((m) => m.id));
         return {
@@ -91,16 +92,16 @@ export function useThread(groupId: number, meId: string, { live = true }: { live
     } finally {
       loadingNewer.current = false;
     }
-  }, [groupId]);
+  }, [groupId, meId]);
 
   /** Replace the window with one centered on `messageId` (catch-up "jump to where this happened"). */
   const jumpTo = useCallback(
     async (messageId: number) => {
       if (stateRef.current.messages.some((m) => m.id === messageId)) return;
-      const page = await api.getMessages(groupId, { around: messageId, limit: 60 });
+      const page = await api.getMessages(groupId, { user_id: meId, around: messageId, limit: 60 });
       setState({ messages: page.messages, hasMoreBefore: page.has_more_before, hasMoreAfter: page.has_more_after });
     },
-    [groupId],
+    [groupId, meId],
   );
 
   useRealtime((frame) => {
@@ -121,6 +122,11 @@ export function useThread(groupId: number, meId: string, { live = true }: { live
         }
         return { ...prev, messages: [...prev.messages, m] };
       });
+    } else if (frame.type === 'message.updated' && frame.data.group_id === groupId) {
+      const m = frame.data;
+      // A late frame never takes a revealed round back to open.
+      const merge = (x: Message): Message => (m.game && x.game ? { ...m, game: newerGame(x.game, m.game) } : m);
+      setState((prev) => ({ ...prev, messages: prev.messages.map((x) => (x.id === m.id ? merge(x) : x)) }));
     } else if (frame.type === 'reaction.updated' && frame.data.group_id === groupId) {
       const { message_id, reactions } = frame.data;
       setState((prev) => ({
@@ -204,6 +210,23 @@ export function useThread(groupId: number, meId: string, { live = true }: { live
     [groupId, meId, sendWith],
   );
 
+  /** A saved message from an API response (a started game, a vote): replaces its copy, or lands at the end. */
+  const upsertMessage = useCallback((m: Message) => {
+    setState((prev) => {
+      if (prev.messages.some((x) => x.id === m.id))
+        return { ...prev, messages: prev.messages.map((x) => (x.id === m.id ? m : x)) };
+      if (prev.hasMoreAfter) return prev;
+      return { ...prev, messages: [...prev.messages, m].sort((a, b) => a.id - b.id) };
+    });
+  }, []);
+
+  /** Patches one loaded message in place (a game's round after a vote); a no-op when it isn't loaded. */
+  const updateMessage = useCallback((id: number, patch: (m: Message) => Message) => {
+    setState((prev) =>
+      prev.messages.some((x) => x.id === id) ? { ...prev, messages: prev.messages.map((x) => (x.id === id ? patch(x) : x)) } : prev,
+    );
+  }, []);
+
   const toggleReaction = useCallback(
     async (message: Message, emoji: string) => {
       if (message.id < 0) return;
@@ -239,6 +262,8 @@ export function useThread(groupId: number, meId: string, { live = true }: { live
     jumpTo,
     send,
     sendPhoto,
+    upsertMessage,
+    updateMessage,
     toggleReaction,
   };
 }

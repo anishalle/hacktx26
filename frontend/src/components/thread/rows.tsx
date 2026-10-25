@@ -9,7 +9,7 @@ import { colors } from '@/theme';
 
 import { Avatar } from '../Avatar';
 import { Icon } from '../Icon';
-import { MessageMenu } from './MessageMenu';
+import { MessageMenu, QUICK_REACTIONS } from './MessageMenu';
 
 export const AVATAR = 28;
 const GUTTER = 10;
@@ -100,18 +100,25 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
   const avatars = p.avatars ?? true;
   const background = p.background ?? colors.bg;
 
+  const sheet = (actions: [string, () => void][]) =>
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: [...actions.map(([label]) => label), 'Cancel'], cancelButtonIndex: actions.length },
+      (i) => actions[i]?.[1](),
+    );
   const photoMenu = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const actions: [string, () => void][] = [
       ['Explain', () => p.onExplain?.(m)],
       ['Reply', () => p.onReply?.(m)],
-      ['❤️ Love', () => p.onReact?.(m, '❤️')],
-      ...(p.onSaveToLore ? ([['Save to Lore', () => p.onSaveToLore?.(m)]] as [string, () => void][]) : []),
+      // The same six tapbacks as the text menu, one sheet deeper (after the first one has gone).
+      [
+        'Tapback…',
+        () => setTimeout(() => sheet(QUICK_REACTIONS.map((e) => [e, () => p.onReact?.(m, e)] as [string, () => void])), 50),
+      ],
     ];
-    ActionSheetIOS.showActionSheetWithOptions(
-      { options: [...actions.map(([label]) => label), 'Cancel'], cancelButtonIndex: actions.length },
-      (i) => actions[i]?.[1](),
-    );
+    if (m.text) actions.push(['Copy', () => p.onCopy?.(m)]);
+    if (p.onSaveToLore) actions.push(['Save to Lore', () => p.onSaveToLore?.(m)]);
+    sheet(actions);
   };
 
   const textBubble = (

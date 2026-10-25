@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import db
 from app.core.config import settings
-from app.models import ChunkDigest, Message, User
+from app.models import ChunkDigest, LoreGame, Message, User
 from app.services import llm
 
 log = logging.getLogger(__name__)
@@ -64,7 +64,8 @@ class Chunk:
 
 
 def message_text(m: Any = Message) -> Any:
-    """How the AI reads a message: a photo is `[photo: <description>] <caption>`.
+    """How the AI reads a message: a photo is `[photo: <description>] <caption>`, a
+    Guess that Lore round `Guess that Lore: <prompt> (about lore #N)`.
     Takes the Message class (a SQL expression) or a Message row (a string)."""
     if m is Message:
         described = func.concat(
@@ -73,7 +74,25 @@ def message_text(m: Any = Message) -> Any:
             "] ",
             Message.text,
         )
-        return case((Message.kind == "photo", described), else_=Message.text)
+        round_ = (
+            select(
+                func.concat(
+                    "Guess that Lore: ",
+                    LoreGame.prompt,
+                    " (about lore #",
+                    LoreGame.lore_id,
+                    ")",
+                )
+            )
+            .where(LoreGame.message_id == Message.id)
+            .limit(1)
+            .scalar_subquery()
+        )
+        return case(
+            (Message.kind == "photo", described),
+            (Message.kind == "game", func.coalesce(round_, Message.text)),
+            else_=Message.text,
+        )
     if m.kind != "photo":
         return m.text
     return f"[photo: {m.image_description or 'not described yet'}] {m.text}".strip()
@@ -360,5 +379,6 @@ async def _digest_group(group_id: int) -> None:
 
 async def drain() -> None:
     """Wait for scheduled background digests to finish (tests, scripts)."""
-    while _tasks:
-        await asyncio.gather(*_tasks, return_exceptions=True)
+    while pending := [t for t in _tasks if not t.done()]:
+        await asyncio.gather(*pending, return_exceptions=True)
+    _tasks.clear()  # a finished task left behind would otherwise spin this loop

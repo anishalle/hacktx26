@@ -7,7 +7,7 @@ from app import crud, schemas
 from app.api.deps import SessionDep
 from app.core.config import settings
 from app.models import Glossary
-from app.services import messages, photos
+from app.services import games, messages, photos
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -32,10 +32,14 @@ async def list_messages(
     after: int | None = None,
     around: int | None = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    user_id: str | None = None,
 ) -> schemas.MessagePage:
-    return await messages.page_messages(
+    """`user_id` (the viewer) fills each game's `my_vote` and `can_reveal`."""
+    page = await messages.page_messages(
         session, group_id, before=before, after=after, around=around, limit=limit
     )
+    await games.attach(session, page.messages, user_id)
+    return page
 
 
 @router.post("/{group_id}/photos", response_model=schemas.Message, status_code=201)

@@ -1,6 +1,6 @@
 """Media files: photos (app/services/photos.py) and call replays
-(app/services/replays.py). Names are random UUIDs, so they
-aren't guessable; anything else is a 404."""
+(app/services/replays.py) are named by random UUIDs, so they aren't guessable;
+seed photos (app/seed) by the sha256 of their bytes. Anything else is a 404."""
 
 import re
 
@@ -11,7 +11,7 @@ from app.core.config import settings
 
 router = APIRouter(tags=["media"])
 
-_NAME = re.compile(r"[0-9a-f]{32}\.(jpg|wav)")
+_NAME = re.compile(r"(?:[0-9a-f]{32}|[0-9a-f]{64})\.(jpg|wav)")
 _TYPES = {"jpg": "image/jpeg", "wav": "audio/wav"}
 
 

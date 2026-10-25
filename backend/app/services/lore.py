@@ -38,7 +38,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import crud, schemas
 from app.core import db
 from app.core.config import settings
-from app.models import Lore, LorePin, LoreReplay, Membership, Message, Reaction, User
+from app.models import (
+    Lore,
+    LoreGame,
+    LorePin,
+    LoreReplay,
+    Membership,
+    Message,
+    Reaction,
+    User,
+)
 from app.services import embeddings, llm, nudge
 from app.services.digests import Line, as_id, fetch_lines, lines_query, render_lines
 from app.services.messages import require_group, require_member
@@ -54,6 +63,11 @@ MEDIA_BONUS = 0.1  # a moment with a photo or replay counts this much more memor
 # moments of one running joke ~0.5, unrelated moments < 0.4.
 MERGE_SIMILARITY = 0.6
 MERGE_WITH_TERM = 0.45  # ... or this close and sharing an inside term
+# Talk right after a Guess that Lore round is the group remembering that lore: it
+# merges into it when it starts within GAME_TALK of the round and is about as close.
+CHAT_KINDS = ("text", "photo")  # what moments are told from (not system or game lines)
+GAME_TALK = timedelta(minutes=30)
+GAME_TALK_SIMILARITY = 0.3
 MAX_KEY_MESSAGES = 8
 MAX_EVIDENCE = 16  # messages kept per lore, however many moments merge into it
 MAX_TERMS = 5
@@ -445,8 +459,10 @@ def _view(
     )
 
 
-def _personal(frame: schemas.Lore, user_id: str, pinned: bool) -> schemas.Lore:
-    """A viewer-less frame as `user_id` sees it (is_me, pinned)."""
+def _personal(
+    frame: schemas.Lore, user_id: str, pinned: bool, group_name: str | None = None
+) -> schemas.Lore:
+    """A viewer-less frame as `user_id` sees it (is_me, pinned, a DM's name)."""
 
     def mine(s: schemas.LoreSnippet) -> schemas.LoreSnippet:
         return s.model_copy(update={"is_me": bool(s.user and s.user.id == user_id)})
@@ -455,7 +471,10 @@ def _personal(frame: schemas.Lore, user_id: str, pinned: bool) -> schemas.Lore:
         e.model_copy(update={"snippets": [mine(s) for s in e.snippets]})
         for e in frame.events
     ]
-    return frame.model_copy(update={"events": events, "pinned": pinned})
+    update: dict[str, Any] = {"events": events, "pinned": pinned}
+    if group_name is not None:
+        update["group_name"] = group_name
+    return frame.model_copy(update=update)
 
 
 async def related(session: AsyncSession, lore: Lore, limit: int = RELATED_LIMIT):
@@ -964,9 +983,17 @@ async def announce(
     pinners = set(
         await session.scalars(select(LorePin.user_id).where(LorePin.lore_id == lore.id))
     )
+    names: dict[str, str] = {}  # a DM is named after the other member, per viewer
+    group = await require_group(session, lore.group_id)
+    if group.is_dm:
+        memberships = await crud.list_memberships(session, group.id)
+        for u in user_ids:
+            names[u] = (await crud.group_view(session, group, u, memberships)).name
     await asyncio.gather(
         *(
-            hub.send([u], "lore.updated", _personal(frame, u, u in pinners))
+            hub.send(
+                [u], "lore.updated", _personal(frame, u, u in pinners, names.get(u))
+            )
             for u in user_ids
         )
     )
@@ -1264,6 +1291,13 @@ def same_moment(a_vec: Any, a_terms: list[str], b_vec: Any, b_terms: list[str]) 
     return sim >= MERGE_SIMILARITY or (bool(shared) and sim >= MERGE_WITH_TERM)
 
 
+def shares_messages(a: list[int], b: list[int]) -> bool:
+    """Two moments told from mostly the same lines (half of the smaller one, at
+    least two lines): the same story even when Muse titled it differently."""
+    small = min(len(set(a)), len(set(b)))
+    return small > 0 and len(set(a) & set(b)) >= max(2, math.ceil(small / 2))
+
+
 def _cosine(a: list[float], b: Any) -> float:
     b = list(b)
     dot = sum(x * y for x, y in zip(a, b, strict=False))
@@ -1272,14 +1306,62 @@ def _cosine(a: list[float], b: Any) -> float:
     return dot / (na * nb)
 
 
+async def _game_lore(
+    session: AsyncSession, group_id: int, message_ids: list[int]
+) -> Lore | None:
+    """The kept lore of a Guess that Lore round posted at most GAME_TALK before this
+    moment began (still open, or revealed no earlier than that): what the group is
+    reminiscing about."""
+    first = await session.get(Message, min(message_ids))
+    if first is None:
+        return None
+    since = first.ts - GAME_TALK
+    return await session.scalar(
+        select(Lore)
+        .join(LoreGame, LoreGame.lore_id == Lore.id)
+        .where(
+            LoreGame.group_id == group_id,
+            LoreGame.message_id <= max(message_ids),
+            LoreGame.created_at >= since - GAME_TALK,
+            or_(LoreGame.revealed_at.is_(None), LoreGame.revealed_at >= since),
+            Lore.status == "kept",
+        )
+        .order_by(LoreGame.message_id.desc())
+        .limit(1)
+    )
+
+
 async def _similar(
     session: AsyncSession,
     group_id: int,
     vector: Any,
     terms: list[str],
     exclude: int | None = None,
+    message_ids: list[int] | None = None,
 ) -> Lore | None:
-    """The kept lore this moment matches closely enough to merge into."""
+    """The kept lore this moment matches closely enough to merge into: one told
+    from mostly the same lines, else one close enough in meaning."""
+    if message_ids:
+        stmt = select(Lore).where(
+            Lore.group_id == group_id,
+            Lore.status == "kept",
+            Lore.message_ids.overlap(message_ids),
+        )
+        if exclude is not None:
+            stmt = stmt.where(Lore.id != exclude)
+        shared = [
+            r
+            for r in await session.scalars(stmt)
+            if shares_messages(message_ids, list(r.message_ids))
+        ]
+        if shared:
+            return max(shared, key=lambda r: len(set(r.message_ids) & {*message_ids}))
+        played = await _game_lore(session, group_id, message_ids)
+        if played is not None and played.id != exclude:
+            if vector is None or played.embedding is None:
+                return played
+            if _cosine(list(vector), played.embedding) >= GAME_TALK_SIMILARITY:
+                return played
     if vector is None:
         return None
     stmt = select(Lore).where(
@@ -1331,14 +1413,19 @@ def _new(group_id: int, c: Candidate, status: str) -> Lore:
 
 
 async def backfill_group(
-    session: AsyncSession, group_id: int, *, keep_top: int = BACKFILL_KEEP
+    session: AsyncSession,
+    group_id: int,
+    *,
+    keep_top: int = BACKFILL_KEEP,
+    before: int | None = None,
 ) -> list[Lore]:
-    """Detect moments over the whole history and keep the strongest automatically.
-    Candidates matching each other (or existing kept lore) are merged."""
-    lines = await fetch_lines(
-        session,
-        lines_query(group_id).where(Message.kind != "system").order_by(Message.id),
-    )
+    """Detect moments over the whole history (or the messages before id `before`)
+    and keep the strongest automatically. Candidates matching each other (or
+    existing kept lore) are merged."""
+    stmt = lines_query(group_id).where(Message.kind.in_(CHAT_KINDS))
+    if before is not None:
+        stmt = stmt.where(Message.id < before)
+    lines = await fetch_lines(session, stmt.order_by(Message.id))
     size = settings.DIGEST_CHUNK_SIZE
     chunks = [lines[i : i + size] for i in range(0, len(lines), size)]
     gate = asyncio.Semaphore(CONCURRENCY)
@@ -1367,6 +1454,7 @@ async def backfill_group(
                 p
                 for p in picked
                 if same_moment(c.embedding, c.terms, p.embedding, p.terms)
+                or shares_messages(c.message_ids, p.message_ids)
             ),
             None,
         )
@@ -1382,7 +1470,9 @@ async def backfill_group(
             picked.append(c)
     kept = []
     for c in picked:
-        target = await _similar(session, group_id, c.embedding, c.terms)
+        target = await _similar(
+            session, group_id, c.embedding, c.terms, message_ids=c.message_ids
+        )
         if target is not None:
             await _merge_into(session, target, c)
             kept.append(target)
@@ -1477,14 +1567,14 @@ async def detect_recent(session: AsyncSession, group_id: int) -> Lore | None:
     lines = await fetch_lines(
         session,
         lines_query(group_id)
-        .where(Message.kind != "system", Message.id > after)
+        .where(Message.kind.in_(CHAT_KINDS), Message.id > after)
         .order_by(Message.id)
         .limit(SCAN_MAX_LINES),
     )
     context = await fetch_lines(
         session,
         lines_query(group_id)
-        .where(Message.kind != "system", Message.id <= after)
+        .where(Message.kind.in_(CHAT_KINDS), Message.id <= after)
         .order_by(Message.id.desc())
         .limit(SCAN_CONTEXT),
     )
@@ -1500,7 +1590,9 @@ async def detect_recent(session: AsyncSession, group_id: int) -> Lore | None:
     if not found:
         return None
     c = await _fill(session, group_id, max(found, key=lambda c: c.score))
-    target = await _similar(session, group_id, c.embedding, c.terms)
+    target = await _similar(
+        session, group_id, c.embedding, c.terms, message_ids=c.message_ids
+    )
     if target is not None:
         await _merge_into(session, target, c)
         await session.commit()
@@ -1515,8 +1607,9 @@ async def detect_recent(session: AsyncSession, group_id: int) -> Lore | None:
 
 async def drain() -> None:
     """Wait for scheduled detection to finish (tests, scripts)."""
-    while _tasks:
-        await asyncio.gather(*_tasks, return_exceptions=True)
+    while pending := [t for t in _tasks if not t.done()]:
+        await asyncio.gather(*pending, return_exceptions=True)
+    _tasks.clear()  # a finished task left behind would otherwise spin this loop
 
 
 def reset() -> None:

@@ -76,23 +76,34 @@ function LiveWave({ replay, large }: { replay: LoreReplay; large: boolean }) {
   return <Wave replay={replay} large={large} positionMs={positionMs} />;
 }
 
+const SEEK_STEP_MS = 5000;
+
 function Wave({ replay, large, positionMs }: { replay: LoreReplay; large: boolean; positionMs: number }) {
   const { replay: current, seek } = usePlaybackControls();
   const bars = useMemo(() => waveform(replay, large ? 44 : 32), [replay, large]);
   const [width, setWidth] = useState(0);
   const progress = Math.min(1, positionMs / Math.max(1, replay.duration_ms));
   const height = large ? 52 : 36;
+  const active = current?.id === replay.id;
   return (
     <View style={styles.waveCol}>
       <Pressable
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         // Seeking only makes sense once this clip is the one loaded.
-        disabled={current?.id !== replay.id || !width}
+        disabled={!active || !width}
         onPress={(e) => seek((e.nativeEvent.locationX / width) * replay.duration_ms)}
         style={[styles.wave, { height }]}
         accessibilityRole="adjustable"
         accessibilityLabel="Replay position"
         accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }}
+        accessibilityState={{ disabled: !active }}
+        // VoiceOver's swipe up/down: 5 s either way.
+        accessibilityActions={active ? [{ name: 'increment' }, { name: 'decrement' }] : []}
+        onAccessibilityAction={(e) => {
+          if (!active) return;
+          const step = e.nativeEvent.actionName === 'increment' ? SEEK_STEP_MS : -SEEK_STEP_MS;
+          seek(Math.min(replay.duration_ms, Math.max(0, positionMs + step)));
+        }}
       >
         {bars.map((h, i) => (
           <View

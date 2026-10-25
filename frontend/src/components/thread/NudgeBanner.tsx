@@ -110,7 +110,7 @@ export function NudgeBanner({ banner, onRewrite, onKeepMine, onAddAside, onSubmi
             <Host matchContents colorScheme="light">
               <Button label="Add Aside" systemImage="text.bubble" onPress={onAddAside} modifiers={[buttonStyle('glass')]} />
             </Host>
-            <Text style={styles.hint}>or tap Send anyway</Text>
+            <Text style={styles.hint}>or tap ↑ to send anyway</Text>
           </View>
         )}
       </Glass>

@@ -83,7 +83,7 @@ function CallRow({ call, group, inline }: { call: Call; group: Group | null; inl
       {inline ? null : group?.avatar_url || inCall.length < 2 ? (
         <Avatar uri={group?.avatar_url ?? inCall[0]?.user.avatar_url} name={name} size={36} style={styles.art} />
       ) : (
-        <GroupAvatar uris={inCall.map((m) => m.user.avatar_url)} size={36} />
+        <GroupAvatar uris={inCall.map((m) => m.user.avatar_url)} names={inCall.map((m) => m.user.display_name)} size={36} />
       )}
       <View style={styles.text}>
         <Text style={styles.title} numberOfLines={1}>

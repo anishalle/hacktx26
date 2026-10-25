@@ -10,7 +10,7 @@ from app.core.config import settings
 UtcDatetime = Annotated[datetime, AfterValidator(lambda d: d.astimezone(UTC))]
 GlossaryKind = Literal["nickname", "place", "event", "slang", "person", "inside_joke"]
 GlossarySource = Literal["seed", "auto", "human"]
-MessageKind = Literal["text", "system", "photo"]
+MessageKind = Literal["text", "system", "photo", "game"]
 CatchupSection = Literal["happened", "decisions", "open"]
 
 
@@ -36,6 +36,7 @@ class User(Schema):
     avatar_url: str | None = None
     phonetic_hint: str | None = None
     pronunciation_audio_url: str | None = None
+    about: str | None = None
 
 
 class Reaction(Schema):
@@ -60,6 +61,7 @@ class Message(Schema):
     reactions: list[Reaction] = []
     image: Image | None = None
     image_description: str | None = None
+    game: "LoreGame | None" = None  # kind "game"; set by app/services/games.py
 
     @model_validator(mode="before")
     @classmethod
@@ -68,7 +70,11 @@ class Message(Schema):
         path = getattr(data, "image_path", None)
         if path and not isinstance(data, dict):
             return {
-                **{k: getattr(data, k) for k in cls.model_fields if k != "image"},
+                **{
+                    k: getattr(data, k)
+                    for k in cls.model_fields
+                    if k not in ("image", "game")
+                },
                 "image": Image(
                     url=media_url(path),
                     width=data.image_width or 0,
@@ -153,6 +159,7 @@ class WsEvent(Schema):
         "call.updated",
         "call.caption",
         "lore.updated",
+        "message.updated",
         "pong",
     ]
     data: dict[str, Any] | None = None
@@ -559,4 +566,47 @@ class LoreAction(Schema):
     user_id: str
 
 
+# Feature 7: Guess that Lore
+
+GameStatus = Literal["open", "revealed"]
+
+
+class LoreGameOption(Schema):
+    user: User
+    votes: int  # always counted; who voted for it shows after the reveal
+    voters: list[User]  # empty until revealed
+
+
+class LoreGame(Schema):
+    id: int
+    group_id: int
+    message_id: int
+    lore_id: int
+    started_by: str | None
+    prompt: str
+    question: str
+    hints: list[str]  # only the unlocked ones
+    hints_total: int
+    options: list[LoreGameOption]
+    my_vote: str | None  # the viewer's pick (a user id)
+    total_votes: int
+    member_count: int
+    can_reveal: bool  # for the viewer
+    status: GameStatus
+    answer: User | None  # revealed only
+    lore_title: str | None  # revealed only
+    created_at: UtcDatetime
+    revealed_at: UtcDatetime | None
+
+
+class GameStart(Schema):
+    user_id: str
+
+
+class GameVote(Schema):
+    user_id: str
+    choice: str
+
+
 Explanation.model_rebuild()
+Message.model_rebuild()

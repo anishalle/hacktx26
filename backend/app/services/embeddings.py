@@ -216,5 +216,6 @@ async def _index_group(group_id: int) -> None:
 
 async def drain() -> None:
     """Wait for scheduled background indexing to finish (tests, scripts)."""
-    while _tasks:
-        await asyncio.gather(*_tasks, return_exceptions=True)
+    while pending := [t for t in _tasks if not t.done()]:
+        await asyncio.gather(*pending, return_exceptions=True)
+    _tasks.clear()  # a finished task left behind would otherwise spin this loop

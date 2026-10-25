@@ -5,10 +5,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from app.core import db
-from app.seed import seed
+from app.core.config import settings
+from app.seed import copy_all_media, seed
+
+log = logging.getLogger("app.seed")
 
 
 async def main(args: argparse.Namespace) -> None:
+    if args.media_only:
+        n = copy_all_media()
+        log.info("copied %d seed photos into %s", n, settings.MEDIA_DIR)
+        return
     try:
         await seed(
             digests_enabled=not args.no_digests,
@@ -40,6 +47,12 @@ if __name__ == "__main__":
         "--no-anchor",
         action="store_true",
         help="end the story at load time even if weekdays then don't match",
+    )
+    parser.add_argument(
+        "--media-only",
+        action="store_true",
+        help="only copy the seed photos into MEDIA_DIR (no database changes), for "
+        "another server sharing the same database",
     )
     parser.add_argument(
         "fixtures",

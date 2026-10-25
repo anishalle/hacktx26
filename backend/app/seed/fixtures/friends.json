@@ -1,0 +1,3136 @@
+{
+ "anchor": {
+  "local": "2026-10-25T12:00:00",
+  "tz": "America/Chicago"
+ },
+ "users": [
+  {
+   "id": "arjun",
+   "username": "arjun.v",
+   "display_name": "Arjun Varma",
+   "phonetic_hint": "AR-jun",
+   "about": "College junior. Fluent in Gen Z slang. Understands some Telugu but not every word his family uses."
+  },
+  {
+   "id": "theo",
+   "username": "theo.brooks",
+   "display_name": "Theo Brooks",
+   "about": "College junior, Arjun's roommate. Pickup basketball every Tuesday and Thursday."
+  },
+  {
+   "id": "marcus",
+   "username": "marcus.lee",
+   "display_name": "Marcus Lee",
+   "about": "College junior. Sneakerhead and the group's designated driver."
+  },
+  {
+   "id": "sana",
+   "username": "sana.q",
+   "display_name": "Sana Qureshi",
+   "phonetic_hint": "SAH-nah",
+   "about": "College junior. Plans everything and posts every meal on her story."
+  },
+  {
+   "id": "jules",
+   "username": "jules.ortega",
+   "display_name": "Jules Ortega",
+   "about": "College junior. Books the trips and sends the Zelle requests."
+  },
+  {
+   "id": "nikhil",
+   "username": "nikhil.rao",
+   "display_name": "Nikhil Rao",
+   "phonetic_hint": "NIK-il",
+   "about": "College junior in CS. Hackathon regular, TA for an intro class."
+  }
+ ],
+ "groups": [
+  {
+   "key": "friends",
+   "name": "hoopers & hackers 🏀",
+   "is_dm": false,
+   "created_offset_s": 36979200,
+   "members": [
+    {
+     "user_id": "arjun",
+     "joined_offset_s": 36979200,
+     "last_read_idx": 346
+    },
+    {
+     "user_id": "theo",
+     "joined_offset_s": 36979200,
+     "last_read_idx": 374
+    },
+    {
+     "user_id": "marcus",
+     "joined_offset_s": 36979200,
+     "last_read_idx": 374
+    },
+    {
+     "user_id": "sana",
+     "joined_offset_s": 36979200,
+     "last_read_idx": 374
+    },
+    {
+     "user_id": "jules",
+     "joined_offset_s": 36979200,
+     "last_read_idx": 374
+    },
+    {
+     "user_id": "nikhil",
+     "joined_offset_s": 36979200,
+     "last_read_idx": 374
+    }
+   ],
+   "messages": [
+    {
+     "idx": 0,
+     "sender_id": "nikhil",
+     "text": "yall still down for the hackathon friday",
+     "offset_s": 2393880
+    },
+    {
+     "idx": 1,
+     "sender_id": "sana",
+     "text": "yes i already made the team on the site",
+     "offset_s": 2393700
+    },
+    {
+     "idx": 2,
+     "sender_id": "sana",
+     "text": "me nikhil arjun theo",
+     "offset_s": 2393693
+    },
+    {
+     "idx": 3,
+     "sender_id": "theo",
+     "text": "wait i said maybe",
+     "offset_s": 2393640
+    },
+    {
+     "idx": 4,
+     "sender_id": "sana",
+     "text": "maybe is a yes",
+     "offset_s": 2393633,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 5,
+     "sender_id": "arjun",
+     "text": "lowk i need this for my resume fr",
+     "offset_s": 2393580
+    },
+    {
+     "idx": 6,
+     "sender_id": "marcus",
+     "text": "yall are crazy for staying up 24 hours on purpose",
+     "offset_s": 2393400
+    },
+    {
+     "idx": 7,
+     "sender_id": "jules",
+     "text": "marcus and i will be the moral support",
+     "offset_s": 2393340
+    },
+    {
+     "idx": 8,
+     "sender_id": "jules",
+     "text": "and by moral support i mean we'll bring food at like 2am",
+     "offset_s": 2393333,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 9,
+     "sender_id": "nikhil",
+     "text": "ong that's the most important role",
+     "offset_s": 2393280
+    },
+    {
+     "idx": 10,
+     "sender_id": "theo",
+     "text": "ok fine i'm in",
+     "offset_s": 2393100,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 11,
+     "sender_id": "nikhil",
+     "text": "idea dump in the gc tmrw, i got like 3",
+     "offset_s": 2392800
+    },
+    {
+     "idx": 12,
+     "sender_id": "arjun",
+     "text": "if it's another todo app i'm leaving",
+     "offset_s": 2392740
+    },
+    {
+     "idx": 13,
+     "sender_id": "nikhil",
+     "text": "it's NOT a todo app",
+     "offset_s": 2392680
+    },
+    {
+     "idx": 14,
+     "sender_id": "nikhil",
+     "text": "it's a todo app with ai",
+     "offset_s": 2392673
+    },
+    {
+     "idx": 15,
+     "sender_id": "arjun",
+     "text": "💀",
+     "offset_s": 2392620,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "marcus",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 16,
+     "sender_id": "marcus",
+     "text": "hooping at 7?",
+     "offset_s": 2226000
+    },
+    {
+     "idx": 17,
+     "sender_id": "theo",
+     "text": "bet",
+     "offset_s": 2225880
+    },
+    {
+     "idx": 18,
+     "sender_id": "jules",
+     "text": "i'm hopping on at 7:30, lab till 7",
+     "offset_s": 2225820
+    },
+    {
+     "idx": 19,
+     "sender_id": "arjun",
+     "text": "i'm down",
+     "offset_s": 2225400
+    },
+    {
+     "idx": 20,
+     "sender_id": "nikhil",
+     "text": "can't, ta office hours 😔",
+     "offset_s": 2225340
+    },
+    {
+     "idx": 21,
+     "sender_id": "marcus",
+     "text": "nikhil always got an excuse",
+     "offset_s": 2225280
+    },
+    {
+     "idx": 22,
+     "sender_id": "nikhil",
+     "text": "it's literally my job bro",
+     "offset_s": 2225273
+    },
+    {
+     "idx": 23,
+     "sender_id": "theo",
+     "text": "we got the far court, the near one has the volleyball people",
+     "offset_s": 2221500
+    },
+    {
+     "idx": 24,
+     "sender_id": "marcus",
+     "text": "arjun hit 3 threes in a row and hasn't stopped talking abt it",
+     "offset_s": 2217720
+    },
+    {
+     "idx": 25,
+     "sender_id": "arjun",
+     "text": "4*",
+     "offset_s": 2217600
+    },
+    {
+     "idx": 26,
+     "sender_id": "theo",
+     "text": "it was 3 and an airball",
+     "offset_s": 2217540
+    },
+    {
+     "idx": 27,
+     "sender_id": "jules",
+     "text": "can confirm airball",
+     "offset_s": 2217533,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "marcus",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 28,
+     "sender_id": "jules",
+     "text": "ok fall break trip. found a lake house like 3 hrs east",
+     "offset_s": 2155800
+    },
+    {
+     "idx": 29,
+     "sender_id": "jules",
+     "text": "sleeps 8, has a dock AND a hot tub",
+     "offset_s": 2155793
+    },
+    {
+     "idx": 30,
+     "sender_id": "jules",
+     "text": "519 total for fri-sun",
+     "offset_s": 2155740
+    },
+    {
+     "idx": 31,
+     "sender_id": "sana",
+     "text": "wait thats actually cheap",
+     "offset_s": 2155680
+    },
+    {
+     "idx": 32,
+     "sender_id": "marcus",
+     "text": "hot tub ‼️",
+     "offset_s": 2155673
+    },
+    {
+     "idx": 33,
+     "sender_id": "nikhil",
+     "text": "is there wifi i have hw due sunday",
+     "offset_s": 2155500
+    },
+    {
+     "idx": 34,
+     "sender_id": "jules",
+     "text": "yes nikhil there's wifi",
+     "offset_s": 2155440
+    },
+    {
+     "idx": 35,
+     "sender_id": "arjun",
+     "text": "i'm in fs",
+     "offset_s": 2155320
+    },
+    {
+     "idx": 36,
+     "sender_id": "theo",
+     "text": "in",
+     "offset_s": 2155260
+    },
+    {
+     "idx": 37,
+     "sender_id": "sana",
+     "text": "in. book it before someone else does",
+     "offset_s": 2155200
+    },
+    {
+     "idx": 38,
+     "sender_id": "jules",
+     "text": "booked 🫡",
+     "offset_s": 2154600,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "marcus",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 39,
+     "sender_id": "jules",
+     "text": "zelle me 86.50 each, sending requests now",
+     "offset_s": 2154540
+    },
+    {
+     "idx": 40,
+     "sender_id": "jules",
+     "text": "the bnb is official",
+     "offset_s": 2154533
+    },
+    {
+     "idx": 41,
+     "sender_id": "marcus",
+     "text": "the bnb 🙏",
+     "offset_s": 2154420
+    },
+    {
+     "idx": 42,
+     "sender_id": "sana",
+     "text": "paid",
+     "offset_s": 2154000
+    },
+    {
+     "idx": 43,
+     "sender_id": "theo",
+     "text": "paid",
+     "offset_s": 2153940
+    },
+    {
+     "idx": 44,
+     "sender_id": "arjun",
+     "text": "paid",
+     "offset_s": 2152500
+    },
+    {
+     "idx": 45,
+     "sender_id": "nikhil",
+     "text": "paid. also there's a cypress swamp boat tour nearby, saturday?",
+     "offset_s": 2151600
+    },
+    {
+     "idx": 46,
+     "sender_id": "sana",
+     "text": "YES",
+     "offset_s": 2151540
+    },
+    {
+     "idx": 47,
+     "sender_id": "marcus",
+     "text": "are there gators",
+     "offset_s": 2151480
+    },
+    {
+     "idx": 48,
+     "sender_id": "nikhil",
+     "text": "prolly",
+     "offset_s": 2151473
+    },
+    {
+     "idx": 49,
+     "sender_id": "marcus",
+     "text": "ok i'm staying on the dock",
+     "offset_s": 2151420
+    },
+    {
+     "idx": 50,
+     "sender_id": "marcus",
+     "text": "paid btw",
+     "offset_s": 2148600,
+     "reactions": [
+      {
+       "user_id": "jules",
+       "emoji": "👍"
+      }
+     ]
+    },
+    {
+     "idx": 51,
+     "sender_id": "theo",
+     "text": "hoops tn?",
+     "offset_s": 2050200
+    },
+    {
+     "idx": 52,
+     "sender_id": "marcus",
+     "text": "can't, midterm tmrw 😭",
+     "offset_s": 2050140
+    },
+    {
+     "idx": 53,
+     "sender_id": "arjun",
+     "text": "prepping for the hackathon, rain check",
+     "offset_s": 2050080
+    },
+    {
+     "idx": 54,
+     "sender_id": "jules",
+     "text": "so it's just me and theo 1v1",
+     "offset_s": 2049600
+    },
+    {
+     "idx": 55,
+     "sender_id": "theo",
+     "text": "say less",
+     "offset_s": 2049540
+    },
+    {
+     "idx": 56,
+     "sender_id": "jules",
+     "text": "theo won 11-9 and is insufferable",
+     "offset_s": 2040600
+    },
+    {
+     "idx": 57,
+     "sender_id": "theo",
+     "text": "11-4*",
+     "offset_s": 2040540
+    },
+    {
+     "idx": 58,
+     "sender_id": "jules",
+     "text": "we don't talk about it",
+     "offset_s": 2040533,
+     "reactions": [
+      {
+       "user_id": "marcus",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 59,
+     "sender_id": "sana",
+     "text": "checked in. table 14 by the window",
+     "offset_s": 1966500
+    },
+    {
+     "idx": 60,
+     "sender_id": "nikhil",
+     "text": "omw with the monitor",
+     "offset_s": 1966440
+    },
+    {
+     "idx": 61,
+     "sender_id": "arjun",
+     "text": "here",
+     "offset_s": 1965300
+    },
+    {
+     "idx": 62,
+     "sender_id": "theo",
+     "text": "here, they have free boba ‼️",
+     "offset_s": 1963800
+    },
+    {
+     "idx": 63,
+     "sender_id": "sana",
+     "text": "ok we're doing the study group matcher",
+     "offset_s": 1961100
+    },
+    {
+     "idx": 64,
+     "sender_id": "nikhil",
+     "text": "not the todo app 😔",
+     "offset_s": 1961040
+    },
+    {
+     "idx": 65,
+     "sender_id": "sana",
+     "text": "not the todo app",
+     "offset_s": 1961033,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 66,
+     "sender_id": "arjun",
+     "text": "backend is up kinda",
+     "offset_s": 1952400
+    },
+    {
+     "idx": 67,
+     "sender_id": "theo",
+     "text": "\"kinda\" is doing a lot of work there",
+     "offset_s": 1952340
+    },
+    {
+     "idx": 68,
+     "sender_id": "jules",
+     "text": "we're outside with pizza, come get it",
+     "offset_s": 1944120
+    },
+    {
+     "idx": 69,
+     "sender_id": "marcus",
+     "text": "2 large pepperoni and a cheese, yall owe us",
+     "offset_s": 1944060
+    },
+    {
+     "idx": 70,
+     "sender_id": "sana",
+     "text": "you're angels ❤️",
+     "offset_s": 1943940
+    },
+    {
+     "idx": 71,
+     "sender_id": "nikhil",
+     "text": "we're pivoting",
+     "offset_s": 1938600
+    },
+    {
+     "idx": 72,
+     "sender_id": "theo",
+     "text": "it's 1:30am",
+     "offset_s": 1938593
+    },
+    {
+     "idx": 73,
+     "sender_id": "nikhil",
+     "text": "hear me out",
+     "offset_s": 1938540
+    },
+    {
+     "idx": 74,
+     "sender_id": "arjun",
+     "text": "nikhil i swear",
+     "offset_s": 1938480
+    },
+    {
+     "idx": 75,
+     "sender_id": "sana",
+     "text": "ok the pivot is actually good",
+     "offset_s": 1938000
+    },
+    {
+     "idx": 76,
+     "sender_id": "sana",
+     "text": "it matches people by when they're free AND how they study",
+     "offset_s": 1937940
+    },
+    {
+     "idx": 77,
+     "sender_id": "theo",
+     "text": "i'm cooked",
+     "offset_s": 1933800
+    },
+    {
+     "idx": 78,
+     "sender_id": "arjun",
+     "text": "we're all cooked",
+     "offset_s": 1933740
+    },
+    {
+     "idx": 79,
+     "sender_id": "sana",
+     "text": "the matching works for 4 users. we have 6 test users.",
+     "offset_s": 1931400
+    },
+    {
+     "idx": 80,
+     "sender_id": "nikhil",
+     "text": "demo with 4 then",
+     "offset_s": 1931340
+    },
+    {
+     "idx": 81,
+     "sender_id": "nikhil",
+     "text": "recording the demo rn, nobody talk",
+     "offset_s": 1929480
+    },
+    {
+     "idx": 82,
+     "sender_id": "nikhil",
+     "text": "ok recorded. i said \"and it works\" and it worked like 2 seconds later",
+     "offset_s": 1928880,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 83,
+     "sender_id": "arjun",
+     "text": "those 2 seconds were the scariest of my life",
+     "offset_s": 1928820
+    },
+    {
+     "idx": 84,
+     "sender_id": "theo",
+     "text": "deadass i aged 5 years",
+     "offset_s": 1928760
+    },
+    {
+     "idx": 85,
+     "sender_id": "sana",
+     "text": "submitted ✅ sleeping on the bean bag",
+     "offset_s": 1928700
+    },
+    {
+     "idx": 86,
+     "sender_id": "sana",
+     "text": "judging in 10, someone wake up nikhil",
+     "offset_s": 1903200
+    },
+    {
+     "idx": 87,
+     "sender_id": "arjun",
+     "text": "he's asleep under the table",
+     "offset_s": 1903140
+    },
+    {
+     "idx": 88,
+     "sender_id": "theo",
+     "text": "the judges laughed at the pause 😭",
+     "offset_s": 1901700
+    },
+    {
+     "idx": 89,
+     "sender_id": "theo",
+     "text": "in a good way i think",
+     "offset_s": 1901640
+    },
+    {
+     "idx": 90,
+     "sender_id": "sana",
+     "text": "WE WON????",
+     "offset_s": 1898400,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "theo",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "marcus",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "jules",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 91,
+     "sender_id": "sana",
+     "text": "best use of scheduling or whatever the category was",
+     "offset_s": 1898393
+    },
+    {
+     "idx": 92,
+     "sender_id": "nikhil",
+     "text": "4am demo stays undefeated",
+     "offset_s": 1898340,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 93,
+     "sender_id": "marcus",
+     "text": "NO WAY",
+     "offset_s": 1898333
+    },
+    {
+     "idx": 94,
+     "sender_id": "jules",
+     "text": "the pizza carried",
+     "offset_s": 1898280
+    },
+    {
+     "idx": 95,
+     "sender_id": "arjun",
+     "text": "prize is 500 in gift cards, split 4 ways lmao",
+     "offset_s": 1898220
+    },
+    {
+     "idx": 96,
+     "sender_id": "arjun",
+     "text": "omw home for the weekend, my mom's been asking for a month",
+     "offset_s": 1895400
+    },
+    {
+     "idx": 97,
+     "sender_id": "marcus",
+     "text": "tell your parents you won a hackathon",
+     "offset_s": 1895340
+    },
+    {
+     "idx": 98,
+     "sender_id": "arjun",
+     "text": "my dad will ask why it wasn't first place in two categories",
+     "offset_s": 1895280,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 99,
+     "sender_id": "arjun",
+     "text": "back. my dad made me check my tire pressure before i left",
+     "offset_s": 1792200
+    },
+    {
+     "idx": 100,
+     "sender_id": "arjun",
+     "text": "and it was actually low 💀",
+     "offset_s": 1792140
+    },
+    {
+     "idx": 101,
+     "sender_id": "theo",
+     "text": "dads always know",
+     "offset_s": 1792080
+    },
+    {
+     "idx": 102,
+     "sender_id": "jules",
+     "text": "my dad would've sent me a youtube video abt it",
+     "offset_s": 1792020
+    },
+    {
+     "idx": 103,
+     "sender_id": "sana",
+     "text": "did your mom pack food",
+     "offset_s": 1791600
+    },
+    {
+     "idx": 104,
+     "sender_id": "arjun",
+     "text": "pulihora and like 2 boxes of chapati",
+     "offset_s": 1791540
+    },
+    {
+     "idx": 105,
+     "sender_id": "sana",
+     "text": "i'm coming over",
+     "offset_s": 1791533
+    },
+    {
+     "idx": 106,
+     "sender_id": "marcus",
+     "text": "we're coming over*",
+     "offset_s": 1791480,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 107,
+     "sender_id": "arjun",
+     "text": "my dad saw my grade on the portal before i did 💀",
+     "offset_s": 1733400
+    },
+    {
+     "idx": 108,
+     "sender_id": "nikhil",
+     "text": "parents having portal access should be illegal",
+     "offset_s": 1733340
+    },
+    {
+     "idx": 109,
+     "sender_id": "sana",
+     "text": "what was it",
+     "offset_s": 1733333
+    },
+    {
+     "idx": 110,
+     "sender_id": "arjun",
+     "text": "91 in signals",
+     "offset_s": 1733280
+    },
+    {
+     "idx": 111,
+     "sender_id": "theo",
+     "text": "that's good??",
+     "offset_s": 1733273
+    },
+    {
+     "idx": 112,
+     "sender_id": "arjun",
+     "text": "\"let us see 95\" 💀",
+     "offset_s": 1733220
+    },
+    {
+     "idx": 113,
+     "sender_id": "jules",
+     "text": "the 95 is crazy",
+     "offset_s": 1733213
+    },
+    {
+     "idx": 114,
+     "sender_id": "marcus",
+     "text": "ur dad would be a great coach",
+     "offset_s": 1733160
+    },
+    {
+     "idx": 115,
+     "sender_id": "arjun",
+     "text": "he said \"plan is good, execution is better\"",
+     "offset_s": 1732800
+    },
+    {
+     "idx": 116,
+     "sender_id": "theo",
+     "text": "that's hard ngl",
+     "offset_s": 1732740,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 117,
+     "sender_id": "theo",
+     "text": "hopping on at 7?",
+     "offset_s": 1620000
+    },
+    {
+     "idx": 118,
+     "sender_id": "marcus",
+     "text": "ye",
+     "offset_s": 1619880
+    },
+    {
+     "idx": 119,
+     "sender_id": "arjun",
+     "text": "otw at 7:15",
+     "offset_s": 1619820
+    },
+    {
+     "idx": 120,
+     "sender_id": "jules",
+     "text": "coming",
+     "offset_s": 1619400
+    },
+    {
+     "idx": 121,
+     "sender_id": "nikhil",
+     "text": "i'll come late, like 8",
+     "offset_s": 1619100
+    },
+    {
+     "idx": 122,
+     "sender_id": "marcus",
+     "text": "nikhil where u at",
+     "offset_s": 1614000
+    },
+    {
+     "idx": 123,
+     "sender_id": "nikhil",
+     "text": "here",
+     "offset_s": 1612500
+    },
+    {
+     "idx": 124,
+     "sender_id": "jules",
+     "text": "good runs today 🏀",
+     "offset_s": 1607400,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 125,
+     "sender_id": "theo",
+     "text": "marcus guarding me like i stole something",
+     "offset_s": 1607340
+    },
+    {
+     "idx": 126,
+     "sender_id": "marcus",
+     "text": "you did steal something. the ball. 3 times",
+     "offset_s": 1607280,
+     "reactions": [
+      {
+       "user_id": "jules",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 127,
+     "sender_id": "marcus",
+     "text": "just ordered new shoes. grey and white. came out tdy",
+     "offset_s": 1461600
+    },
+    {
+     "idx": 128,
+     "sender_id": "jules",
+     "text": "show",
+     "offset_s": 1461540
+    },
+    {
+     "idx": 129,
+     "sender_id": "marcus",
+     "text": "when they come in",
+     "offset_s": 1461533
+    },
+    {
+     "idx": 130,
+     "sender_id": "sana",
+     "text": "climbing saturday?? the gym has a student deal",
+     "offset_s": 1461300
+    },
+    {
+     "idx": 131,
+     "sender_id": "theo",
+     "text": "i'm in",
+     "offset_s": 1461240
+    },
+    {
+     "idx": 132,
+     "sender_id": "arjun",
+     "text": "down",
+     "offset_s": 1461180
+    },
+    {
+     "idx": 133,
+     "sender_id": "nikhil",
+     "text": "imma watch",
+     "offset_s": 1461120
+    },
+    {
+     "idx": 134,
+     "sender_id": "jules",
+     "text": "same",
+     "offset_s": 1461113
+    },
+    {
+     "idx": 135,
+     "sender_id": "marcus",
+     "text": "imma climb, can't be that hard",
+     "offset_s": 1461060,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 136,
+     "sender_id": "theo",
+     "text": "no hoops tn it's storming",
+     "offset_s": 1444500
+    },
+    {
+     "idx": 137,
+     "sender_id": "arjun",
+     "text": "rip",
+     "offset_s": 1444440
+    },
+    {
+     "idx": 138,
+     "sender_id": "arjun",
+     "text": "my dad just texted the family gc his mpg like it's a grade",
+     "offset_s": 1305900
+    },
+    {
+     "idx": 139,
+     "sender_id": "arjun",
+     "text": "59.7",
+     "offset_s": 1305893
+    },
+    {
+     "idx": 140,
+     "sender_id": "theo",
+     "text": "is that good",
+     "offset_s": 1305840
+    },
+    {
+     "idx": 141,
+     "sender_id": "arjun",
+     "text": "he's acting like he won the finals",
+     "offset_s": 1305833
+    },
+    {
+     "idx": 142,
+     "sender_id": "nikhil",
+     "text": "lowk 59.7 is crazy for a car",
+     "offset_s": 1305780
+    },
+    {
+     "idx": 143,
+     "sender_id": "arjun",
+     "text": "don't encourage him",
+     "offset_s": 1305720,
+     "reactions": [
+      {
+       "user_id": "nikhil",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 144,
+     "sender_id": "sana",
+     "text": "climbing at 1:30, bring socks",
+     "offset_s": 1294200
+    },
+    {
+     "idx": 145,
+     "sender_id": "jules",
+     "text": "here",
+     "offset_s": 1290300
+    },
+    {
+     "idx": 146,
+     "sender_id": "theo",
+     "text": "marcus right before. blurry bc i was laughing",
+     "offset_s": 1288200,
+     "kind": "photo",
+     "image": "climbing-wall.jpg",
+     "image_description": "A blurry photo of an indoor bouldering wall: gray and blue angled panels covered in colorful climbing holds, thick padded mats on the floor and a bright open doorway on the left.",
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "jules",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 147,
+     "sender_id": "theo",
+     "text": "he fell off the easy wall",
+     "offset_s": 1288140
+    },
+    {
+     "idx": 148,
+     "sender_id": "theo",
+     "text": "the one by the front desk that the 8 yr olds were doing",
+     "offset_s": 1288133
+    },
+    {
+     "idx": 149,
+     "sender_id": "sana",
+     "text": "he fell off at the SECOND hold",
+     "offset_s": 1288080
+    },
+    {
+     "idx": 150,
+     "sender_id": "jules",
+     "text": "i was filming. i was too late. i'll never forgive myself",
+     "offset_s": 1288073
+    },
+    {
+     "idx": 151,
+     "sender_id": "marcus",
+     "text": "my hand slipped, there was chalk",
+     "offset_s": 1288020
+    },
+    {
+     "idx": 152,
+     "sender_id": "nikhil",
+     "text": "it's a climbing gym bro there's chalk everywhere",
+     "offset_s": 1288013,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 153,
+     "sender_id": "arjun",
+     "text": "a kid asked him if he was ok 💀",
+     "offset_s": 1287960,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 154,
+     "sender_id": "marcus",
+     "text": "the kid was being nice",
+     "offset_s": 1287953
+    },
+    {
+     "idx": 155,
+     "sender_id": "theo",
+     "text": "the kid was being concerned",
+     "offset_s": 1287900
+    },
+    {
+     "idx": 156,
+     "sender_id": "marcus",
+     "text": "i did the purple one after that btw. nobody's talking abt the purple one",
+     "offset_s": 1287000
+    },
+    {
+     "idx": 157,
+     "sender_id": "sana",
+     "text": "nobody saw the purple one",
+     "offset_s": 1286940
+    },
+    {
+     "idx": 158,
+     "sender_id": "marcus",
+     "text": "that's not my fault",
+     "offset_s": 1286933
+    },
+    {
+     "idx": 159,
+     "sender_id": "jules",
+     "text": "marcus vs the easy wall rematch next week",
+     "offset_s": 1281600
+    },
+    {
+     "idx": 160,
+     "sender_id": "marcus",
+     "text": "never going back there",
+     "offset_s": 1281540
+    },
+    {
+     "idx": 161,
+     "sender_id": "theo",
+     "text": "the easy wall: 1, marcus: 0",
+     "offset_s": 1281480,
+     "reactions": [
+      {
+       "user_id": "jules",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 162,
+     "sender_id": "sana",
+     "text": "ramen run 🍜 posted it on my story too",
+     "offset_s": 1264800,
+     "kind": "photo",
+     "image": "ramen.jpg",
+     "image_description": "Overhead view of a bowl of spicy ramen topped with red chili-dusted crispy pieces, two soft-boiled eggs with jammy yolks, diced red onion, cilantro and mushrooms, with chopsticks in the bowl and a glass of water beside it.",
+     "reactions": [
+      {
+       "user_id": "nikhil",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 163,
+     "sender_id": "nikhil",
+     "text": "the egg is perfect",
+     "offset_s": 1264740
+    },
+    {
+     "idx": 164,
+     "sender_id": "arjun",
+     "text": "this place never misses",
+     "offset_s": 1264680
+    },
+    {
+     "idx": 165,
+     "sender_id": "marcus",
+     "text": "i'm eating my feelings abt the wall",
+     "offset_s": 1264500
+    },
+    {
+     "idx": 166,
+     "sender_id": "arjun",
+     "text": "my mom saw sana's story and asked if i only eat ramen 💀",
+     "offset_s": 1204800
+    },
+    {
+     "idx": 167,
+     "sender_id": "sana",
+     "text": "LMAO",
+     "offset_s": 1204740
+    },
+    {
+     "idx": 168,
+     "sender_id": "sana",
+     "text": "hi auntie 👋",
+     "offset_s": 1204733
+    },
+    {
+     "idx": 169,
+     "sender_id": "jules",
+     "text": "sana is the family informant now",
+     "offset_s": 1204680
+    },
+    {
+     "idx": 170,
+     "sender_id": "arjun",
+     "text": "she sent me a picture of salmon and broccoli like it was a warning",
+     "offset_s": 1204620
+    },
+    {
+     "idx": 171,
+     "sender_id": "theo",
+     "text": "that's a threat ngl",
+     "offset_s": 1204560,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 172,
+     "sender_id": "nikhil",
+     "text": "that plate was prolly fire tho",
+     "offset_s": 1204500
+    },
+    {
+     "idx": 173,
+     "sender_id": "arjun",
+     "text": "it was fire",
+     "offset_s": 1204440
+    },
+    {
+     "idx": 174,
+     "sender_id": "sana",
+     "text": "ok i'll stop posting ramen with you in it",
+     "offset_s": 1204200
+    },
+    {
+     "idx": 175,
+     "sender_id": "arjun",
+     "text": "thank you 🙏",
+     "offset_s": 1204140,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 176,
+     "sender_id": "marcus",
+     "text": "they came in 🙏",
+     "offset_s": 1107600,
+     "kind": "photo",
+     "image": "new-sneakers.jpg",
+     "image_description": "A pair of new gray-and-white low-top sneakers with gray laces in an opened orange-and-brown shoebox with tissue paper.",
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "jules",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 177,
+     "sender_id": "theo",
+     "text": "these are hella clean ngl",
+     "offset_s": 1107540
+    },
+    {
+     "idx": 178,
+     "sender_id": "jules",
+     "text": "oh those are nice nice",
+     "offset_s": 1107533
+    },
+    {
+     "idx": 179,
+     "sender_id": "arjun",
+     "text": "hooping in them tmrw?",
+     "offset_s": 1107480
+    },
+    {
+     "idx": 180,
+     "sender_id": "marcus",
+     "text": "absolutely not",
+     "offset_s": 1107473
+    },
+    {
+     "idx": 181,
+     "sender_id": "marcus",
+     "text": "these are for looking at",
+     "offset_s": 1107420
+    },
+    {
+     "idx": 182,
+     "sender_id": "sana",
+     "text": "you bought shoes to look at",
+     "offset_s": 1107360
+    },
+    {
+     "idx": 183,
+     "sender_id": "marcus",
+     "text": "yes",
+     "offset_s": 1107300
+    },
+    {
+     "idx": 184,
+     "sender_id": "nikhil",
+     "text": "respect honestly",
+     "offset_s": 1107240
+    },
+    {
+     "idx": 185,
+     "sender_id": "theo",
+     "text": "if anyone steps on them i'm stepping on them too, on purpose",
+     "offset_s": 1106400
+    },
+    {
+     "idx": 186,
+     "sender_id": "marcus",
+     "text": "theo i will end you",
+     "offset_s": 1106340
+    },
+    {
+     "idx": 187,
+     "sender_id": "marcus",
+     "text": "hopping on at 7?",
+     "offset_s": 1015200
+    },
+    {
+     "idx": 188,
+     "sender_id": "arjun",
+     "text": "can't, studying for signals 😭",
+     "offset_s": 1015080
+    },
+    {
+     "idx": 189,
+     "sender_id": "theo",
+     "text": "bro it's tuesday",
+     "offset_s": 1015073
+    },
+    {
+     "idx": 190,
+     "sender_id": "arjun",
+     "text": "my dad's 95 thing lives in my head",
+     "offset_s": 1015020
+    },
+    {
+     "idx": 191,
+     "sender_id": "jules",
+     "text": "i'm in",
+     "offset_s": 1014900
+    },
+    {
+     "idx": 192,
+     "sender_id": "nikhil",
+     "text": "in",
+     "offset_s": 1014840
+    },
+    {
+     "idx": 193,
+     "sender_id": "theo",
+     "text": "marcus wore the new ones",
+     "offset_s": 1006200
+    },
+    {
+     "idx": 194,
+     "sender_id": "jules",
+     "text": "he said they were for looking at",
+     "offset_s": 1006140
+    },
+    {
+     "idx": 195,
+     "sender_id": "marcus",
+     "text": "they looked lonely",
+     "offset_s": 1006133,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 196,
+     "sender_id": "sana",
+     "text": "😭",
+     "offset_s": 1006080
+    },
+    {
+     "idx": 197,
+     "sender_id": "jules",
+     "text": "bnb this friday!! who's driving",
+     "offset_s": 925200
+    },
+    {
+     "idx": 198,
+     "sender_id": "marcus",
+     "text": "i can take 4",
+     "offset_s": 925080
+    },
+    {
+     "idx": 199,
+     "sender_id": "theo",
+     "text": "i can take my car too",
+     "offset_s": 925073
+    },
+    {
+     "idx": 200,
+     "sender_id": "jules",
+     "text": "ok marcus takes arjun sana nikhil, theo takes me",
+     "offset_s": 924900
+    },
+    {
+     "idx": 201,
+     "sender_id": "sana",
+     "text": "groceries: eggs, pancake mix, chips, the big water jug, ice",
+     "offset_s": 924840
+    },
+    {
+     "idx": 202,
+     "sender_id": "nikhil",
+     "text": "and coffee",
+     "offset_s": 924780
+    },
+    {
+     "idx": 203,
+     "sender_id": "arjun",
+     "text": "and hot sauce",
+     "offset_s": 924773
+    },
+    {
+     "idx": 204,
+     "sender_id": "theo",
+     "text": "and a speaker",
+     "offset_s": 924720
+    },
+    {
+     "idx": 205,
+     "sender_id": "jules",
+     "text": "a speaker isn't a grocery",
+     "offset_s": 924660
+    },
+    {
+     "idx": 206,
+     "sender_id": "theo",
+     "text": "it is to me",
+     "offset_s": 924653
+    },
+    {
+     "idx": 207,
+     "sender_id": "sana",
+     "text": "leave by 3 to beat traffic",
+     "offset_s": 924600
+    },
+    {
+     "idx": 208,
+     "sender_id": "marcus",
+     "text": "idt that's possible, i have class till 3:30",
+     "offset_s": 924540
+    },
+    {
+     "idx": 209,
+     "sender_id": "sana",
+     "text": "3:45 then",
+     "offset_s": 924480
+    },
+    {
+     "idx": 210,
+     "sender_id": "marcus",
+     "text": "fs",
+     "offset_s": 924473
+    },
+    {
+     "idx": 211,
+     "sender_id": "jules",
+     "text": "host is emailing the door code to whoever gets there first. theo that's you",
+     "offset_s": 924000
+    },
+    {
+     "idx": 212,
+     "sender_id": "theo",
+     "text": "gotchu",
+     "offset_s": 923940
+    },
+    {
+     "idx": 213,
+     "sender_id": "arjun",
+     "text": "my mom's gonna want the address lol",
+     "offset_s": 923400
+    },
+    {
+     "idx": 214,
+     "sender_id": "jules",
+     "text": "just share ur location w her",
+     "offset_s": 923340
+    },
+    {
+     "idx": 215,
+     "sender_id": "nikhil",
+     "text": "hoops tn?",
+     "offset_s": 844200
+    },
+    {
+     "idx": 216,
+     "sender_id": "sana",
+     "text": "packing",
+     "offset_s": 843900
+    },
+    {
+     "idx": 217,
+     "sender_id": "marcus",
+     "text": "same",
+     "offset_s": 843840
+    },
+    {
+     "idx": 218,
+     "sender_id": "theo",
+     "text": "save the legs for the bnb",
+     "offset_s": 843600
+    },
+    {
+     "idx": 219,
+     "sender_id": "marcus",
+     "text": "leaving now, arjun sana nikhil come outside",
+     "offset_s": 763800
+    },
+    {
+     "idx": 220,
+     "sender_id": "sana",
+     "text": "coming!!",
+     "offset_s": 763680
+    },
+    {
+     "idx": 221,
+     "sender_id": "theo",
+     "text": "we're leaving too, jules is the dj",
+     "offset_s": 762600
+    },
+    {
+     "idx": 222,
+     "sender_id": "jules",
+     "text": "the aux is mine nobody try it",
+     "offset_s": 762540
+    },
+    {
+     "idx": 223,
+     "sender_id": "theo",
+     "text": "here first 🫡 code works, place is nice",
+     "offset_s": 752100
+    },
+    {
+     "idx": 224,
+     "sender_id": "theo",
+     "text": "dock is sick",
+     "offset_s": 752093
+    },
+    {
+     "idx": 225,
+     "sender_id": "marcus",
+     "text": "20 min out",
+     "offset_s": 750600
+    },
+    {
+     "idx": 226,
+     "sender_id": "arjun",
+     "text": "we're here",
+     "offset_s": 749100
+    },
+    {
+     "idx": 227,
+     "sender_id": "sana",
+     "text": "who's still up, come to the dock, the stars are crazy",
+     "offset_s": 736200
+    },
+    {
+     "idx": 228,
+     "sender_id": "jules",
+     "text": "coming",
+     "offset_s": 736140
+    },
+    {
+     "idx": 229,
+     "sender_id": "marcus",
+     "text": "wait who locked the door",
+     "offset_s": 735540
+    },
+    {
+     "idx": 230,
+     "sender_id": "arjun",
+     "text": "the door is locked??",
+     "offset_s": 735533
+    },
+    {
+     "idx": 231,
+     "sender_id": "theo",
+     "text": "i locked it for safety",
+     "offset_s": 735480,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "jules",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 232,
+     "sender_id": "sana",
+     "text": "theo we are ALL outside",
+     "offset_s": 735473
+    },
+    {
+     "idx": 233,
+     "sender_id": "nikhil",
+     "text": "where's the code",
+     "offset_s": 735420
+    },
+    {
+     "idx": 234,
+     "sender_id": "theo",
+     "text": "in my email",
+     "offset_s": 735413
+    },
+    {
+     "idx": 235,
+     "sender_id": "theo",
+     "text": "my phone is charging inside",
+     "offset_s": 735360,
+     "reactions": [
+      {
+       "user_id": "marcus",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 236,
+     "sender_id": "jules",
+     "text": "THEO",
+     "offset_s": 735353
+    },
+    {
+     "idx": 237,
+     "sender_id": "arjun",
+     "text": "deadass we're locked out of our own bnb",
+     "offset_s": 735300
+    },
+    {
+     "idx": 238,
+     "sender_id": "marcus",
+     "text": "i'm in shorts and it's 50 degrees",
+     "offset_s": 735240
+    },
+    {
+     "idx": 239,
+     "sender_id": "jules",
+     "text": "ok calling the host, hold on",
+     "offset_s": 735180
+    },
+    {
+     "idx": 240,
+     "sender_id": "jules",
+     "text": "host is asleep, left a voicemail",
+     "offset_s": 734880
+    },
+    {
+     "idx": 241,
+     "sender_id": "nikhil",
+     "text": "the back window is open a little",
+     "offset_s": 734820
+    },
+    {
+     "idx": 242,
+     "sender_id": "sana",
+     "text": "nobody is climbing through a window, we saw marcus at the gym",
+     "offset_s": 734700,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 243,
+     "sender_id": "marcus",
+     "text": "that was ONE time",
+     "offset_s": 734693
+    },
+    {
+     "idx": 244,
+     "sender_id": "jules",
+     "text": "HOST CALLED BACK. we're in 🙏",
+     "offset_s": 733200,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "marcus",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 245,
+     "sender_id": "theo",
+     "text": "see it all worked out",
+     "offset_s": 733140
+    },
+    {
+     "idx": 246,
+     "sender_id": "sana",
+     "text": "theo you're sleeping on the porch",
+     "offset_s": 733133
+    },
+    {
+     "idx": 247,
+     "sender_id": "arjun",
+     "text": "theo locked us out for safety and we almost froze for safety",
+     "offset_s": 733080,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "jules",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 248,
+     "sender_id": "nikhil",
+     "text": "pancakes are done, the first 3 are ugly",
+     "offset_s": 700200
+    },
+    {
+     "idx": 249,
+     "sender_id": "sana",
+     "text": "boat tour at 1!!",
+     "offset_s": 697500
+    },
+    {
+     "idx": 250,
+     "sender_id": "nikhil",
+     "text": "the swamp is unreal",
+     "offset_s": 686100,
+     "kind": "photo",
+     "image": "bayou-cypress.jpg",
+     "image_description": "Taken from a small tour boat: tall cypress trees draped in Spanish moss standing in dark, rippling swamp water with patches of bright green duckweed, under a blue sky with big white clouds. A metal boat frame edges the left side and a dark blur covers a top corner.",
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 251,
+     "sender_id": "marcus",
+     "text": "i saw a gator. i'm not lying",
+     "offset_s": 686040
+    },
+    {
+     "idx": 252,
+     "sender_id": "jules",
+     "text": "it was a log",
+     "offset_s": 685980
+    },
+    {
+     "idx": 253,
+     "sender_id": "marcus",
+     "text": "the log had eyes",
+     "offset_s": 685973,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 254,
+     "sender_id": "arjun",
+     "text": "the guide said there's like 3 gators in this whole section 💀",
+     "offset_s": 685800
+    },
+    {
+     "idx": 255,
+     "sender_id": "theo",
+     "text": "and marcus saw all of them",
+     "offset_s": 685740
+    },
+    {
+     "idx": 256,
+     "sender_id": "sana",
+     "text": "found these by the dock 🐚",
+     "offset_s": 674400,
+     "kind": "photo",
+     "image": "seashells.jpg",
+     "image_description": "A small pile of about eight tiny pale clam shells, white, cream and one yellow, on a dark fabric surface.",
+     "reactions": [
+      {
+       "user_id": "jules",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 257,
+     "sender_id": "jules",
+     "text": "sana's collecting again",
+     "offset_s": 674340
+    },
+    {
+     "idx": 258,
+     "sender_id": "sana",
+     "text": "they're tiny clams. they're cute. leave me alone",
+     "offset_s": 674280
+    },
+    {
+     "idx": 259,
+     "sender_id": "arjun",
+     "text": "sunset from the dock",
+     "offset_s": 666300,
+     "kind": "photo",
+     "image": "alpine-lake.jpg",
+     "image_description": "A wide blue lake with low, forested hills lit by late-afternoon sun on the far shore, tall pine trees and green bushes in the foreground, and thin streaks of cloud across a pale blue sky.",
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "theo",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "jules",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 260,
+     "sender_id": "theo",
+     "text": "nah this is crazy",
+     "offset_s": 666240
+    },
+    {
+     "idx": 261,
+     "sender_id": "nikhil",
+     "text": "best trip fr",
+     "offset_s": 666180
+    },
+    {
+     "idx": 262,
+     "sender_id": "jules",
+     "text": "hot tub at 9",
+     "offset_s": 664200
+    },
+    {
+     "idx": 263,
+     "sender_id": "theo",
+     "text": "i'll leave the door unlocked this time",
+     "offset_s": 664140,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 264,
+     "sender_id": "jules",
+     "text": "checkout at 11, door is LOCKED this time, on purpose",
+     "offset_s": 608400
+    },
+    {
+     "idx": 265,
+     "sender_id": "theo",
+     "text": "i'm learning",
+     "offset_s": 608340
+    },
+    {
+     "idx": 266,
+     "sender_id": "marcus",
+     "text": "coffee stop",
+     "offset_s": 602400,
+     "kind": "photo",
+     "image": "iced-drinks.jpg",
+     "image_description": "Overhead view of four iced drinks with clear lids on a marble table: two milky iced coffees, a darker iced latte and a pale green one that looks like matcha.",
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 267,
+     "sender_id": "sana",
+     "text": "the matcha was so good",
+     "offset_s": 602340
+    },
+    {
+     "idx": 268,
+     "sender_id": "nikhil",
+     "text": "mine was mid",
+     "offset_s": 602333
+    },
+    {
+     "idx": 269,
+     "sender_id": "arjun",
+     "text": "home 🏠",
+     "offset_s": 594600
+    },
+    {
+     "idx": 270,
+     "sender_id": "marcus",
+     "text": "dropped everyone ✅",
+     "offset_s": 594540
+    },
+    {
+     "idx": 271,
+     "sender_id": "jules",
+     "text": "gas split: zelle marcus 11 and theo 8",
+     "offset_s": 593400
+    },
+    {
+     "idx": 272,
+     "sender_id": "sana",
+     "text": "paid both",
+     "offset_s": 593280
+    },
+    {
+     "idx": 273,
+     "sender_id": "arjun",
+     "text": "paid",
+     "offset_s": 592200
+    },
+    {
+     "idx": 274,
+     "sender_id": "nikhil",
+     "text": "paid",
+     "offset_s": 592140
+    },
+    {
+     "idx": 275,
+     "sender_id": "theo",
+     "text": "best weekend of the semester ngl",
+     "offset_s": 591600,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "jules",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "marcus",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 276,
+     "sender_id": "jules",
+     "text": "theo locking us out was the highlight",
+     "offset_s": 591540
+    },
+    {
+     "idx": 277,
+     "sender_id": "theo",
+     "text": "you're welcome",
+     "offset_s": 591533
+    },
+    {
+     "idx": 278,
+     "sender_id": "nikhil",
+     "text": "anyone started the signals hw",
+     "offset_s": 521400
+    },
+    {
+     "idx": 279,
+     "sender_id": "arjun",
+     "text": "no 😭",
+     "offset_s": 521340
+    },
+    {
+     "idx": 280,
+     "sender_id": "sana",
+     "text": "library tmrw?",
+     "offset_s": 521280
+    },
+    {
+     "idx": 281,
+     "sender_id": "arjun",
+     "text": "fs",
+     "offset_s": 521273
+    },
+    {
+     "idx": 282,
+     "sender_id": "arjun",
+     "text": "my sister turns 16 today and she's already more online than me",
+     "offset_s": 448200
+    },
+    {
+     "idx": 283,
+     "sender_id": "sana",
+     "text": "happy bday to her!!",
+     "offset_s": 448140
+    },
+    {
+     "idx": 284,
+     "sender_id": "jules",
+     "text": "tell her the gc says hi",
+     "offset_s": 448080
+    },
+    {
+     "idx": 285,
+     "sender_id": "theo",
+     "text": "hopping on at 7?",
+     "offset_s": 409800
+    },
+    {
+     "idx": 286,
+     "sender_id": "marcus",
+     "text": "ye",
+     "offset_s": 409740
+    },
+    {
+     "idx": 287,
+     "sender_id": "jules",
+     "text": "in",
+     "offset_s": 409680
+    },
+    {
+     "idx": 288,
+     "sender_id": "arjun",
+     "text": "coming late, video call for my sister's cake",
+     "offset_s": 408600
+    },
+    {
+     "idx": 289,
+     "sender_id": "sana",
+     "text": "aw 🥹",
+     "offset_s": 408540
+    },
+    {
+     "idx": 290,
+     "sender_id": "arjun",
+     "text": "3 midterms next week i'm cooked",
+     "offset_s": 312300
+    },
+    {
+     "idx": 291,
+     "sender_id": "nikhil",
+     "text": "same i'm cooked",
+     "offset_s": 312240
+    },
+    {
+     "idx": 292,
+     "sender_id": "theo",
+     "text": "we're all cooked",
+     "offset_s": 312233
+    },
+    {
+     "idx": 293,
+     "sender_id": "sana",
+     "text": "study session at the library tmrw? 4pm",
+     "offset_s": 312180
+    },
+    {
+     "idx": 294,
+     "sender_id": "arjun",
+     "text": "yes pls",
+     "offset_s": 312120
+    },
+    {
+     "idx": 295,
+     "sender_id": "nikhil",
+     "text": "bet",
+     "offset_s": 312113
+    },
+    {
+     "idx": 296,
+     "sender_id": "jules",
+     "text": "i'll bring snacks",
+     "offset_s": 312000,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 297,
+     "sender_id": "sana",
+     "text": "library 3rd floor, the big table",
+     "offset_s": 244500
+    },
+    {
+     "idx": 298,
+     "sender_id": "arjun",
+     "text": "here",
+     "offset_s": 243000
+    },
+    {
+     "idx": 299,
+     "sender_id": "marcus",
+     "text": "hoops after?",
+     "offset_s": 232200
+    },
+    {
+     "idx": 300,
+     "sender_id": "theo",
+     "text": "hopping on at 8",
+     "offset_s": 232140
+    },
+    {
+     "idx": 301,
+     "sender_id": "jules",
+     "text": "post-hoops cookie skillets bc we deserve it",
+     "offset_s": 224400,
+     "kind": "photo",
+     "image": "ice-cream-trio.jpg",
+     "image_description": "Three small skillet cookies in metal tins on a long white plate, each topped with ice cream: vanilla with a crumbled cookie topping, vanilla with caramel drizzle and chocolate chips, and chocolate ice cream with chocolate chips.",
+     "reactions": [
+      {
+       "user_id": "marcus",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 302,
+     "sender_id": "marcus",
+     "text": "the middle one ‼️",
+     "offset_s": 224340
+    },
+    {
+     "idx": 303,
+     "sender_id": "nikhil",
+     "text": "who got the chocolate one",
+     "offset_s": 224280
+    },
+    {
+     "idx": 304,
+     "sender_id": "sana",
+     "text": "me. no sharing",
+     "offset_s": 224273
+    },
+    {
+     "idx": 305,
+     "sender_id": "arjun",
+     "text": "we're cooked for midterms and we're out here eating dessert",
+     "offset_s": 224220
+    },
+    {
+     "idx": 306,
+     "sender_id": "theo",
+     "text": "balance",
+     "offset_s": 224160
+    },
+    {
+     "idx": 307,
+     "sender_id": "arjun",
+     "text": "my sister told my dad i'm \"cooked for finals\" in the family gc",
+     "offset_s": 156000
+    },
+    {
+     "idx": 308,
+     "sender_id": "arjun",
+     "text": "and he asked \"what is cooked? he is not food\"",
+     "offset_s": 155993,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "jules",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 309,
+     "sender_id": "sana",
+     "text": "LMAOOO",
+     "offset_s": 155940
+    },
+    {
+     "idx": 310,
+     "sender_id": "theo",
+     "text": "your dad is so real for that",
+     "offset_s": 155933
+    },
+    {
+     "idx": 311,
+     "sender_id": "jules",
+     "text": "he's not wrong tho",
+     "offset_s": 155880
+    },
+    {
+     "idx": 312,
+     "sender_id": "nikhil",
+     "text": "your sister is a menace",
+     "offset_s": 155820
+    },
+    {
+     "idx": 313,
+     "sender_id": "arjun",
+     "text": "she sent a gojo meme to my parents",
+     "offset_s": 155700
+    },
+    {
+     "idx": 314,
+     "sender_id": "marcus",
+     "text": "to the PARENTS?",
+     "offset_s": 155640
+    },
+    {
+     "idx": 315,
+     "sender_id": "arjun",
+     "text": "my mom laughed. my dad asked who the white hair man is",
+     "offset_s": 155580,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "marcus",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 316,
+     "sender_id": "sana",
+     "text": "i love your family",
+     "offset_s": 155520
+    },
+    {
+     "idx": 317,
+     "sender_id": "marcus",
+     "text": "hopping on at 12 at the rec?",
+     "offset_s": 88200
+    },
+    {
+     "idx": 318,
+     "sender_id": "theo",
+     "text": "bet",
+     "offset_s": 88080
+    },
+    {
+     "idx": 319,
+     "sender_id": "arjun",
+     "text": "down",
+     "offset_s": 88020
+    },
+    {
+     "idx": 320,
+     "sender_id": "sana",
+     "text": "Guess that Lore 🎲",
+     "offset_s": 78900,
+     "kind": "game",
+     "game": {
+      "lore_title": "Theo Locked Everyone Out of the Bnb",
+      "started_by": "sana",
+      "prompt": "Somebody made sure nobody could get back inside",
+      "hints": [
+       "It happened on the group trip",
+       "It was late at night and everyone ended up on the porch",
+       "The code was on a phone that was charging indoors"
+      ],
+      "hints_shown": 1,
+      "options": [
+       "marcus",
+       "theo",
+       "jules",
+       "arjun"
+      ],
+      "answer": "theo",
+      "status": "open",
+      "votes": [
+       {
+        "user_id": "sana",
+        "choice": "jules"
+       },
+       {
+        "user_id": "marcus",
+        "choice": "theo"
+       },
+       {
+        "user_id": "nikhil",
+        "choice": "marcus"
+       }
+      ],
+      "revealed_offset_s": null
+     }
+    },
+    {
+     "idx": 321,
+     "sender_id": "sana",
+     "text": "i started a game, vote ‼️",
+     "offset_s": 78840
+    },
+    {
+     "idx": 322,
+     "sender_id": "marcus",
+     "text": "i know exactly what this is",
+     "offset_s": 78720
+    },
+    {
+     "idx": 323,
+     "sender_id": "nikhil",
+     "text": "don't say it",
+     "offset_s": 78660
+    },
+    {
+     "idx": 324,
+     "sender_id": "jules",
+     "text": "hint please",
+     "offset_s": 78600
+    },
+    {
+     "idx": 325,
+     "sender_id": "sana",
+     "text": "unlocked one. \"it happened on the group trip\"",
+     "offset_s": 78540
+    },
+    {
+     "idx": 326,
+     "sender_id": "jules",
+     "text": "that narrows it down to like 4 things",
+     "offset_s": 78480
+    },
+    {
+     "idx": 327,
+     "sender_id": "marcus",
+     "text": "voted 😈",
+     "offset_s": 78300
+    },
+    {
+     "idx": 328,
+     "sender_id": "nikhil",
+     "text": "voted",
+     "offset_s": 78000
+    },
+    {
+     "idx": 329,
+     "sender_id": "theo",
+     "text": "i'm not voting on this one",
+     "offset_s": 77700,
+     "reactions": [
+      {
+       "user_id": "jules",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 330,
+     "sender_id": "jules",
+     "text": "that's suspicious",
+     "offset_s": 77693
+    },
+    {
+     "idx": 331,
+     "sender_id": "sana",
+     "text": "why not theo 🤔",
+     "offset_s": 77640
+    },
+    {
+     "idx": 332,
+     "sender_id": "theo",
+     "text": "no comment",
+     "offset_s": 77580
+    },
+    {
+     "idx": 333,
+     "sender_id": "arjun",
+     "text": "i'll vote later, still at the rec",
+     "offset_s": 77400
+    },
+    {
+     "idx": 334,
+     "sender_id": "arjun",
+     "text": "my family played this today and my dad voted against himself 😭",
+     "offset_s": 68700
+    },
+    {
+     "idx": 335,
+     "sender_id": "sana",
+     "text": "wait what was it",
+     "offset_s": 68640
+    },
+    {
+     "idx": 336,
+     "sender_id": "arjun",
+     "text": "his 59.7 mpg thing",
+     "offset_s": 68580
+    },
+    {
+     "idx": 337,
+     "sender_id": "theo",
+     "text": "the mpg man!!",
+     "offset_s": 68573
+    },
+    {
+     "idx": 338,
+     "sender_id": "nikhil",
+     "text": "legendary",
+     "offset_s": 68520,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 339,
+     "sender_id": "jules",
+     "text": "pizza and wings at mine tn? 8pm",
+     "offset_s": 60600
+    },
+    {
+     "idx": 340,
+     "sender_id": "sana",
+     "text": "yes",
+     "offset_s": 60540
+    },
+    {
+     "idx": 341,
+     "sender_id": "marcus",
+     "text": "yes",
+     "offset_s": 60533
+    },
+    {
+     "idx": 342,
+     "sender_id": "nikhil",
+     "text": "i'll bring drinks",
+     "offset_s": 60480
+    },
+    {
+     "idx": 343,
+     "sender_id": "arjun",
+     "text": "omw at 8",
+     "offset_s": 60300
+    },
+    {
+     "idx": 344,
+     "sender_id": "jules",
+     "text": "i'll order, zelle me tmrw",
+     "offset_s": 60000
+    },
+    {
+     "idx": 345,
+     "sender_id": "jules",
+     "text": "yall got home?",
+     "offset_s": 44400
+    },
+    {
+     "idx": 346,
+     "sender_id": "sana",
+     "text": "yes ❤️",
+     "offset_s": 44100,
+     "reactions": [
+      {
+       "user_id": "jules",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 347,
+     "sender_id": "jules",
+     "text": "sent everyone the zelle request for last night's pizza 🍕",
+     "offset_s": 1800
+    },
+    {
+     "idx": 348,
+     "sender_id": "sana",
+     "text": "paid 🫡",
+     "offset_s": 1781
+    },
+    {
+     "idx": 349,
+     "sender_id": "nikhil",
+     "text": "JULES",
+     "offset_s": 1543
+    },
+    {
+     "idx": 350,
+     "sender_id": "nikhil",
+     "text": "why is my request for $4,000",
+     "offset_s": 1542,
+     "reactions": [
+      {
+       "user_id": "marcus",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "theo",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 351,
+     "sender_id": "marcus",
+     "text": "bro i'm not paying four thousand dollars for half a pepperoni",
+     "offset_s": 1534,
+     "reactions": [
+      {
+       "user_id": "nikhil",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 352,
+     "sender_id": "jules",
+     "text": "WHAT",
+     "offset_s": 1524
+    },
+    {
+     "idx": 353,
+     "sender_id": "jules",
+     "text": "it was supposed to be 40.00 i forgot the decimal 😭😭",
+     "offset_s": 1515
+    },
+    {
+     "idx": 354,
+     "sender_id": "sana",
+     "text": "...i already paid it",
+     "offset_s": 1505,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "marcus",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "‼️"
+      },
+      {
+       "user_id": "jules",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 355,
+     "sender_id": "theo",
+     "text": "SANA",
+     "offset_s": 1504
+    },
+    {
+     "idx": 356,
+     "sender_id": "arjun",
+     "text": "sana paid 4k for pizza without blinking 💀",
+     "offset_s": 1496,
+     "reactions": [
+      {
+       "user_id": "theo",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "marcus",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 357,
+     "sender_id": "sana",
+     "text": "it said jules. i trust jules",
+     "offset_s": 1486
+    },
+    {
+     "idx": 358,
+     "sender_id": "sana",
+     "text": "my bank app asked if i was ok",
+     "offset_s": 1485
+    },
+    {
+     "idx": 359,
+     "sender_id": "jules",
+     "text": "sending it back rn i'm so sorry",
+     "offset_s": 1477
+    },
+    {
+     "idx": 360,
+     "sender_id": "jules",
+     "text": "zelle says it can take up to 3 business days 💀",
+     "offset_s": 1448
+    },
+    {
+     "idx": 361,
+     "sender_id": "marcus",
+     "text": "jules is holding sana's rent hostage",
+     "offset_s": 1439,
+     "reactions": [
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 362,
+     "sender_id": "nikhil",
+     "text": "most expensive pizza in history fr",
+     "offset_s": 1429
+    },
+    {
+     "idx": 363,
+     "sender_id": "sana",
+     "text": "i want interest",
+     "offset_s": 1420
+    },
+    {
+     "idx": 364,
+     "sender_id": "jules",
+     "text": "you can have my slice next time",
+     "offset_s": 1410
+    },
+    {
+     "idx": 365,
+     "sender_id": "theo",
+     "text": "imagine explaining to the bank \"it was for pizza\"",
+     "offset_s": 1401
+    },
+    {
+     "idx": 366,
+     "sender_id": "jules",
+     "text": "ok cancelled everyone else's requests. new ones sent. CHECK THE DECIMAL",
+     "offset_s": 1249
+    },
+    {
+     "idx": 367,
+     "sender_id": "nikhil",
+     "text": "$40.00 confirmed ✅",
+     "offset_s": 1220
+    },
+    {
+     "idx": 368,
+     "sender_id": "theo",
+     "text": "paid. forty. four zero point zero zero",
+     "offset_s": 1211
+    },
+    {
+     "idx": 369,
+     "sender_id": "arjun",
+     "text": "paid 🙏",
+     "offset_s": 1173
+    },
+    {
+     "idx": 370,
+     "sender_id": "marcus",
+     "text": "paid and i checked it 3 times",
+     "offset_s": 1154
+    },
+    {
+     "idx": 371,
+     "sender_id": "jules",
+     "text": "update: the bank called ME to ask if sana was ok",
+     "offset_s": 888,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "arjun",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 372,
+     "sender_id": "sana",
+     "text": "i'm not ok. i'm $4,000 down",
+     "offset_s": 878
+    },
+    {
+     "idx": 373,
+     "sender_id": "arjun",
+     "text": "this is going in the lore fr",
+     "offset_s": 850,
+     "reactions": [
+      {
+       "user_id": "sana",
+       "emoji": "❤️"
+      },
+      {
+       "user_id": "nikhil",
+       "emoji": "‼️"
+      }
+     ]
+    },
+    {
+     "idx": 374,
+     "sender_id": "sana",
+     "text": "still waiting on my 4k btw jules",
+     "offset_s": 840
+    }
+   ],
+   "glossary": [
+    {
+     "term": "the bnb",
+     "aliases": [
+      "bnb",
+      "the lake house"
+     ],
+     "meaning": "The lake house Jules booked for the Oct 16-18 trip: dock, hot tub, $519 split six ways on Zelle. Also where Theo locked everyone out.",
+     "kind": "place",
+     "first_seen_idx": 40,
+     "source_idxs": [
+      40,
+      247
+     ]
+    },
+    {
+     "term": "hopping",
+     "aliases": [
+      "hopping on",
+      "hop on"
+     ],
+     "meaning": "Joining something right now: a pickup basketball run, a call or an online game ('hopping on at 7?').",
+     "kind": "slang",
+     "first_seen_idx": 18,
+     "source_idxs": [
+      18
+     ]
+    },
+    {
+     "term": "cooked",
+     "aliases": [
+      "i'm cooked",
+      "we're cooked"
+     ],
+     "meaning": "Done for, in trouble, out of energy ('3 midterms next week i'm cooked').",
+     "kind": "slang",
+     "first_seen_idx": 77,
+     "source_idxs": [
+      77,
+      290
+     ]
+    },
+    {
+     "term": "the easy wall",
+     "aliases": [
+      "easy wall"
+     ],
+     "meaning": "The beginner bouldering wall by the climbing gym's front desk, the one kids were climbing, that Marcus fell off at the second hold.",
+     "kind": "inside_joke",
+     "first_seen_idx": 147,
+     "source_idxs": [
+      147,
+      161
+     ]
+    }
+   ],
+   "lore": [
+    {
+     "title": "Theo Locked Everyone Out of the Bnb",
+     "story": "Late on the first night of the lake trip Theo locked the door 'for safety' while everyone was at the dock. The door code was in his email, and his phone was charging inside, so they waited on the porch until the host called back after midnight.",
+     "message_idxs": [
+      227,
+      228,
+      229,
+      230,
+      231,
+      232,
+      233,
+      234,
+      235,
+      236,
+      237,
+      238,
+      239,
+      240,
+      241,
+      242,
+      243,
+      244,
+      245,
+      246,
+      247
+     ],
+     "hero_idx": 231,
+     "people": [
+      "theo",
+      "jules",
+      "sana",
+      "arjun",
+      "marcus",
+      "nikhil"
+     ],
+     "terms": [
+      "the bnb"
+     ],
+     "score": 0.88
+    },
+    {
+     "title": "Marcus Fell Off the Easiest Wall at the Gym",
+     "story": "Two days after saying climbing 'can't be that hard', Marcus fell off the beginner wall at the second hold while kids climbed it, and one of them asked if he was ok.",
+     "message_idxs": [
+      146,
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161
+     ],
+     "hero_idx": 146,
+     "people": [
+      "marcus",
+      "theo",
+      "sana",
+      "jules",
+      "arjun"
+     ],
+     "terms": [
+      "the easy wall"
+     ],
+     "score": 0.84
+    },
+    {
+     "title": "Nikhil's 4am Demo Somehow Won",
+     "story": "At 1:30am Nikhil pivoted the hackathon project; at 4am he recorded the demo, said 'and it works' and it worked two seconds later. The judges laughed at the pause and the team won.",
+     "message_idxs": [
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94
+     ],
+     "hero_idx": 82,
+     "people": [
+      "nikhil",
+      "sana",
+      "arjun",
+      "theo"
+     ],
+     "terms": [
+      "cooked"
+     ],
+     "score": 0.78
+    }
+   ],
+   "lore_backfill_before_idx": 347
+  }
+ ]
+}

@@ -54,6 +54,9 @@ test('previews prefix you or the group sender, and name captionless photos', () 
   expect(conversationPreview({ ...group, last_message: { ...group.last_message!, kind: 'photo', text: '' } }, 'me', byId)).toBe(
     'Sam: Photo',
   );
+  expect(
+    conversationPreview({ ...group, last_message: { ...group.last_message!, kind: 'game', text: 'Guess that Lore 🎲' } }, 'me', byId),
+  ).toBe('Sam: 🎲 Guess that Lore');
   expect(conversationPreview(direct, 'me', byId)).toBe('No messages yet');
 });
 

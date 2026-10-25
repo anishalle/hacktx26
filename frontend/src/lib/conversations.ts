@@ -25,6 +25,8 @@ export function filterConversations(
   });
 }
 
+export const GAME_PREVIEW = '🎲 Guess that Lore';
+
 /** The inbox row's 2-line preview: "You: …", "Sam: …" in groups, "Photo" for a captionless photo. */
 export function conversationPreview(
   item: InboxItem,
@@ -34,7 +36,7 @@ export function conversationPreview(
   const m = item.last_message;
   if (!m) return 'No messages yet';
   if (m.kind === 'system') return m.text;
-  const body = m.kind === 'photo' ? m.text || 'Photo' : m.text;
+  const body = m.kind === 'photo' ? m.text || 'Photo' : m.kind === 'game' ? GAME_PREVIEW : m.text;
   if (m.sender_id === meId) return `You: ${body}`;
   const sender = userById(m.sender_id);
   return !item.group.is_dm && sender ? `${firstName(sender.display_name)}: ${body}` : body;
@@ -61,6 +63,14 @@ export function inboxTime(iso: string, now = new Date()) {
 export function memberAvatars(members: User[] | undefined, meId: string) {
   const others = (members ?? []).filter((u) => u.id !== meId);
   return others.length >= 2 ? [others[0].avatar_url, others[1].avatar_url] : null;
+}
+
+/** The same two members' names, for initials when they have no photo. */
+export function memberNames(members: User[] | undefined, meId: string) {
+  return (members ?? [])
+    .filter((u) => u.id !== meId)
+    .slice(0, 2)
+    .map((u) => u.display_name);
 }
 
 export type ComposePerson = { user: User; item: InboxItem; direct: boolean };

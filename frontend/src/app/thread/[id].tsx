@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { api, type Lore, type Message, type User } from '@/api';
+import { api, errorText, type Lore, type LoreGame, type Message, type User } from '@/api';
 import { Avatar, GroupAvatar } from '@/components/Avatar';
 import { GlassCircle } from '@/components/GlassCircle';
 import { Icon } from '@/components/Icon';
@@ -28,6 +28,7 @@ import { CallBar } from '@/components/thread/CallBar';
 import { LoreSuggestionCard } from '@/components/thread/LoreSuggestionCard';
 import { CatchupPill } from '@/components/thread/CatchupPill';
 import { Composer } from '@/components/thread/Composer';
+import { GameBubble } from '@/components/thread/GameBubble';
 import { NudgeBanner } from '@/components/thread/NudgeBanner';
 import { PhotoViewer } from '@/components/thread/PhotoViewer';
 import { MessageRow, SeenBy, SystemLine, TimeSeparator, type RunPos } from '@/components/thread/rows';
@@ -38,6 +39,7 @@ import { useGroupCall } from '@/hooks/useGroupCall';
 import { useNudge } from '@/hooks/useNudge';
 import { useThread } from '@/hooks/useThread';
 import { firstName } from '@/lib/format';
+import { newerGame } from '@/lib/games';
 import { catchupMarkRead, threadJump } from '@/state/bus';
 import { useInbox } from '@/state/inbox';
 import { useRealtime } from '@/state/realtime';
@@ -56,6 +58,7 @@ type Item =
   | { type: 'sep'; key: string; ts: string }
   | { type: 'system'; key: string; m: Message }
   | { type: 'msg'; key: string; m: Message; run: RunPos; showName: boolean; showAvatar: boolean }
+  | { type: 'game'; key: string; m: Message; game: LoreGame; showName: boolean; showAvatar: boolean }
   | { type: 'seen'; key: string; users: User[]; readAt: number | null; delivered: boolean }
   | { type: 'lore'; key: string; lore: Lore };
 
@@ -144,7 +147,7 @@ export default function ThreadScreen() {
     let max = 0;
     for (const v of viewableItems) {
       const it = v.item as Item;
-      if ((it.type === 'msg' || it.type === 'system') && it.m.id > max) max = it.m.id;
+      if ((it.type === 'msg' || it.type === 'system' || it.type === 'game') && it.m.id > max) max = it.m.id;
     }
     if (max > 0) setNewestVisible((prev) => (prev === null || max > prev ? max : prev));
   }, []);
@@ -175,6 +178,12 @@ export default function ThreadScreen() {
       }),
     [groupId, t, isPreview],
   );
+  // The flash is transient: clear it once the row's animation has run (a game card draws a border while set).
+  useEffect(() => {
+    if (highlightId === null) return;
+    const timer = setTimeout(() => setHighlightId((cur) => (cur === highlightId ? null : cur)), 3000);
+    return () => clearTimeout(timer);
+  }, [highlightId]);
 
   // ---- Opened at a message (Lore's "What was said") -----------------------------------------------
   const jumpedToParam = useRef(false);
@@ -301,18 +310,26 @@ export default function ThreadScreen() {
       }
       const prev = asc[i - 1];
       const next = asc[i + 1];
-      const joinsPrev = !!prev && prev.kind !== 'system' && prev.sender_id === m.sender_id && !sepBefore(i);
-      const joinsNext = !!next && next.kind !== 'system' && next.sender_id === m.sender_id && !sepBefore(i + 1);
-      const run: RunPos = joinsPrev ? (joinsNext ? 'middle' : 'last') : joinsNext ? 'first' : 'single';
       const mine = m.sender_id === me.id;
-      out.push({
-        type: 'msg',
-        key: `m-${m.id}`,
-        m,
-        run,
-        showName: !mine && !joinsPrev && !t.group?.is_dm,
-        showAvatar: !mine && !joinsNext && !t.group?.is_dm,
-      });
+      // A game card stands alone: it never joins a run of bubbles.
+      const joins = (o: Message | undefined, at: number) =>
+        !!o && o.kind !== 'system' && o.kind !== 'game' && m.kind !== 'game' && o.sender_id === m.sender_id && !sepBefore(at);
+      const joinsPrev = joins(prev, i);
+      const joinsNext = joins(next, i + 1);
+      if (m.kind === 'game' && m.game) {
+        const dm = !!t.group?.is_dm;
+        out.push({ type: 'game', key: `m-${m.id}`, m, game: m.game, showName: !mine && !dm, showAvatar: !mine && !dm });
+      } else {
+        const run: RunPos = joinsPrev ? (joinsNext ? 'middle' : 'last') : joinsNext ? 'first' : 'single';
+        out.push({
+          type: 'msg',
+          key: `m-${m.id}`,
+          m,
+          run,
+          showName: !mine && !joinsPrev && !t.group?.is_dm,
+          showAvatar: !mine && !joinsNext && !t.group?.is_dm,
+        });
+      }
       for (const l of loreSuggestions) if (l.anchor_message_id === m.id) out.push({ type: 'lore', key: `lore-${l.id}`, lore: l });
     }
     const newest = [...asc].reverse().find((m) => m.id > 0 && m.kind !== 'system');
@@ -334,7 +351,7 @@ export default function ThreadScreen() {
   useEffect(() => {
     const target = pendingScroll.current;
     if (target === null) return;
-    const index = items.findIndex((it) => (it.type === 'msg' || it.type === 'system') && it.m.id === target);
+    const index = items.findIndex((it) => (it.type === 'msg' || it.type === 'system' || it.type === 'game') && it.m.id === target);
     if (index === -1) return;
     pendingScroll.current = null;
     requestAnimationFrame(() => listRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: true }));
@@ -483,12 +500,13 @@ export default function ThreadScreen() {
   );
   const headerAvatar = group?.avatar_url ?? (isDm ? (others[0]?.avatar_url ?? null) : null);
   const memberAvatars = others.slice(0, 2).map((u) => u.avatar_url);
+  const memberNames = others.slice(0, 2).map((u) => u.display_name);
   // iMessage's "‹ 12": unread threads other than this one.
   const unreadHere = inbox.items.find((it) => it.group.id === groupId)?.unread_count ?? 0;
   const unreadElsewhere = Math.max(0, inbox.unreadThreads - (unreadHere > 0 ? 1 : 0));
 
   const lastIncoming = useMemo(
-    () => [...t.messages].reverse().find((m) => m.id > 0 && m.kind !== 'system' && m.sender_id !== me.id),
+    () => [...t.messages].reverse().find((m) => m.id > 0 && m.kind !== 'system' && m.kind !== 'game' && m.sender_id !== me.id),
     [t.messages, me.id],
   );
   const openGroupInfo = () => {
@@ -496,6 +514,86 @@ export default function ThreadScreen() {
     router.push({ pathname: '/group/[id]', params: { id: String(groupId), name: title } });
   };
   const openLore = () => router.push({ pathname: '/reels', params: { group: String(groupId) } });
+
+  // ---- Guess that Lore -----------------------------------------------------------------------
+  const startingGame = useRef(false);
+  const startGame = async () => {
+    if (startingGame.current) return;
+    startingGame.current = true;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      if (t.hasMoreAfter) await t.loadLatest();
+      const m = await api.startGame(groupId, me.id);
+      t.upsertMessage(m);
+      markRead(m.id);
+      requestAnimationFrame(() => listRef.current?.scrollToOffset({ offset: 0, animated: true }));
+    } catch (e) {
+      const said = errorText(e);
+      if ((e as { status?: number } | null)?.status === 409 && /lore/i.test(said))
+        Alert.alert('No Lore yet in this group', 'Keep a moment as Lore first, then play Guess that Lore with it.');
+      else Alert.alert('Couldn’t start a game', said);
+    } finally {
+      startingGame.current = false;
+    }
+  };
+  const { updateMessage } = t;
+  /** A game action's answer: patch the round into its message, never undoing a reveal. */
+  const applyGame = useCallback(
+    (m: Message, game: LoreGame) => updateMessage(m.id, (x) => ({ ...x, game: newerGame(x.game, game) })),
+    [updateMessage],
+  );
+  /** Re-reads one round from the server: after a 409 the bubble may have missed a frame (a reveal). */
+  const refetchGame = useCallback(
+    async (m: Message) => {
+      try {
+        const page = await api.getMessages(groupId, { user_id: me.id, around: m.id, limit: 3 });
+        const fresh = page.messages.find((x) => x.id === m.id)?.game;
+        if (fresh) applyGame(m, fresh);
+      } catch {
+        // the next frame or reload fixes it
+      }
+    },
+    [groupId, me.id, applyGame],
+  );
+  const gameAction = useCallback(
+    async (m: Message, run: () => Promise<LoreGame>, failTitle: string, keep: (g: LoreGame) => boolean = () => true) => {
+      try {
+        const game = await run();
+        if (keep(game)) applyGame(m, game);
+      } catch (e) {
+        // Someone else's tap got there first (a reveal, the last hint): show the round as it is now.
+        if ((e as { status?: number } | null)?.status === 409) refetchGame(m);
+        else Alert.alert(failTitle, errorText(e));
+      }
+    },
+    [applyGame, refetchGame],
+  );
+  // Quick re-picks: only the latest pick's answer is applied (a reveal always is).
+  const latestPick = useRef(new Map<number, string>());
+  const onVoteGame = useCallback(
+    (m: Message, game: LoreGame, choice: string) => {
+      latestPick.current.set(game.id, choice);
+      return gameAction(
+        m,
+        () => api.voteGame(game.id, { user_id: me.id, choice }),
+        'Vote not counted',
+        (g) => g.status === 'revealed' || latestPick.current.get(game.id) === choice,
+      );
+    },
+    [gameAction, me.id],
+  );
+  const onHintGame = useCallback(
+    (m: Message, game: LoreGame) => gameAction(m, () => api.hintGame(game.id, me.id), 'Couldn’t show a hint'),
+    [gameAction, me.id],
+  );
+  const onRevealGame = useCallback(
+    (m: Message, game: LoreGame) => gameAction(m, () => api.revealGame(game.id, me.id), 'Couldn’t reveal it'),
+    [gameAction, me.id],
+  );
+  const onOpenGameLore = useCallback(
+    (loreId: number) => router.push({ pathname: '/lore/[id]', params: { id: String(loreId) } }),
+    [router],
+  );
 
   const headerHeight = insets.top + 2 + HEADER_ROW;
 
@@ -507,6 +605,24 @@ export default function ThreadScreen() {
         return <SystemLine text={item.m.text} names={names} />;
       case 'seen':
         return <SeenBy users={item.users} isDm={isDm} readAt={item.readAt} delivered={item.delivered} />;
+      case 'game':
+        return (
+          <GameBubble
+            message={item.m}
+            game={item.game}
+            mine={item.m.sender_id === me.id}
+            sender={userById(item.m.sender_id)}
+            showName={item.showName}
+            showAvatar={item.showAvatar}
+            avatars={!isDm}
+            meId={me.id}
+            highlighted={highlightId === item.m.id}
+            onVote={onVoteGame}
+            onHint={onHintGame}
+            onReveal={onRevealGame}
+            onOpenLore={onOpenGameLore}
+          />
+        );
       case 'lore':
         return <LoreSuggestionCard lore={item.lore} onKeep={() => keepLore(item.lore)} onDismiss={() => dismissLore(item.lore)} />;
       case 'msg': {
@@ -552,7 +668,7 @@ export default function ThreadScreen() {
       {isDm || group.avatar_url ? (
         <Avatar uri={headerAvatar} name={title} size={92} />
       ) : (
-        <GroupAvatar uris={memberAvatars} size={92} />
+        <GroupAvatar uris={memberAvatars} names={memberNames} size={92} />
       )}
       <Text style={styles.introTitle}>{group.name}</Text>
       <Text style={styles.introSub}>{isDm ? 'iMessage' : `${group.member_count} people`}</Text>
@@ -661,6 +777,7 @@ export default function ThreadScreen() {
                 onCatchup: catchup || unreadHere > 0 ? openCatchup : undefined,
                 onExplain: lastIncoming ? () => explainMessage(lastIncoming) : undefined,
                 onLore: openLore,
+                onGame: isDm ? undefined : startGame,
                 onCall: openCall,
               }}
             />
@@ -671,6 +788,7 @@ export default function ThreadScreen() {
         title={title}
         avatarUrl={headerAvatar}
         memberAvatars={memberAvatars}
+        memberNames={memberNames}
         isGroup={!!group && !isDm}
         unreadCount={unreadElsewhere}
         onBack={() => router.back()}

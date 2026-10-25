@@ -50,6 +50,8 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(Text)
     phonetic_hint: Mapped[str | None] = mapped_column(Text)
     pronunciation_audio_url: Mapped[str | None] = mapped_column(Text)
+    # Who this person is, in a line or two; explanations are written for it.
+    about: Mapped[str | None] = mapped_column(Text)
 
 
 class Group(Base):
@@ -96,7 +98,8 @@ class Message(Base):
     sender_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )
-    kind: Mapped[str] = mapped_column(String(16), default="text")  # text|system|photo
+    # text|system|photo|game (a game's round is the lore_games row on message_id)
+    kind: Mapped[str] = mapped_column(String(16), default="text")
     text: Mapped[str] = mapped_column(Text)  # a photo's caption ("" if none)
     ts: Mapped[datetime] = _now()
     reply_to: Mapped[int | None] = mapped_column(
@@ -359,3 +362,47 @@ class LorePin(Base):
         ForeignKey("lore.id", ondelete="CASCADE"), primary_key=True, index=True
     )
     pinned_at: Mapped[datetime] = _now()
+
+
+class LoreGame(Base):
+    """Feature 7: a "Guess that Lore" round, shown in chat as its `game` message."""
+
+    __tablename__ = "lore_games"
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk(), index=True)
+    lore_id: Mapped[int] = mapped_column(ForeignKey("lore.id", ondelete="CASCADE"))
+    message_id: Mapped[int] = mapped_column(
+        ForeignKey("messages.id", ondelete="CASCADE"), unique=True
+    )
+    started_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    prompt: Mapped[str] = mapped_column(Text)  # the lore title with names masked
+    question: Mapped[str] = mapped_column(Text, default="Who was it?")
+    hints: Mapped[list[str]] = mapped_column(JSONB, default=list)  # vague first
+    hints_shown: Mapped[int] = mapped_column(Integer, default=0)
+    options: Mapped[list[str]] = mapped_column(JSONB, default=list)  # user ids
+    answer_id: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="open")  # open|revealed
+    created_at: Mapped[datetime] = _now()
+    revealed_at: Mapped[datetime | None]
+
+    votes: Mapped[list["LoreGameVote"]] = relationship(
+        order_by="LoreGameVote.voted_at",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+
+class LoreGameVote(Base):
+    """One member's pick in a game; changeable until the reveal."""
+
+    __tablename__ = "lore_game_votes"
+
+    game_id: Mapped[int] = mapped_column(
+        ForeignKey("lore_games.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(_user_fk(), primary_key=True)
+    choice: Mapped[str] = mapped_column(String(64))
+    voted_at: Mapped[datetime] = _now()

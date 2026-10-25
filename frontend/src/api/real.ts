@@ -19,6 +19,7 @@ import type {
   LoreDetail,
   LoreFeed,
   LoreFeedQuery,
+  LoreGame,
   MemberAsk,
   Message,
   MessagePage,
@@ -35,9 +36,18 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** The server's own words (FastAPI's `detail`), fit to show a person. */
+    public detail?: string,
   ) {
     super(message);
   }
+}
+
+/** What to tell a person about a failed call: the server's `detail`, never "POST /path: …". */
+export function errorText(e: unknown): string {
+  if (e instanceof ApiError && e.detail) return e.detail;
+  const message = e instanceof Error ? e.message : String(e);
+  return message.replace(/^(GET|POST|PUT|PATCH|DELETE) \S+: /, '');
 }
 
 type Query = Record<string, string | number | undefined | null>;
@@ -65,13 +75,15 @@ async function request<T>(
   });
   if (!res.ok) {
     let detail = `${res.status}`;
+    let said: string | undefined;
     try {
       const j = (await res.json()) as { detail?: unknown };
-      if (j?.detail) detail = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail);
+      if (typeof j?.detail === 'string') said = detail = j.detail;
+      else if (j?.detail) detail = JSON.stringify(j.detail);
     } catch {
       // non-JSON error body
     }
-    throw new ApiError(res.status, `${method} ${path}: ${detail}`);
+    throw new ApiError(res.status, `${method} ${path}: ${detail}`, said);
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
@@ -89,6 +101,14 @@ const loreFeedQuery = ({ pinned, q, ...rest }: LoreFeedQuery): Query => ({
   pinned: pinned ? 'true' : undefined,
   q: q?.trim() || undefined,
 });
+
+/** Game actions answer with the round, or with its whole message: either way the client gets the round. */
+async function gameAction(path: string, body: unknown): Promise<LoreGame> {
+  const res = await post<LoreGame | Message>(path, body);
+  if ('options' in res) return res;
+  if (res.game) return res.game;
+  throw new ApiError(500, `POST ${path}: the response has no game`);
+}
 
 /**
  * Multipart photo upload. Uses XMLHttpRequest: Expo replaces the global fetch, and its FormData
@@ -251,6 +271,11 @@ export const realApi: Api = {
   removeLore: (loreId, userId) => post<Lore>(`/lore/${loreId}/remove`, { user_id: userId }),
   pinLore: (loreId, userId) => post<Lore>(`/lore/${loreId}/pin`, { user_id: userId }),
   unpinLore: (loreId, userId) => del<Lore>(`/lore/${loreId}/pin`, { user_id: userId }),
+
+  startGame: (groupId, userId) => post<Message>(`/groups/${groupId}/games`, { user_id: userId }),
+  voteGame: (gameId, body) => gameAction(`/games/${gameId}/vote`, body),
+  hintGame: (gameId, userId) => gameAction(`/games/${gameId}/hint`, { user_id: userId }),
+  revealGame: (gameId, userId) => gameAction(`/games/${gameId}/reveal`, { user_id: userId }),
 
   connectRealtime,
 };

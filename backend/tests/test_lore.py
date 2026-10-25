@@ -97,6 +97,41 @@ async def test_backfill_keeps_strong_moments_and_merges_twins(
     assert again[0].id == grandma.id
 
 
+async def test_backfill_merges_moments_told_from_the_same_lines(
+    session: AsyncSession, sample: LoadedFixture, fake_llm: llm.FakeLLM
+) -> None:
+    # Muse titles the same story two ways; the titles mean little alike, but the
+    # moments share most of their lines, so they are one lore.
+    kept = await _backfill(
+        session,
+        sample,
+        fake_llm,
+        [
+            moment(sample, "Swayam's house becomes Grandma's", [10, 11, 12, 13]),
+            moment(sample, "A naming ceremony for an apartment", [11, 12, 13, 14]),
+            moment(sample, "The usual spot", [5, 6, 7], score=0.7),
+        ],
+    )
+    assert [k.title for k in kept] == [
+        "Swayam's house becomes Grandma's",
+        "The usual spot",
+    ]
+    assert sample.msg("volleyball", 14) in kept[0].message_ids
+
+    again = await _backfill(
+        session,
+        sample,
+        fake_llm,
+        [moment(sample, "Picking a team name at last", [12, 13, 14])],
+    )
+    assert again[0].id == kept[0].id
+    assert len((await session.scalars(select(Lore))).all()) == 2
+
+    assert lore.shares_messages([1, 2, 3, 4], [3, 4, 5, 6])
+    assert not lore.shares_messages([1, 2, 3, 4], [4, 5, 6, 7])  # one line
+    assert not lore.shares_messages([1], [1])  # one line is not a story
+
+
 # -------------------------------------------------------------- feed + views
 
 

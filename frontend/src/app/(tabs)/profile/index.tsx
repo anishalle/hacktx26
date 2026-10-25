@@ -46,6 +46,7 @@ export default function ProfileScreen() {
                 <Text modifiers={[secondary]}>{`@${me.username}`}</Text>
               </VStack>
             </HStack>
+            {me.about ? <Text modifiers={[font({ size: 15 }), secondary]}>{me.about}</Text> : null}
           </Section>
           <Section title="About You">
             <LabeledContent label="Pronounced">

@@ -4,6 +4,7 @@ from app.api.routes import (
     calls,
     catchup,
     explain,
+    games,
     groups,
     home,
     lore,
@@ -22,5 +23,6 @@ api_router.include_router(ws.router)
 api_router.include_router(explain.router)
 api_router.include_router(calls.router)
 api_router.include_router(lore.router)
+api_router.include_router(games.router)
 api_router.include_router(nudge.router)
 api_router.include_router(catchup.router)

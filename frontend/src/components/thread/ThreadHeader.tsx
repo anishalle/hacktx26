@@ -15,6 +15,8 @@ type Props = {
   avatarUrl: string | null;
   /** Other members' photos, for a group without its own avatar. */
   memberAvatars?: (string | null)[];
+  /** The same members' names, for initials. */
+  memberNames?: string[];
   isGroup: boolean;
   /** Unread threads elsewhere, shown next to the back chevron ("‹ 12"). */
   unreadCount: number;
@@ -27,7 +29,7 @@ type Props = {
 export const HEADER_ROW = 76;
 
 /** iMessage header: glass back capsule, centered avatar over "Name ›", glass call capsule. */
-export function ThreadHeader({ title, avatarUrl, memberAvatars, isGroup, unreadCount, onBack, onOpenInfo, onVideo, onAudio }: Props) {
+export function ThreadHeader({ title, avatarUrl, memberAvatars, memberNames, isGroup, unreadCount, onBack, onOpenInfo, onVideo, onAudio }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.wrap, { paddingTop: insets.top + 2 }]} pointerEvents="box-none">
@@ -62,7 +64,7 @@ export function ThreadHeader({ title, avatarUrl, memberAvatars, isGroup, unreadC
             accessibilityLabel={`${title}, details`}
           >
             {isGroup && !avatarUrl ? (
-              <GroupAvatar uris={memberAvatars ?? [null, null]} size={44} />
+              <GroupAvatar uris={memberAvatars ?? [null, null]} names={memberNames} size={44} />
             ) : (
               <Avatar uri={avatarUrl} name={title} size={44} />
             )}

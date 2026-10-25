@@ -131,7 +131,11 @@ export default function GroupInfoScreen() {
               {isDm || group?.avatar_url ? (
                 <Avatar uri={avatarUrl} name={name} size={72} />
               ) : (
-                <GroupAvatar uris={others.slice(0, 2).map((m) => m.user.avatar_url)} size={72} />
+                <GroupAvatar
+                  uris={others.slice(0, 2).map((m) => m.user.avatar_url)}
+                  names={others.slice(0, 2).map((m) => m.user.display_name)}
+                  size={72}
+                />
               )}
             </RNHostView>
             <SwiftText modifiers={[font({ size: 22, weight: 'bold' }), multilineTextAlignment('center')]}>{name}</SwiftText>

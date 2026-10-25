@@ -7,5 +7,5 @@ import type { Api } from './types';
 export const api: Api = USE_MOCKS ? mockApi : realApi;
 
 export { API_URL, callAudioUrl, USE_MOCKS } from './config';
-export { ApiError } from './real';
+export { ApiError, errorText } from './real';
 export * from './types';

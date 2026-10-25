@@ -176,7 +176,12 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
     const id = lore.l.id;
     setLore({ ...lore, kept: true });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await api.keepLore(id, me.id).catch(() => setLore((cur) => (cur?.l.id === id ? { ...cur, kept: false } : cur)));
+    const shown = lore.l;
+    await api.keepLore(id, me.id).catch(() => {
+      // Bring the card back even if the 2.5 s confirmation already hid it, so the miss is seen.
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setLore((cur) => (!cur || cur.l.id === id ? { l: cur?.l ?? shown, kept: false } : cur));
+    });
   };
   const dismissLore = () => {
     if (!lore) return;
@@ -341,6 +346,7 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
             ) : (
               <GroupAvatar
                 uris={remotes.slice(0, 2).map((p) => (p.userId ? (userById(p.userId)?.avatar_url ?? null) : null))}
+                names={remotes.slice(0, 2).map((p) => (p.userId ? userById(p.userId)?.display_name : undefined))}
                 size={40}
                 ring={colors.bg}
               />

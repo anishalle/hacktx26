@@ -114,6 +114,11 @@ export default function LoreScreen() {
   const lastSeen = useRef<Promise<string | null> | null>(null);
   const deckPaging = useRef(false);
   const archivePaging = useRef(false);
+  // Bumped when a filter or sort reloads a list: a page fetched for the old one is dropped.
+  const deckGen = useRef(0);
+  const deckCursorGen = useRef(0); // the load `deckCursor` came from
+  const archiveGen = useRef(0);
+  const archiveCursorGen = useRef(0);
 
   const archiveSort: Sort = mode === 'list' ? sort : 'recent';
   const filterKey = JSON.stringify(filters);
@@ -121,6 +126,8 @@ export default function LoreScreen() {
   useEffect(() => {
     let cancelled = false;
     const f: Filters = JSON.parse(filterKey);
+    const gen = ++deckGen.current;
+    deckPaging.current = false; // the old filter's cursor no longer pages (deckCursorGen)
     (async () => {
       try {
         lastSeen.current ??= getLoreLastSeenAt(me.id);
@@ -129,6 +136,7 @@ export default function LoreScreen() {
         if (cancelled) return;
         setDeck(sort === 'deck' ? deckOrder(d.items, seen) : d.items);
         setDeckCursor(d.next_cursor);
+        deckCursorGen.current = gen;
         setIndex(0);
         const c = d.counts;
         setTotal(f.pinned ? c.pinned : f.kind ? c[f.kind] : c.photo + c.replay + c.quote);
@@ -148,12 +156,15 @@ export default function LoreScreen() {
   useEffect(() => {
     let cancelled = false;
     const f: Filters = JSON.parse(filterKey);
+    const gen = ++archiveGen.current;
+    archivePaging.current = false;
     api
       .getLoreFeed(me.id, { ...query(f), sort: archiveSort, limit: PAGE })
       .then((a) => {
-        if (cancelled) return;
+        if (cancelled || gen !== archiveGen.current) return;
         setArchive(a.items);
         setArchiveCursor(a.next_cursor);
+        archiveCursorGen.current = gen;
         setArchiveLoad('ready');
       })
       .catch((e) => {
@@ -189,10 +200,13 @@ export default function LoreScreen() {
   // Paging: the next deck page once only a few cards are left.
   useEffect(() => {
     if (!deckCursor || deckPaging.current || deck.length - index > DECK_REFILL) return;
+    if (deckCursorGen.current !== deckGen.current) return; // a cursor from before the filter changed
     deckPaging.current = true;
+    const gen = deckGen.current;
     api
       .getLoreFeed(me.id, { ...query(filters), sort, limit: DECK_SIZE, cursor: deckCursor })
       .then((d) => {
+        if (gen !== deckGen.current) return;
         setDeck((prev) => dedupe(prev, d.items));
         setDeckCursor(d.next_cursor);
       })
@@ -200,22 +214,24 @@ export default function LoreScreen() {
         // Keep the cursor: the next swipe tries this page again.
       })
       .finally(() => {
-        deckPaging.current = false;
+        if (gen === deckGen.current) deckPaging.current = false;
       });
   }, [deck.length, index, deckCursor, me.id, filters, sort]);
 
   const loadMoreArchive = () => {
-    if (!archiveCursor || archivePaging.current) return;
+    if (!archiveCursor || archivePaging.current || archiveCursorGen.current !== archiveGen.current) return;
     archivePaging.current = true;
+    const gen = archiveGen.current;
     api
       .getLoreFeed(me.id, { ...query(filters), sort: archiveSort, limit: PAGE, cursor: archiveCursor })
       .then((a) => {
+        if (gen !== archiveGen.current) return;
         setArchive((prev) => dedupe(prev, a.items));
         setArchiveCursor(a.next_cursor);
       })
       .catch(() => {})
       .finally(() => {
-        archivePaging.current = false;
+        if (gen === archiveGen.current) archivePaging.current = false;
       });
   };
 
@@ -358,7 +374,7 @@ export default function LoreScreen() {
               height={cardH}
               done={
                 <View style={styles.done}>
-                  <Host matchContents={{ vertical: true }}>
+                  <Host matchContents={{ vertical: true }} style={styles.doneText}>
                     <ContentUnavailableView
                       title="You’re All Caught Up"
                       systemImage="checkmark.circle"
@@ -574,6 +590,7 @@ const styles = StyleSheet.create({
   loading: { marginTop: 80 },
   state: { marginTop: 60, alignItems: 'center', gap: 12, paddingHorizontal: 24 },
   done: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 16 },
+  doneText: { alignSelf: 'stretch' }, // a centered parent would size the SwiftUI view to zero width
   below: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 14 },
   count: { color: colors.textSecondary, fontSize: 12, fontVariant: ['tabular-nums'] },
   more: { marginVertical: 20 },

@@ -7,6 +7,8 @@ export type User = {
   avatar_url: string | null;
   phonetic_hint: string | null;
   pronunciation_audio_url: string | null;
+  /** Who this person is, in a sentence or two ("Dad. 52, engineer…"); explain writes for it. */
+  about?: string | null;
 };
 
 export type Reaction = { emoji: string; user_id: string };
@@ -17,13 +19,56 @@ export type Message = {
   id: number;
   group_id: number;
   sender_id: string | null;
-  kind: 'text' | 'system' | 'photo';
-  text: string; // a photo's caption ("" if none)
+  kind: 'text' | 'system' | 'photo' | 'game';
+  text: string; // a photo's caption ("" if none); "Guess that Lore 🎲" for a game
   ts: string;
   reply_to: number | null;
   reactions: Reaction[];
   image?: MessageImage | null; // kind "photo"
   image_description?: string | null; // the AI's description of a photo (alt text); null until ready
+  /** kind "game": the Guess that Lore round this message carries, as the requesting member sees it. */
+  game?: LoreGame | null;
+};
+
+// Feature 7: Guess that Lore
+
+export type LoreGameStatus = 'open' | 'revealed';
+
+export type LoreGameOption = {
+  user: User;
+  votes: number;
+  /** Who picked this option: empty until the reveal. */
+  voters: User[];
+};
+
+export type LoreGame = {
+  id: number;
+  group_id: number;
+  /** The `game` message this round lives in. */
+  message_id: number;
+  lore_id: number;
+  /** The kept moment's title with every name masked ("Someone…"), a little vaguer. */
+  prompt: string;
+  question: string;
+  /** Only the hints unlocked so far (vague → specific); `hints_total` is how many exist. */
+  hints: string[];
+  hints_total: number;
+  options: LoreGameOption[];
+  /** The requesting member's pick (a user id), or null. */
+  my_vote: string | null;
+  total_votes: number;
+  member_count: number;
+  status: LoreGameStatus;
+  /** The right answer, once revealed. */
+  answer: User | null;
+  /** The kept moment's real title, once revealed. */
+  lore_title: string | null;
+  /** User id of the member who started the round (null once they've left the app). */
+  started_by: string | null;
+  /** Whether the requesting member may reveal it now. */
+  can_reveal: boolean;
+  created_at?: string;
+  revealed_at?: string | null;
 };
 
 export type Member = {
@@ -84,6 +129,8 @@ export type MessagePage = {
 };
 
 export type MessageQuery = {
+  /** The reader: a game message's `my_vote` is theirs. */
+  user_id?: string;
   before?: number;
   after?: number;
   around?: number;
@@ -329,6 +376,8 @@ export type CallCaption = {
 
 export type RealtimeFrame =
   | { type: 'message.new'; data: Message }
+  /** A message changed in place (a game's votes, hints or reveal); per member, so `game.my_vote` is yours. */
+  | { type: 'message.updated'; data: Message }
   | { type: 'reaction.updated'; data: { group_id: number; message_id: number; reactions: Reaction[] } }
   | { type: 'read.updated'; data: { group_id: number; user_id: string; message_id: number } }
   | { type: 'ask.new'; data: MemberAsk }
@@ -401,6 +450,15 @@ export interface Api {
   /** Pins are per user; `kept` stays group-wide. Each pushes `lore.updated` to that user only. */
   pinLore(loreId: number, userId: string): Promise<Lore>;
   unpinLore(loreId: number, userId: string): Promise<Lore>;
+
+  /** Guess that Lore: posts a round about a random kept moment of this group (409 when it has none). */
+  startGame(groupId: number, userId: string): Promise<Message>;
+  /** One vote per member, changeable until the reveal; the last member's vote reveals it. */
+  voteGame(gameId: number, body: { user_id: string; choice: string }): Promise<LoreGame>;
+  /** Unlocks the next hint for everyone. */
+  hintGame(gameId: number, userId: string): Promise<LoreGame>;
+  /** The starter any time; anyone once all members voted or after 24 h. */
+  revealGame(gameId: number, userId: string): Promise<LoreGame>;
 
   /** Opens the realtime channel for a user. Returns an unsubscribe/close function. */
   connectRealtime(userId: string, handlers: RealtimeHandlers): () => void;

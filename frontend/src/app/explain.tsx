@@ -103,6 +103,11 @@ export default function ExplainSheet() {
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>What this means</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
+          {me.about ? (
+            <Text style={styles.readerNote} accessibilityLabel={`Explained for ${firstName(me.display_name)}`}>
+              <Icon name="person.fill" size={9} color={colors.textSecondary} /> Explained for {firstName(me.display_name)}
+            </Text>
+          ) : null}
         </View>
         {phase === 'loading' ? <ActivityIndicator color={colors.textSecondary} /> : null}
       </View>
@@ -501,6 +506,7 @@ const styles = StyleSheet.create({
   headerIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   title: { color: colors.text, ...type.title2 },
   subtitle: { color: colors.textSecondary, ...type.footnote, marginTop: 2 },
+  readerNote: { color: colors.textSecondary, ...type.caption2, marginTop: 2 },
   quote: { borderLeftWidth: 3, borderLeftColor: colors.blue, paddingLeft: 12, paddingVertical: 2, marginHorizontal: 2, marginBottom: 4 },
   quoteText: { color: colors.textSecondary, fontSize: 15, fontStyle: 'italic', lineHeight: 21 },
   photoQuote: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 2, marginBottom: 4 },

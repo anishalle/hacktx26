@@ -134,5 +134,6 @@ _tasks: set[asyncio.Task[None]] = set()
 
 async def drain() -> None:
     """Wait for photo descriptions in flight (tests, scripts)."""
-    while _tasks:
-        await asyncio.gather(*_tasks, return_exceptions=True)
+    while pending := [t for t in _tasks if not t.done()]:
+        await asyncio.gather(*pending, return_exceptions=True)
+    _tasks.clear()  # a finished task left behind would otherwise spin this loop

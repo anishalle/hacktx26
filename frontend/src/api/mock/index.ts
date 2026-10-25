@@ -19,6 +19,7 @@ import type {
   RealtimeHandlers,
   Span,
 } from '../types';
+import { createGame, gameView, hintGame, revealGame, voteGame, withGame, type MockGame } from './games';
 import { catchupScript, DAY, glossary, groups, messages, MockGroup, unknownTerms, userById, users } from './data';
 import { loreById, loreDetail, loreView, type MockLore, mustLore, newLoreId, queryFeed, seedLore, setPinned } from './lore';
 
@@ -461,6 +462,18 @@ function suggestCallReplay(call: MockCall) {
   for (const m of call.members) if (!m.left_at) toUser(m.user.id, { type: 'lore.updated', data: loreView(lore, m.user.id) });
 }
 
+// ---------------------------------------------------------------------------
+// Feature 7: Guess that Lore
+// ---------------------------------------------------------------------------
+const nextMessageId = () => Math.max(...messages.map((x) => x.id)) + 1;
+
+/** `message.updated` per member, so each one's `my_vote` is their own. */
+function announceGame(g: MockGame) {
+  const m = messages.find((x) => x.id === g.message_id);
+  if (!m) return;
+  for (const mem of groupOf(g.group_id).members) toUser(mem.user_id, { type: 'message.updated', data: withGame(m, mem.user_id) });
+}
+
 /** Each member gets their own view (`pinned` and DM names are per user). */
 function announceLore(l: MockLore) {
   for (const m of groupOf(l.group_id).members) toUser(m.user_id, { type: 'lore.updated', data: loreView(l, m.user_id) });
@@ -486,7 +499,7 @@ export const mockApi: Api = {
         const lastRead = me.last_read_message_id;
         return {
           group: toGroup(g, userId),
-          last_message: last ? clone(last) : null,
+          last_message: last ? clone(withGame(last, userId)) : null,
           unread_count: msgs.filter((m) => (lastRead === null || m.id > lastRead) && m.sender_id !== userId).length,
           last_read_message_id: lastRead,
         };
@@ -532,7 +545,7 @@ export const mockApi: Api = {
       start = Math.max(0, end - limit);
     }
     const page: MessagePage = {
-      messages: clone(all.slice(start, end)),
+      messages: clone(all.slice(start, end).map((m) => withGame(m, q.user_id))),
       has_more_before: start > 0,
       has_more_after: end < all.length,
     };
@@ -977,6 +990,42 @@ export const mockApi: Api = {
     const view = loreView(l, userId);
     toUser(userId, { type: 'lore.updated', data: view });
     return view;
+  },
+
+  async startGame(groupId, userId) {
+    await latency();
+    seedLore();
+    const g = groupOf(groupId);
+    const { message } = createGame(groupId, userId, nextMessageId());
+    const me = g.members.find((x) => x.user_id === userId);
+    if (me) me.last_read_message_id = message.id;
+    for (const mem of g.members) toUser(mem.user_id, { type: 'message.new', data: withGame(message, mem.user_id) });
+    return clone(withGame(message, userId));
+  },
+
+  async voteGame(gameId, { user_id, choice }) {
+    await latency();
+    const { game, system } = voteGame(gameId, user_id, choice, nextMessageId);
+    announceGame(game);
+    if (system) fanOut(game.group_id, { type: 'message.new', data: system });
+    return gameView(game, user_id);
+  },
+
+  async hintGame(gameId, userId) {
+    await latency();
+    const game = hintGame(gameId, userId);
+    announceGame(game);
+    return gameView(game, userId);
+  },
+
+  async revealGame(gameId, userId) {
+    await latency();
+    const { game, system } = revealGame(gameId, userId, nextMessageId);
+    if (system) {
+      announceGame(game);
+      fanOut(game.group_id, { type: 'message.new', data: system });
+    }
+    return gameView(game, userId);
   },
 
   connectRealtime(userId, handlers) {

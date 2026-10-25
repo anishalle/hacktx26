@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -6,10 +7,11 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Glossary, Message, MessageWindow
+from app.core.config import settings
+from app.models import Glossary, Message, MessageWindow, User
 from app.seed import LoadedFixture
 from app.services import embeddings, explain, llm, nudge
-from tests.conftest import WsConnect
+from tests.conftest import LoadFixture, WsConnect
 
 URL = "/api/v1"
 
@@ -435,3 +437,85 @@ async def test_embeddings_off_falls_back_to_full_text(
     )
     assert out["status"] == "unknown"
     assert "HISTORY:" in fake_llm.calls[-1].user
+
+
+# ------------------------------------------------------------------- personas
+
+DAD_ABOUT = "Dad. 52, engineer. Doesn't know internet slang or memes."
+KID_ABOUT = "High schooler. Very online. Sends memes."
+HOME: dict[str, Any] = {
+    "users": [
+        {"id": "dad", "username": "dad", "display_name": "Ravi V", "about": DAD_ABOUT},
+        {"id": "kid", "username": "kid", "display_name": "Diya V", "about": KID_ABOUT},
+        {"id": "mom", "username": "mom", "display_name": "Lakshmi V"},
+    ],
+    "groups": [
+        {
+            "key": "home",
+            "name": "Home",
+            "members": [
+                {"user_id": u, "joined_offset_s": 864000} for u in ("dad", "kid", "mom")
+            ],
+            "messages": [
+                {"idx": 0, "sender_id": "kid", "text": "chem test", "offset_s": 600},
+                {
+                    "idx": 1,
+                    "sender_id": "kid",
+                    "kind": "photo",
+                    "image": "manga-meme.jpg",
+                    "image_description": "A manga panel of a man pointing up.",
+                    "text": "me after finishing my chem test",
+                    "offset_s": 500,
+                },
+                {"idx": 2, "sender_id": "kid", "text": "he is cooked", "offset_s": 400},
+            ],
+        }
+    ],
+}
+
+
+async def test_explanations_are_written_for_the_reader(
+    client: AsyncClient,
+    load_fixture: LoadFixture,
+    fake_llm: llm.FakeLLM,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(settings, "MEDIA_DIR", tmp_path)
+    fx = await load_fixture(HOME)
+    gid, photo = fx.group_id("home"), fx.msg("home", 1)
+
+    def meme(call: llm.LLMCall) -> dict[str, Any]:
+        assert f"READER: The reader: Ravi V. {DAD_ABOUT}" in call.user
+        assert "Diya V (joined" in call.user and KID_ABOUT in call.user
+        assert "Lakshmi V (joined" in call.user  # no about: just the join date
+        assert "Write for the reader" in call.system and "MEME" in call.system
+        assert len(call.images) == 1  # the meme itself
+        return {
+            "term": "Honored One meme",
+            "meaning": "A famous anime panel people post to show off a win.",
+            "kind": "slang",
+            "general": True,
+            "confidence": 0.9,
+        }
+
+    fake_llm.handler = meme
+    out = await _explain(client, group_id=gid, user_id="dad", message_id=photo)
+    assert (out["status"], out["term"]) == ("general", "Honored One meme")
+
+    # The same JSON contract for a reader without an about, and no READER line.
+    fake_llm.handler = None
+    fake_llm.queue(
+        {"meaning": "Slang for in trouble.", "kind": "slang", "general": True}
+    )
+    out = await _explain(
+        client, group_id=gid, user_id="mom", message_id=fx.msg("home", 2)
+    )
+    assert out["status"] == "general"
+    assert "READER:" not in fake_llm.calls[-1].user
+
+
+def test_profile_needs_an_about() -> None:
+    dad = User(id="d", username="d", display_name="Ravi V", about="  Dad.\n 52.  ")
+    assert explain.profile(dad) == "The reader: Ravi V. Dad. 52."
+    assert explain.profile(User(id="m", username="m", display_name="M")) is None

@@ -231,7 +231,7 @@ async def save(
         session,
         lines_query(group_id)
         .where(
-            Message.kind != "system",
+            Message.kind.in_(lore.CHAT_KINDS),
             Message.ts.between(saved.ts - SAVE_WINDOW, saved.ts + SAVE_WINDOW),
         )
         .order_by(Message.id),
@@ -252,7 +252,9 @@ async def save(
     found = await _holding(session, group_id, saved.id)
     if found is not None:
         return await _already(session, found, user_id)
-    target = await lore._similar(session, group_id, c.embedding, c.terms)
+    target = await lore._similar(
+        session, group_id, c.embedding, c.terms, message_ids=c.message_ids
+    )
     if target is not None:
         target = await session.get(
             Lore, target.id, with_for_update=True, populate_existing=True

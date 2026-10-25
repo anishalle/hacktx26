@@ -17,6 +17,7 @@ async def test_list_users(client: AsyncClient, sample: LoadedFixture) -> None:
         "avatar_url": None,
         "phonetic_hint": "PREE-yah",
         "pronunciation_audio_url": None,
+        "about": None,
     }
 
 

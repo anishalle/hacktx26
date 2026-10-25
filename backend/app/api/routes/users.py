@@ -4,6 +4,7 @@ from sqlalchemy import select
 from app import crud, schemas
 from app.api.deps import SessionDep
 from app.models import Membership, User
+from app.services import games
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -26,9 +27,12 @@ async def inbox(user_id: str, session: SessionDep) -> list[schemas.InboxItem]:
         group = await crud.get_group(session, m.group_id)
         assert group is not None
         last = await crud.latest_message(session, group.id)
+        preview = schemas.Message.model_validate(last) if last else None
+        if preview is not None:
+            await games.attach(session, [preview], user_id)
         item = schemas.InboxItem(
             group=await crud.group_view(session, group, user_id),
-            last_message=schemas.Message.model_validate(last) if last else None,
+            last_message=preview,
             unread_count=await crud.count_unread(session, m),
             last_read_message_id=m.last_read_message_id,
         )

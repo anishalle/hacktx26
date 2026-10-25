@@ -23,6 +23,8 @@ export type ComposerApps = {
   /** Explains the last incoming message; absent when there is none. */
   onExplain?: () => void;
   onLore: () => void;
+  /** Guess that Lore: posts a round in the chat. Groups only. */
+  onGame?: () => void;
   onCall: () => void;
 };
 
@@ -93,8 +95,9 @@ export function AppsStrip({
     if (apps.onCatchup) tiles.push({ key: 'catchup', icon: 'text.bubble', label: 'Catch Up', onPress: run(apps.onCatchup) });
     if (apps.onExplain)
       tiles.push({ key: 'explain', icon: 'questionmark.bubble', label: 'Explain last message', onPress: run(apps.onExplain) });
+    tiles.push({ key: 'lore', icon: 'sparkles.rectangle.stack', label: 'Lore', onPress: run(apps.onLore) });
+    if (apps.onGame) tiles.push({ key: 'game', icon: 'dice', label: 'Guess that Lore', onPress: run(apps.onGame) });
     tiles.push(
-      { key: 'lore', icon: 'sparkles.rectangle.stack', label: 'Lore', onPress: run(apps.onLore) },
       { key: 'call', icon: 'video.fill', label: 'Call', onPress: run(apps.onCall) },
       { key: 'less', icon: 'chevron.left', label: 'Hide apps', onPress: onCollapse },
     );
