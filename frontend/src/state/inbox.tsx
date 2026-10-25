@@ -40,11 +40,24 @@ export function InboxProvider({ userId, children }: { userId: string; children: 
   }, [refresh]);
 
   useEffect(() => {
-    refresh();
+    let cancelled = false;
+    api
+      .getInbox(userId)
+      .then((list) => {
+        if (cancelled) return;
+        setItems(list);
+        setStatus('ready');
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : String(e));
+        setStatus('error');
+      });
     return () => {
+      cancelled = true;
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
     };
-  }, [refresh]);
+  }, [userId]);
 
   useRealtime((frame) => {
     if (frame.type === 'message.new') {

@@ -27,7 +27,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    setStatus('loading');
     (async () => {
       try {
         const [list, saved] = await Promise.all([
@@ -63,7 +62,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       status,
       error,
       setMe,
-      reload: () => setAttempt((n) => n + 1),
+      reload: () => {
+        setStatus('loading');
+        setAttempt((n) => n + 1);
+      },
       userById: (id) => (id ? map.get(id) : undefined),
     };
   }, [users, meId, status, error, setMe]);
