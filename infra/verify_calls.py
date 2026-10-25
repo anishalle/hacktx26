@@ -142,7 +142,23 @@ def verify(client: httpx.Client) -> None:
             }
 
         definition = result("definition", "We call Swayam's house Grandma's.")
+        word_start = definition["startTimeMs"] - 100
+        definition["alternatives"][0]["items"] = [
+            {
+                "type": "pronunciation",
+                "content": definition["alternatives"][0]["transcript"],
+                "startTimeMs": word_start,
+                "endTimeMs": definition["endTimeMs"],
+                "attendee": {
+                    "attendeeId": host["attendee"]["AttendeeId"],
+                    "externalUserId": host["attendee"]["ExternalUserId"],
+                },
+            }
+        ]
         request(prefix + "/transcripts", {"results": [definition]}, token=host_token)
+        saved = request(prefix + "/transcripts", token=host_token)["results"][0]
+        assert saved["start_ms"] == word_start
+        check("chime_word_bounds_are_preserved_and_stored")
         # Move the definition into the background, outside the 10-second focus.
         time.sleep(11)
         focus = result("focus", "Grandma's after the game.")

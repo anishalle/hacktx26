@@ -207,3 +207,70 @@ def test_invalid_word_timestamps_are_rejected(client):
         },
     )
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "word_start,word_end", [(NOW - 2100, NOW - 1500), (NOW - 1500, NOW - 900)]
+)
+def test_chime_word_bounds_expand_segment_before_storage(
+    client, service, word_start, word_end
+):
+    response = client.post(
+        f"/api/v1/calls/{CALL_ID}/transcripts",
+        headers={"X-Call-Token": "token"},
+        json={
+            "results": [
+                {
+                    "resultId": "chime-boundary",
+                    "isPartial": False,
+                    "startTimeMs": NOW - 2000,
+                    "endTimeMs": NOW - 1000,
+                    "alternatives": [
+                        {
+                            "transcript": "hello",
+                            "items": [
+                                {
+                                    "type": "pronunciation",
+                                    "content": "hello",
+                                    "startTimeMs": word_start,
+                                    "endTimeMs": word_end,
+                                    "attendee": {"attendeeId": "speaker"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+    assert response.status_code == 200
+    saved = service.repository.store.call_args.args[1]
+    assert saved.start_time_ms == min(NOW - 2000, word_start)
+    assert saved.end_time_ms == max(NOW - 1000, word_end)
+    word = saved.alternatives[0].items[0]
+    assert (word.start_time_ms, word.end_time_ms) == (word_start, word_end)
+
+
+def test_reversed_word_range_is_still_rejected():
+    with pytest.raises(ValueError, match="Word endTimeMs"):
+        TranscriptResult.model_validate(
+            {
+                "resultId": "invalid-word",
+                "isPartial": False,
+                "startTimeMs": NOW - 2000,
+                "endTimeMs": NOW - 1000,
+                "alternatives": [
+                    {
+                        "transcript": "hello",
+                        "items": [
+                            {
+                                "content": "hello",
+                                "startTimeMs": NOW - 1000,
+                                "endTimeMs": NOW - 1500,
+                                "attendee": {"attendeeId": "speaker"},
+                            }
+                        ],
+                    }
+                ],
+            }
+        )

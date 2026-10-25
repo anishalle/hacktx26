@@ -51,13 +51,11 @@ class TranscriptResult(ChimeModel):
             raise ValueError("endTimeMs must be at or after startTimeMs")
         for alternative in self.alternatives:
             for item in alternative.items:
-                if not (
-                    self.start_time_ms
-                    <= item.start_time_ms
-                    <= item.end_time_ms
-                    <= self.end_time_ms
-                ):
-                    raise ValueError("Word timestamps must be inside the result")
+                if item.end_time_ms < item.start_time_ms:
+                    raise ValueError("Word endTimeMs must be at or after startTimeMs")
+                # Preserve word times when Chime's segment bounds differ from them.
+                self.start_time_ms = min(self.start_time_ms, item.start_time_ms)
+                self.end_time_ms = max(self.end_time_ms, item.end_time_ms)
         return self
 
 
