@@ -15,6 +15,9 @@ import type {
   GlossaryEntry,
   GroupDetail,
   InboxItem,
+  Lore,
+  LoreDetail,
+  LoreFeed,
   MemberAsk,
   Message,
   MessagePage,
@@ -228,6 +231,13 @@ export const realApi: Api = {
   joinCall: (groupId, userId) => post<CallJoin>(`/groups/${groupId}/call`, { user_id: userId }),
   leaveCall: (callId, userId) => post<Call>(`/calls/${callId}/leave`, { user_id: userId }),
   explainCall: (callId, body, signal) => post<Explanation>(`/calls/${callId}/explain`, body, signal),
+
+  getLoreFeed: (userId, q = {}) => get<LoreFeed>(`/users/${encodeURIComponent(userId)}/lore`, q),
+  getLore: (loreId, userId) => get<LoreDetail>(`/lore/${loreId}`, { user_id: userId }),
+  getLoreSuggestions: (groupId, userId) => get<Lore[]>(`/groups/${groupId}/lore/suggestions`, { user_id: userId }),
+  keepLore: (loreId, userId) => post<Lore>(`/lore/${loreId}/keep`, { user_id: userId }),
+  dismissLore: (loreId, userId) => post<Lore>(`/lore/${loreId}/dismiss`, { user_id: userId }),
+  removeLore: (loreId, userId) => post<Lore>(`/lore/${loreId}/remove`, { user_id: userId }),
 
   connectRealtime,
 };

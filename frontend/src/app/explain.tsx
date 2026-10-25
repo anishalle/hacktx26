@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { api, type Explanation, type MemberAsk, type Message, type User } from '@/api';
+import { api, type Explanation, type Lore, type MemberAsk, type Message, type User } from '@/api';
 import { Avatar } from '@/components/Avatar';
 import { BoldText } from '@/components/BoldText';
 import { Icon } from '@/components/Icon';
@@ -180,6 +180,18 @@ function Result({
 
       {result.person ? <PersonCard user={result.person} /> : null}
 
+      {result.lore?.length ? (
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Icon name="sparkles" size={15} color={colors.textSecondary} />
+            <Text style={styles.sectionTitle}>See the lore</Text>
+          </View>
+          {result.lore.map((l) => (
+            <LoreRow key={l.id} lore={l} />
+          ))}
+        </View>
+      ) : null}
+
       {result.human_sources.length || lateAnswer ? (
         <View style={styles.section}>
           {result.human_sources.map((h) => (
@@ -207,6 +219,37 @@ function Result({
 
       {result.status !== 'plain' ? <FollowUp result={result} groupId={groupId} /> : null}
     </View>
+  );
+}
+
+/** The kept moment behind a term: opens it full screen in place of this sheet. */
+function LoreRow({ lore }: { lore: Lore }) {
+  const router = useRouter();
+  const photo = lore.cover.photo?.image;
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.replace({ pathname: '/lore/[id]', params: { id: String(lore.id) } });
+      }}
+      style={({ pressed }) => [styles.lore, pressed && { opacity: 0.7 }]}>
+      {photo ? (
+        <Image source={{ uri: photo.url }} style={styles.loreThumb} contentFit="cover" />
+      ) : (
+        <LinearGradient colors={['#3A1C71', '#1B2A5C']} style={[styles.loreThumb, styles.loreThumbText]}>
+          <Icon name={lore.cover.replay ? 'waveform' : 'sparkles'} size={18} color="white" />
+        </LinearGradient>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={styles.loreTitle} numberOfLines={1}>
+          {lore.title}
+        </Text>
+        <Text style={styles.loreStory} numberOfLines={2}>
+          {lore.story}
+        </Text>
+      </View>
+      <Icon name="chevron.right" size={12} color={colors.textTertiary} />
+    </Pressable>
   );
 }
 
@@ -414,6 +457,11 @@ const styles = StyleSheet.create({
   label: { color: colors.sparkle, fontSize: 13, fontWeight: '600' },
   meaning: { color: colors.text, fontSize: 17, lineHeight: 24 },
   section: { marginTop: 18 },
+  lore: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 16, backgroundColor: colors.surfaceAlt, marginBottom: 8 },
+  loreThumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: colors.surface },
+  loreThumbText: { alignItems: 'center', justifyContent: 'center' },
+  loreTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  loreStory: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, marginTop: 2 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   sectionTitle: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
   source: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 10 },

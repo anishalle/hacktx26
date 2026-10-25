@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { api, USE_MOCKS, type CallJoin } from '@/api';
+import { api, USE_MOCKS, type CallJoin, type Lore } from '@/api';
 import { Avatar, GroupAvatar } from '@/components/Avatar';
 import { CallExplainCard, type CardState } from '@/components/call/CallExplainCard';
 import { CaptionBubble } from '@/components/call/CaptionBubble';
@@ -24,6 +24,7 @@ import { Icon } from '@/components/Icon';
 import { useCall, type Participant, type SpeakerCaption } from '@/hooks/useCall';
 import { ChimeVideo, isChimeAvailable } from '@/lib/callEngine';
 import { firstName } from '@/lib/format';
+import { useRealtime } from '@/state/realtime';
 import { useMe, useSession } from '@/state/session';
 import { colors } from '@/theme';
 
@@ -117,6 +118,33 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
   const [panelY] = useState(() => new Animated.Value(0));
   const now = useNow(500);
   const left = useRef(false);
+  // Lore: a moment the call just had ("that was lore"), offered to keep while it's fresh.
+  const [lore, setLore] = useState<{ l: Lore; kept: boolean } | null>(null);
+  useRealtime((frame) => {
+    if (frame.type !== 'lore.updated' || frame.data.source !== 'call' || frame.data.call_id !== join.call.id) return;
+    const l = frame.data;
+    if (l.status === 'suggested') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setLore({ l, kept: false });
+    } else setLore((cur) => (cur?.l.id === l.id ? (l.status === 'kept' ? { l, kept: true } : null) : cur));
+  });
+  useEffect(() => {
+    if (!lore?.kept) return;
+    const t = setTimeout(() => setLore(null), 2500);
+    return () => clearTimeout(t);
+  }, [lore?.kept]);
+  const keepLore = async () => {
+    if (!lore || lore.kept) return;
+    const id = lore.l.id;
+    setLore({ ...lore, kept: true });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await api.keepLore(id, me.id).catch(() => setLore((cur) => (cur?.l.id === id ? { ...cur, kept: false } : cur)));
+  };
+  const dismissLore = () => {
+    if (!lore) return;
+    void api.dismissLore(lore.l.id, me.id).catch(() => {});
+    setLore(null);
+  };
 
   // Leaving is explicit, but unmounting any other way still takes this member out of the call.
   const leave = useCallback(async () => {
@@ -279,6 +307,29 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
         {captionNote ? <Text style={styles.captionNote}>{captionNote}</Text> : null}
       </Animated.View>
 
+      {lore ? (
+        <View style={[styles.loreWrap, { top: insets.top + PANEL_H + (captionNote ? 40 : 18) }]}>
+          <BlurView tint="dark" intensity={70} style={styles.lore}>
+            <Icon name="sparkles" size={14} color={colors.sparkle} />
+            <Text style={styles.loreTitle} numberOfLines={1}>
+              {lore.kept ? 'Kept to Lore' : lore.l.title}
+            </Text>
+            {lore.kept ? (
+              <Icon name="checkmark" size={14} color="white" weight="bold" />
+            ) : (
+              <>
+                <Pressable onPress={keepLore} style={styles.loreKeep} accessibilityLabel="Keep this moment as lore">
+                  <Text style={styles.loreKeepText}>Keep</Text>
+                </Pressable>
+                <Pressable onPress={dismissLore} hitSlop={8} accessibilityLabel="Not now">
+                  <Icon name="xmark" size={12} color={colors.textSecondary} />
+                </Pressable>
+              </>
+            )}
+          </BlurView>
+        </View>
+      ) : null}
+
       {card ? (
         <View style={[styles.cardWrap, { bottom: insets.bottom + 12 }]}>
           <CallExplainCard card={card} groupId={join.call.group_id} meId={me.id} onRetry={explain} onDismiss={() => setCard(null)} />
@@ -432,6 +483,22 @@ const styles = StyleSheet.create({
   controlActive: { backgroundColor: 'white' },
   captionNote: { color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 8 },
   cardWrap: { position: 'absolute', left: 10, right: 10, zIndex: 9 },
+  loreWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 8 },
+  lore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    maxWidth: '88%',
+    height: 40,
+    paddingLeft: 14,
+    paddingRight: 12,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(28,28,30,0.55)',
+  },
+  loreTitle: { color: 'white', fontSize: 14, fontWeight: '600', flexShrink: 1 },
+  loreKeep: { backgroundColor: 'white', borderRadius: 13, height: 26, paddingHorizontal: 12, justifyContent: 'center' },
+  loreKeepText: { color: 'black', fontSize: 13, fontWeight: '700' },
   noticeTitle: { color: colors.text, fontSize: 20, fontWeight: '700', textAlign: 'center' },
   noticeBody: { color: colors.textSecondary, fontSize: 15, lineHeight: 21, textAlign: 'center' },
   noticeBtn: { marginTop: 8, backgroundColor: colors.surface, paddingHorizontal: 22, paddingVertical: 10, borderRadius: 12 },

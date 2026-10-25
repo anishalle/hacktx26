@@ -37,6 +37,10 @@
           "cameraPermission": "Your camera is used to share video in group calls.",
           "microphonePermission": "Your microphone is used for group calls and their live captions."
         }
+      ],
+      [
+        "expo-audio",
+        { "microphonePermission": "Your microphone is used for group calls and their live captions." }
       ]
     ],
     "scheme": "hacktx26",

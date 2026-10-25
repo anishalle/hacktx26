@@ -20,11 +20,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { api, type Message, type User } from '@/api';
+import { api, type Lore, type Message, type User } from '@/api';
 import { Avatar, GroupAvatar } from '@/components/Avatar';
 import { GlassCircle } from '@/components/GlassCircle';
 import { Icon } from '@/components/Icon';
 import { CallBar } from '@/components/thread/CallBar';
+import { LoreSuggestionCard } from '@/components/thread/LoreSuggestionCard';
 import { CatchupPill } from '@/components/thread/CatchupPill';
 import { Composer } from '@/components/thread/Composer';
 import { NudgeBanner } from '@/components/thread/NudgeBanner';
@@ -39,6 +40,7 @@ import { useThread } from '@/hooks/useThread';
 import { firstName, separatorLabel, shortAge } from '@/lib/format';
 import { catchupMarkRead, threadJump } from '@/state/bus';
 import { useInbox } from '@/state/inbox';
+import { useRealtime } from '@/state/realtime';
 import { useMe, useSession } from '@/state/session';
 import { colors, mixHex } from '@/theme';
 
@@ -55,10 +57,11 @@ type Item =
   | { type: 'sep'; key: string; label: string }
   | { type: 'system'; key: string; m: Message }
   | { type: 'msg'; key: string; m: Message; run: RunPos; showName: boolean; showAvatar: boolean }
-  | { type: 'seen'; key: string; users: User[] };
+  | { type: 'seen'; key: string; users: User[] }
+  | { type: 'lore'; key: string; lore: Lore };
 
 export default function ThreadScreen() {
-  const params = useLocalSearchParams<{ id: string; unread?: string; name?: string }>();
+  const params = useLocalSearchParams<{ id: string; unread?: string; name?: string; around?: string }>();
   const groupId = Number(params.id);
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -165,6 +168,53 @@ export default function ThreadScreen() {
     [groupId, t],
   );
 
+  // ---- Opened at a message (Lore's "What was said") -----------------------------------------------
+  const jumpedToParam = useRef(false);
+  useEffect(() => {
+    if (!params.around || jumpedToParam.current || t.status !== 'ready') return;
+    jumpedToParam.current = true;
+    threadJump.emit({ groupId, messageId: Number(params.around) });
+  }, [params.around, t.status, groupId]);
+
+  // ---- Lore suggestions: "Keep this as lore?" under the moment's messages -------------------------
+  const [loreSuggestions, setLoreSuggestions] = useState<Lore[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getLoreSuggestions(groupId, me.id)
+      .then((list) => !cancelled && setLoreSuggestions(list))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [groupId, me.id]);
+  useRealtime((frame) => {
+    if (frame.type !== 'lore.updated' || frame.data.group_id !== groupId || frame.data.source !== 'chat') return;
+    const l = frame.data;
+    setLoreSuggestions((prev) =>
+      l.status === 'suggested' ? [...prev.filter((p) => p.id !== l.id), l] : prev.filter((p) => p.id !== l.id),
+    );
+  });
+  const keepLore = useCallback(
+    async (l: Lore) => {
+      try {
+        await api.keepLore(l.id, me.id);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (e) {
+        Alert.alert('Couldn’t keep it', e instanceof Error ? e.message : String(e));
+      }
+      setLoreSuggestions((prev) => prev.filter((p) => p.id !== l.id));
+    },
+    [me.id],
+  );
+  const dismissLore = useCallback(
+    (l: Lore) => {
+      setLoreSuggestions((prev) => prev.filter((p) => p.id !== l.id));
+      api.dismissLore(l.id, me.id).catch(() => {});
+    },
+    [me.id],
+  );
+
   // ---- Rows ----------------------------------------------------------------------------------
   const members = t.group?.members;
   const names = useMemo(() => {
@@ -203,6 +253,7 @@ export default function ThreadScreen() {
         showName: !mine && !joinsPrev && !t.group?.is_dm,
         showAvatar: !mine && !joinsNext,
       });
+      for (const l of loreSuggestions) if (l.anchor_message_id === m.id) out.push({ type: 'lore', key: `lore-${l.id}`, lore: l });
     }
     const newest = [...asc].reverse().find((m) => m.id > 0 && m.kind !== 'system');
     if (newest && members && !t.hasMoreAfter) {
@@ -212,7 +263,7 @@ export default function ThreadScreen() {
       if (seen.length) out.push({ type: 'seen', key: 'seen', users: seen });
     }
     return out.reverse();
-  }, [t.messages, t.group?.is_dm, t.hasMoreAfter, members, me.id]);
+  }, [t.messages, t.group?.is_dm, t.hasMoreAfter, members, me.id, loreSuggestions]);
 
   // Scroll to a jumped-to message once it's in the list.
   useEffect(() => {
@@ -370,6 +421,8 @@ export default function ThreadScreen() {
         return <SystemLine text={item.m.text} names={names} />;
       case 'seen':
         return <SeenBy users={item.users} isDm={!!group?.is_dm} />;
+      case 'lore':
+        return <LoreSuggestionCard lore={item.lore} onKeep={() => keepLore(item.lore)} onDismiss={() => dismissLore(item.lore)} />;
       case 'msg': {
         const m = item.m;
         const mine = m.sender_id === me.id;

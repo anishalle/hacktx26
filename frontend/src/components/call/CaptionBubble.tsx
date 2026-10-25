@@ -16,6 +16,8 @@ type Props = {
   small?: boolean;
   /** Which side the little tail sits on, toward the speaker's tile. */
   tail: 'left' | 'right';
+  /** Stay up instead of fading after silence (a replay drives it). */
+  persist?: boolean;
 };
 
 /**
@@ -23,7 +25,7 @@ type Props = {
  * lines; past that, older lines slide up under a fade at the top. Finished turns stay above the live
  * one (dimmer) until pushed out. It fades away after a few seconds of silence.
  */
-export function CaptionBubble({ caption, maxWidth, small, tail }: Props) {
+export function CaptionBubble({ caption, maxWidth, small, tail, persist }: Props) {
   const fontSize = small ? 13 : 15;
   const lineHeight = small ? 17 : 20;
   const maxHeight = lineHeight * 3 + PAD_V * 2;
@@ -38,12 +40,13 @@ export function CaptionBubble({ caption, maxWidth, small, tail }: Props) {
   useEffect(() => {
     if (!hasText) return;
     Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: false }).start();
+    if (persist) return;
     const t = setTimeout(
       () => Animated.timing(opacity, { toValue: 0, duration: 450, useNativeDriver: false }).start(),
       Math.max(0, HIDE_AFTER_MS - (Date.now() - updatedAt)),
     );
     return () => clearTimeout(t);
-  }, [updatedAt, hasText, opacity]);
+  }, [updatedAt, hasText, opacity, persist]);
 
   useEffect(() => {
     if (!measured.w) return;

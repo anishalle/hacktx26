@@ -188,7 +188,59 @@ export type Explanation = {
   said_by: User | null;
   /** Status unknown on a call: the words it caught, e.g. "…getting procs…". */
   heard: string | null;
+  /** Kept lore this term/message belongs to (max 2): the "See the lore" card. */
+  lore?: Lore[];
 };
+
+// Feature 6: Lore
+
+export type LoreStatus = 'suggested' | 'kept' | 'dismissed' | 'removed';
+
+export type LoreCaption = { user_id: string; text: string; start_ms: number; end_ms: number };
+
+export type LoreReplay = {
+  id: number;
+  call_id: number;
+  /** WAV, absolute. */
+  audio_url: string;
+  duration_ms: number;
+  started_at: string;
+  /** Offsets into the clip. */
+  captions: LoreCaption[];
+};
+
+export type Lore = {
+  id: number;
+  group_id: number;
+  group_name: string;
+  title: string;
+  story: string;
+  status: LoreStatus;
+  source: 'chat' | 'call';
+  call_id: number | null;
+  started_at: string;
+  ended_at: string;
+  people: User[];
+  terms: { term: string; glossary_id: number | null }[];
+  /** At most one set; both null = a text card. */
+  cover: { photo: Message | null; replay: LoreReplay | null };
+  /** Chat suggestions: the Keep card goes after this message. */
+  anchor_message_id: number | null;
+  message_count: number;
+  photo_count: number;
+  replay_count: number;
+  kept_by: User | null;
+  kept_at: string | null;
+};
+
+export type LoreDetail = Lore & {
+  messages: Message[];
+  photos: Message[];
+  replays: LoreReplay[];
+  related: Lore[];
+};
+
+export type LoreFeed = { items: Lore[]; next_cursor: string | null };
 
 export type ExplainRequest = {
   group_id: number;
@@ -235,6 +287,7 @@ export type RealtimeFrame =
   | { type: 'ask.updated'; data: MemberAsk }
   | { type: 'call.updated'; data: Call }
   | { type: 'call.caption'; data: CallCaption }
+  | { type: 'lore.updated'; data: Lore }
   | { type: 'pong'; data?: unknown };
 
 /** The full client surface. `real.ts` and `mock/` both implement it. */
@@ -287,6 +340,14 @@ export interface Api {
   leaveCall(callId: number, userId: string): Promise<Call>;
   /** The ? button: `at_ms` is Date.now() frozen at the tap. */
   explainCall(callId: number, body: { user_id: string; at_ms: number }, signal?: AbortSignal): Promise<Explanation>;
+
+  /** Kept lore across the user's groups, newest moment first. */
+  getLoreFeed(userId: string, query?: { group_id?: number; cursor?: string; limit?: number }): Promise<LoreFeed>;
+  getLore(loreId: number, userId: string): Promise<LoreDetail>;
+  getLoreSuggestions(groupId: number, userId: string): Promise<Lore[]>;
+  keepLore(loreId: number, userId: string): Promise<Lore>;
+  dismissLore(loreId: number, userId: string): Promise<Lore>;
+  removeLore(loreId: number, userId: string): Promise<Lore>;
 
   /** Opens the realtime channel for a user. Returns an unsubscribe/close function. */
   connectRealtime(userId: string, handlers: RealtimeHandlers): () => void;
