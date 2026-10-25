@@ -69,3 +69,10 @@ cd frontend
 npm install
 npx expo start
 ```
+
+## AWS infrastructure
+
+See [infra/README.md](infra/README.md) for the single-stack AWS deployment,
+service configuration, verification command, and cleanup instructions.
+The deployment provisions services and hosts this scaffold; chat and AI features
+still need to be implemented.
