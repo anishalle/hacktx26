@@ -1,15 +1,13 @@
-"""Feature 4: group calls on Amazon Chime, stored transcripts, and the ? button.
+"""Feature 4: group calls on Amazon Chime, and the ? button.
 
-The server only does Chime's control plane: it creates the meeting (with live
-transcription) and one attendee per member, and deletes the meeting when the last
-member leaves. Audio, video and transcript events travel between Chime and the iOS
-bridge; every client forwards final results to `ingest`, deduplicated by result id.
-Attendees use our user id as Chime's ExternalUserId, so transcript lines map to
-members.
+The server only does Chime's control plane: it creates the meeting and one attendee
+per member (ExternalUserId = our user id), and deletes the meeting when the last member
+leaves. Chime carries audio and video; captions come from each member's own mic through
+Muse (app/services/captions.py), which stores finished turns in `call_transcripts`.
 
-The ? button clips the transcript at the tap (word timestamps, so a sentence that
-crosses the cutoff keeps only the words before it) and runs the feature 1 pipeline
-with the call as the subject.
+The ? button clips the transcript at the tap (word timestamps, so a turn that crosses
+the cutoff keeps only the words before it), adds turns still in progress, and runs the
+feature 1 pipeline with the call as the subject.
 
 Test seam: `set_chime(fake)` / `set_chime(None)`; `FakeChime` records calls (the
 autouse `fake_chime` pytest fixture installs one).
@@ -23,14 +21,13 @@ from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from fastapi import HTTPException
-from sqlalchemy import and_, or_, select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import crud, schemas
+from app import schemas
 from app.core.config import settings
 from app.models import Call, CallMember, CallTranscript, Explanation, User
-from app.services import explain
+from app.services import captions, explain
 from app.services.messages import require_group, require_member
 from app.services.realtime import broadcast_group
 
@@ -50,7 +47,6 @@ class Chime(Protocol):
     async def create_attendee(
         self, meeting_id: str, user_id: str
     ) -> dict[str, Any]: ...
-    async def start_transcription(self, meeting_id: str) -> None: ...
     async def delete_attendee(self, meeting_id: str, attendee_id: str) -> None: ...
     async def delete_meeting(self, meeting_id: str) -> None: ...
 
@@ -97,20 +93,6 @@ class AwsChime:
         )
         return resp["Attendee"]
 
-    async def start_transcription(self, meeting_id: str) -> None:
-        await self._run(
-            "start_meeting_transcription",
-            MeetingId=meeting_id,
-            TranscriptionConfiguration={
-                "EngineTranscribeSettings": {
-                    "LanguageCode": "en-US",
-                    "Region": settings.AWS_REGION,
-                    "EnablePartialResultsStabilization": True,
-                    "PartialResultsStability": "medium",
-                }
-            },
-        )
-
     async def delete_attendee(self, meeting_id: str, attendee_id: str) -> None:
         await self._run("delete_attendee", MeetingId=meeting_id, AttendeeId=attendee_id)
 
@@ -121,7 +103,6 @@ class AwsChime:
 class FakeChime:
     def __init__(self) -> None:
         self.meetings: dict[str, dict[str, Any]] = {}
-        self.transcribing: set[str] = set()
         self.deleted: list[str] = []
 
     async def create_meeting(self, token: str) -> dict[str, Any]:
@@ -134,9 +115,6 @@ class FakeChime:
             raise MeetingGone(meeting_id)
         aid = f"a-{meeting_id}-{user_id}"
         return {"AttendeeId": aid, "ExternalUserId": user_id, "JoinToken": "t"}
-
-    async def start_transcription(self, meeting_id: str) -> None:
-        self.transcribing.add(meeting_id)
 
     async def delete_attendee(self, meeting_id: str, attendee_id: str) -> None:
         pass
@@ -210,7 +188,7 @@ _join_locks: dict[int, asyncio.Lock] = {}
 
 
 async def join(session: AsyncSession, group_id: int, user_id: str) -> schemas.CallJoin:
-    """Start the group's call (with transcription) or join the active one."""
+    """Start the group's call or join the active one."""
     await require_member(session, group_id, user_id)
     async with _join_locks.setdefault(group_id, asyncio.Lock()):
         call = await _active(session, group_id)
@@ -238,10 +216,6 @@ async def join(session: AsyncSession, group_id: int, user_id: str) -> schemas.Ca
             attendee = await _chime_call(
                 _chime.create_attendee(call.meeting_id, user_id)
             )
-            try:
-                await _chime.start_transcription(call.meeting_id)
-            except Exception:
-                log.exception("couldn't start transcription for call %s", call.id)
         assert attendee is not None
         member = await session.get(CallMember, (call.id, user_id))
         if member is None:
@@ -281,77 +255,7 @@ async def leave(session: AsyncSession, call_id: int, user_id: str) -> schemas.Ca
     return view
 
 
-# --------------------------------------------------------------- transcripts
-
-
-def _speaker(result: schemas.ChimeResult, members: set[str]) -> str | None:
-    for item in result.alternatives[0].items:
-        if item.attendee.external_user_id in members:
-            return item.attendee.external_user_id
-    return None
-
-
-async def _store(
-    session: AsyncSession, call: Call, results: list[schemas.ChimeResult]
-) -> int:
-    started_ms = int(call.started_at.timestamp() * 1000)
-    now_ms = int(time.time() * 1000)
-    for r in results:
-        if r.start_time_ms < started_ms - CLOCK_SKEW_MS:
-            raise HTTPException(422, "Transcript times must be epoch milliseconds")
-        if r.end_time_ms > now_ms + CLOCK_SKEW_MS:
-            raise HTTPException(422, "Transcript time is in the future")
-    members = set(await crud.member_ids(session, call.group_id))
-    stored = 0
-    for r in results:
-        alt = r.alternatives[0]
-        if not alt.transcript.strip():
-            continue
-        stmt = pg_insert(CallTranscript).values(
-            call_id=call.id,
-            result_id=r.result_id,
-            speaker_id=_speaker(r, members),
-            start_ms=r.start_time_ms,
-            end_ms=r.end_time_ms,
-            text=alt.transcript,
-            items=[i.model_dump(by_alias=True) for i in alt.items],
-            is_partial=r.is_partial,
-        )
-        ex = stmt.excluded
-        # Only a stored partial can change: to a final, or to a longer partial.
-        await session.execute(
-            stmt.on_conflict_do_update(
-                index_elements=["call_id", "result_id"],
-                set_={
-                    "speaker_id": ex.speaker_id,
-                    "start_ms": ex.start_ms,
-                    "end_ms": ex.end_ms,
-                    "text": ex.text,
-                    "items": ex["items"],
-                    "is_partial": ex.is_partial,
-                    "received_at": datetime.now(UTC),
-                },
-                where=and_(
-                    CallTranscript.is_partial,
-                    or_(~ex.is_partial, ex.end_ms >= CallTranscript.end_ms),
-                ),
-            )
-        )
-        stored += 1
-    return stored
-
-
-async def ingest(
-    session: AsyncSession, call_id: int, body: schemas.TranscriptBatch
-) -> schemas.TranscriptStored:
-    """Store final results; partials are only for on-screen captions."""
-    call = await _require_call(session, call_id, body.user_id)
-    if call.ended_at is not None:
-        raise HTTPException(409, "This call has ended")
-    finals = [r for r in body.results if not r.is_partial]
-    stored = await _store(session, call, finals)
-    await session.commit()
-    return schemas.TranscriptStored(stored=stored)
+# --------------------------------------------------------------- the ? button
 
 
 def clip(rows: list[CallTranscript], start_ms: int, end_ms: int) -> list[tuple]:
@@ -382,11 +286,6 @@ async def explain_call(
     membership = await require_member(session, call.group_id, body.user_id)
     if body.at_ms > int(time.time() * 1000) + CLOCK_SKEW_MS:
         raise HTTPException(422, "at_ms is in the future")
-    if body.pending_results:
-        if call.ended_at is not None:
-            raise HTTPException(409, "This call has ended")
-        await _store(session, call, body.pending_results)
-        await session.commit()
 
     since = body.at_ms - FOCUS_MS - BACKGROUND_MS
     rows = list(
@@ -400,6 +299,21 @@ async def explain_call(
             .order_by(CallTranscript.start_ms, CallTranscript.result_id)
         )
     )
+    for turn in list(captions.live_turns.get(call_id, {}).values()):
+        if turn.text and turn.start_ms <= body.at_ms:  # mid-sentence at the tap
+            items = captions.word_items(
+                turn.user_id, turn.text, turn.start_ms, turn.end_ms
+            )
+            rows.append(
+                CallTranscript(
+                    speaker_id=turn.user_id,
+                    start_ms=turn.start_ms,
+                    end_ms=turn.end_ms,
+                    text=turn.text,
+                    items=items,
+                )
+            )
+    rows.sort(key=lambda r: r.start_ms)
     focus = clip(rows, body.at_ms - FOCUS_MS, body.at_ms)
     background = clip(rows, since, body.at_ms - FOCUS_MS - 1)
     if not focus:

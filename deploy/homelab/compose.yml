@@ -5,6 +5,11 @@ services:
     build: .
     container_name: hacktx26-api
     env_file: .env
+    environment:
+      PUBLIC_URL: https://hacktx26.anishalle.com
+      MEDIA_DIR: /code/media
+    volumes:
+      - ./media:/code/media # photo messages; kept across rebuilds
     ports:
       - "127.0.0.1:8740:8000"
     restart: unless-stopped

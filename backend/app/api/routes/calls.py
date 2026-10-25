@@ -1,17 +1,18 @@
 """Feature 4: live ? on a group call.
 
-Paths: `/groups/{group_id}/call`, `/calls/{call_id}/leave`,
-`/calls/{call_id}/transcripts`, `/calls/{call_id}/explain`.
+Paths: `/groups/{group_id}/call`, `/calls/{call_id}/leave`, `/calls/{call_id}/explain`,
+and the `/calls/{call_id}/audio` WebSocket.
 
-Logic lives in app/services/calls.py; the ? answer reuses app/services/explain.py.
+Logic lives in app/services/calls.py and app/services/captions.py; the ? answer reuses
+app/services/explain.py.
 Routes carry full paths (no router prefix) because the active call sits under /groups.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, WebSocket
 
 from app import schemas
 from app.api.deps import SessionDep
-from app.services import calls
+from app.services import calls, captions
 
 router = APIRouter(tags=["calls"])
 
@@ -35,11 +36,10 @@ async def leave_call(
     return await calls.leave(session, call_id, body.user_id)
 
 
-@router.post("/calls/{call_id}/transcripts", response_model=schemas.TranscriptStored)
-async def store_transcripts(
-    call_id: int, body: schemas.TranscriptBatch, session: SessionDep
-) -> schemas.TranscriptStored:
-    return await calls.ingest(session, call_id, body)
+@router.websocket("/calls/{call_id}/audio")
+async def call_audio(ws: WebSocket, call_id: int, user_id: str) -> None:
+    """One member's mic (PCM16 LE, 24 kHz, mono) in; `call.caption` frames out."""
+    await captions.relay(ws, call_id, user_id)
 
 
 @router.post("/calls/{call_id}/explain", response_model=schemas.Explanation)

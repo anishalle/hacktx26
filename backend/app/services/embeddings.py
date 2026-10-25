@@ -132,7 +132,7 @@ async def index_group(session: AsyncSession, group_id: int) -> int:
             MessageWindow.group_id == group_id
         )
     )
-    stmt = lines_query(group_id).where(Message.kind == "text")
+    stmt = lines_query(group_id).where(Message.kind != "system")
     if last is not None:
         stmt = stmt.where(Message.id > last)
     lines = await fetch_lines(session, stmt.order_by(Message.id))

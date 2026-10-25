@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     FRONTEND_HOST: str = "http://localhost:8081"
     FASTAPI_ENV: Literal["development", "staging", "production"] = "development"
+    # Absolute base for media URLs (photos); the homelab sets its https origin.
+    PUBLIC_URL: str = "http://localhost:8000"
+    MEDIA_DIR: Path = Path(__file__).resolve().parents[2] / "media"
+    MAX_PHOTO_BYTES: int = 15 * 1024 * 1024
     SENTRY_DSN: HttpUrl | None = None
 
     # Shared database is Timescale Cloud; a pasted `postgres://` URL works as-is.

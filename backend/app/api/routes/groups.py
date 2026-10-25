@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, File, Form, Query, Response, UploadFile
 from sqlalchemy import select
 
 from app import crud, schemas
 from app.api.deps import SessionDep
+from app.core.config import settings
 from app.models import Glossary
-from app.services import messages
+from app.services import messages, photos
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -35,6 +36,20 @@ async def list_messages(
     return await messages.page_messages(
         session, group_id, before=before, after=after, around=around, limit=limit
     )
+
+
+@router.post("/{group_id}/photos", response_model=schemas.Message, status_code=201)
+async def send_photo(
+    group_id: int,
+    session: SessionDep,
+    file: Annotated[UploadFile, File()],
+    sender_id: Annotated[str, Form()],
+    text: Annotated[str, Form(max_length=4000)] = "",
+    reply_to: Annotated[int | None, Form()] = None,
+) -> schemas.Message:
+    """A photo message (JPEG/PNG); Muse describes it in the background."""
+    data = await file.read(settings.MAX_PHOTO_BYTES + 1)
+    return await photos.send_photo(session, group_id, sender_id, data, text, reply_to)
 
 
 @router.post("/{group_id}/messages", response_model=schemas.Message, status_code=201)

@@ -110,7 +110,9 @@ export function useThread(groupId: number, meId: string) {
         if (prev.messages.some((x) => x.id === m.id)) return prev;
         if (prev.hasMoreAfter) return prev; // viewing history; "jump to latest" will pick it up
         // Replace our optimistic copy if this is the echo of our own send.
-        const tempIdx = prev.messages.findIndex((x) => x.id < 0 && x.sender_id === m.sender_id && x.text === m.text);
+        const tempIdx = prev.messages.findIndex(
+          (x) => x.id < 0 && x.sender_id === m.sender_id && x.kind === m.kind && x.text === m.text,
+        );
         if (tempIdx !== -1) {
           const next = [...prev.messages];
           next[tempIdx] = m;
@@ -141,22 +143,13 @@ export function useThread(groupId: number, meId: string) {
     }
   });
 
-  const send = useCallback(
-    async (text: string, replyTo: number | null) => {
-      const temp: Message = {
-        id: tempId.current--,
-        group_id: groupId,
-        sender_id: meId,
-        kind: 'text',
-        text,
-        ts: new Date().toISOString(),
-        reply_to: replyTo,
-        reactions: [],
-      };
+  /** Optimistic send: a negative-id copy shows at once and is swapped for the saved message. */
+  const sendWith = useCallback(
+    async (temp: Message, save: () => Promise<Message>) => {
       if (stateRef.current.hasMoreAfter) await loadLatest();
       setState((prev) => ({ ...prev, messages: [...prev.messages, temp] }));
       try {
-        const saved = await api.sendMessage(groupId, { sender_id: meId, text, reply_to: replyTo });
+        const saved = await save();
         setState((prev) => {
           const without = prev.messages.filter((m) => m.id !== temp.id);
           if (without.some((m) => m.id === saved.id)) return { ...prev, messages: without };
@@ -168,7 +161,46 @@ export function useThread(groupId: number, meId: string) {
         throw e;
       }
     },
-    [groupId, meId, loadLatest],
+    [loadLatest],
+  );
+
+  const send = useCallback(
+    (text: string, replyTo: number | null) => {
+      const temp: Message = {
+        id: tempId.current--,
+        group_id: groupId,
+        sender_id: meId,
+        kind: 'text',
+        text,
+        ts: new Date().toISOString(),
+        reply_to: replyTo,
+        reactions: [],
+      };
+      return sendWith(temp, () => api.sendMessage(groupId, { sender_id: meId, text, reply_to: replyTo }));
+    },
+    [groupId, meId, sendWith],
+  );
+
+  /** `photo` is the image picker's local file; it shows from disk until the upload finishes. */
+  const sendPhoto = useCallback(
+    (photo: { uri: string; width: number; height: number }, text: string, replyTo: number | null) => {
+      const temp: Message = {
+        id: tempId.current--,
+        group_id: groupId,
+        sender_id: meId,
+        kind: 'photo',
+        text,
+        ts: new Date().toISOString(),
+        reply_to: replyTo,
+        reactions: [],
+        image: { url: photo.uri, width: photo.width, height: photo.height },
+        image_description: null,
+      };
+      return sendWith(temp, () =>
+        api.sendPhoto(groupId, { sender_id: meId, ...photo, text: text || undefined, reply_to: replyTo }),
+      );
+    },
+    [groupId, meId, sendWith],
   );
 
   const toggleReaction = useCallback(
@@ -205,6 +237,7 @@ export function useThread(groupId: number, meId: string) {
     loadLatest,
     jumpTo,
     send,
+    sendPhoto,
     toggleReaction,
   };
 }

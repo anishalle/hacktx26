@@ -4,13 +4,18 @@ from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
-from pydantic.alias_generators import to_camel
+
+from app.core.config import settings
 
 UtcDatetime = Annotated[datetime, AfterValidator(lambda d: d.astimezone(UTC))]
 GlossaryKind = Literal["nickname", "place", "event", "slang", "person", "inside_joke"]
 GlossarySource = Literal["seed", "auto", "human"]
-MessageKind = Literal["text", "system"]
+MessageKind = Literal["text", "system", "photo"]
 CatchupSection = Literal["happened", "decisions", "open"]
+
+
+def media_url(name: str) -> str:
+    return f"{settings.PUBLIC_URL.rstrip('/')}{settings.API_V1_STR}/media/{name}"
 
 
 class Schema(BaseModel):
@@ -38,6 +43,12 @@ class Reaction(Schema):
     user_id: str
 
 
+class Image(Schema):
+    url: str
+    width: int
+    height: int
+
+
 class Message(Schema):
     id: int
     group_id: int
@@ -47,6 +58,24 @@ class Message(Schema):
     ts: UtcDatetime
     reply_to: int | None
     reactions: list[Reaction] = []
+    image: Image | None = None
+    image_description: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _image(cls, data: Any) -> Any:
+        """ORM rows carry image_path/size; the API serves an absolute URL."""
+        path = getattr(data, "image_path", None)
+        if path and not isinstance(data, dict):
+            return {
+                **{k: getattr(data, k) for k in cls.model_fields if k != "image"},
+                "image": Image(
+                    url=media_url(path),
+                    width=data.image_width or 0,
+                    height=data.image_height or 0,
+                ),
+            }
+        return data
 
 
 class Member(Schema):
@@ -122,6 +151,7 @@ class WsEvent(Schema):
         "ask.new",
         "ask.updated",
         "call.updated",
+        "call.caption",
         "pong",
     ]
     data: dict[str, Any] | None = None
@@ -409,54 +439,15 @@ class CallUserRequest(Schema):
     user_id: str
 
 
-class ChimeModel(BaseModel):
-    """Chime transcript events, as the native module emits them (camelCase)."""
-
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-
-
-class ChimeAttendee(ChimeModel):
-    attendee_id: str = Field(min_length=1, max_length=128)
-    external_user_id: str = Field(default="", max_length=128)
-
-
-class ChimeItem(ChimeModel):
-    type: Literal["pronunciation", "punctuation"] = "pronunciation"
-    content: str = Field(max_length=500)
-    start_time_ms: Millis
-    end_time_ms: Millis
-    attendee: ChimeAttendee
-
-
-class ChimeAlternative(ChimeModel):
-    transcript: str = Field(max_length=10_000)
-    items: list[ChimeItem] = Field(default_factory=list, max_length=2000)
-
-
-class ChimeResult(ChimeModel):
-    result_id: str = Field(min_length=1, max_length=128)
-    is_partial: bool
-    start_time_ms: Millis
-    end_time_ms: Millis
-    alternatives: list[ChimeAlternative] = Field(min_length=1, max_length=5)
-
-    @model_validator(mode="after")
-    def _times(self) -> "ChimeResult":
-        if self.end_time_ms < self.start_time_ms:
-            raise ValueError("endTimeMs must be at or after startTimeMs")
-        return self
-
-
-class TranscriptBatch(Schema):
+class CallCaption(Schema):
+    call_id: int
     user_id: str
-    results: list[ChimeResult] = Field(max_length=50)
-
-
-class TranscriptStored(Schema):
-    stored: int
+    turn_id: str
+    text: str
+    final: bool
+    ts: UtcDatetime
 
 
 class CallExplainRequest(Schema):
     user_id: str
     at_ms: Millis
-    pending_results: list[ChimeResult] = Field(default_factory=list, max_length=20)

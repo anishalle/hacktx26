@@ -29,10 +29,12 @@ type Message = {
   id: number;
   group_id: number;
   sender_id: string | null;   // null when kind == "system"
-  kind: "text" | "system";    // system: "aakash added priya", shown centered
+  kind: "text" | "system" | "photo"; // system: "aakash added priya", shown centered
   text: string;
   ts: string;
   reply_to: number | null;
+  image: { url: string; width: number; height: number } | null; // kind "photo"; text is its caption ("" if none)
+  image_description: string | null; // the AI's description of the photo (alt text); null until ready
   reactions: Reaction[];
 };
 
@@ -104,9 +106,16 @@ type GlossaryEntry = {
 | GET | `/groups/{group_id}` | `?user_id=` | `GroupDetail` |
 | GET | `/groups/{group_id}/messages` | `?before=&after=&around=&limit=50` (max 200) | `{ messages: Message[], has_more_before: boolean, has_more_after: boolean }` |
 | POST | `/groups/{group_id}/messages` | `{ sender_id, text, reply_to? }` | `Message` (201); fans out `message.new` |
+| POST | `/groups/{group_id}/photos` | multipart: `file` (JPEG or PNG, ≤ 15 MB), `sender_id`, `text?` (caption), `reply_to?` | `Message` with `kind: "photo"` (201); fans out `message.new` |
 | POST | `/groups/{group_id}/messages/{message_id}/reactions` | `{ user_id, emoji }` | `Message`; one reaction per user (same emoji removes it, a different one replaces it); fans out `reaction.updated` |
 | POST | `/groups/{group_id}/read` | `{ user_id, message_id }` | `204`; fans out `read.updated` |
 | GET | `/groups/{group_id}/glossary` | | `GlossaryEntry[]` (debug and feature 1) |
+
+Photos are stored on the server (re-encoded as JPEG, at most 1600 px, metadata such as location
+stripped) and served from `image.url` (absolute). Right after upload the server asks Muse to describe
+the photo (what it shows plus any visible text) and saves that as `image_description`; from then on
+every AI feature sees the photo as `[photo: <description>] <caption>` wherever it reads chat history:
+search, embeddings, explanations (holding a photo explains it), catch-up and the call ? button.
 
 `messages` is always returned in ascending `ts` order. With no cursor it returns the newest `limit`.
 `before`/`after` are exclusive message ids. `around` centers the page on that id, which catch-up
@@ -125,6 +134,7 @@ every group the user is in:
 | `ask.new` | `MemberAsk`, sent only to the member being asked |
 | `ask.updated` | `MemberAsk`, sent to both people on the ask when it is answered or declined |
 | `call.updated` | `Call`, sent to every group member when a call starts, someone joins or leaves, or it ends |
+| `call.caption` | `CallCaption`, sent to every member on the call as someone speaks (feature 4) |
 
 The client may send `{ "type": "ping" }`; the server answers `{ "type": "pong" }`.
 
@@ -201,27 +211,47 @@ background; without AWS credentials retrieval falls back to full-text only.
 
 ## Feature 4: live ? on a group call
 
-Calls run on Amazon Chime. The server creates the meeting and one attendee per member; Chime
-carries audio/video and live transcription (Amazon Transcribe) to every participant through the
-iOS bridge in `frontend/modules/chime-call` (needs an Expo dev build, not Expo Go). Each client
-forwards **final** transcript results here. The **?** button explains what was just said, privately,
-with the feature 1 pipeline over the call transcript **and** the group's chat history.
+Calls run on Amazon Chime for audio and video only, through the iOS bridge in
+`frontend/modules/chime-call` (needs an Expo dev build, not Expo Go). Captions come from Meta's
+Muse realtime speech-to-text: **each phone streams only its own microphone** to the API over a
+WebSocket, so every caption belongs to exactly one member. The API relays the audio to Muse, fans
+the growing transcript out to the call as `call.caption`, and stores each finished turn. The **?**
+button explains what was just said, privately, with the feature 1 pipeline over the call
+transcript **and** the group's chat history.
 
 | Method | Path | Body / query | Returns |
 | --- | --- | --- | --- |
 | GET | `/groups/{group_id}/call` | | `Call \| null`, the group's active call |
-| POST | `/groups/{group_id}/call` | `{ user_id }` | `CallJoin`: starts a call (with transcription) or joins the active one; pushes `call.updated` |
+| POST | `/groups/{group_id}/call` | `{ user_id }` | `CallJoin`: starts a call or joins the active one; pushes `call.updated` |
 | POST | `/calls/{call_id}/leave` | `{ user_id }` | `Call`; the last member out ends it (the Chime meeting is deleted); pushes `call.updated` |
-| POST | `/calls/{call_id}/transcripts` | `{ user_id, results: ChimeResult[] }` (max 50) | `{ stored: number }` |
-| POST | `/calls/{call_id}/explain` | `{ user_id, at_ms, pending_results?: ChimeResult[] }` (max 20) | `Explanation` |
+| WS | `/calls/{call_id}/audio?user_id=` | binary audio frames (below) | JSON status frames (below) |
+| POST | `/calls/{call_id}/explain` | `{ user_id, at_ms }` | `Explanation` |
 
-- Every participant may forward the same finals: `(call_id, resultId)` deduplicates, and a late
-  partial never overwrites a final. Partials are only for on-screen captions.
+Audio WebSocket (`wss://…/api/v1/calls/{call_id}/audio?user_id=…`, one per participant):
+
+- Client → server: binary frames of mono **PCM16 little-endian at 24 kHz**, about 80 ms each
+  (3,840 bytes), sent in real time from joining until leaving. While muted, send silence (zeros)
+  instead of stopping: the stream must keep real-time pace or Muse closes it.
+- Server → client: `{ "type": "ready" }` once transcription is live, `{ "type": "error", "message" }`
+  if it fails. The server reconnects to Muse on its own (sessions last up to 60 minutes); the client
+  only reconnects if the socket itself closes.
+
+`call.caption` frames go to every member on the call (the speaker included) over the main `/ws`:
+
+```ts
+type CallCaption = {
+  call_id: number;
+  user_id: string;   // whose microphone this came from
+  turn_id: string;   // one spoken turn; text is cumulative within it
+  text: string;      // the whole turn so far, e.g. "grandmas after the" → "grandmas after the game."
+  final: boolean;    // true once the turn is complete (then stored for the ? button)
+  ts: string;        // when this update was produced
+};
+```
+
 - `at_ms` is `Date.now()` frozen at the tap (epoch ms). The focus is the 45 s before it, with the
-  2 minutes before that as background. `pending_results` carries finals (and the current partial)
-  not uploaded yet, so the tap never races an upload.
+  2 minutes before that as background; turns still in progress count up to the tap.
 - Follow-ups on a call card use `POST /explain` with the returned `explanation_id`, like feature 1.
-- Chime's `externalUserId` is our user id, so transcript lines and `said_by` map to members.
 
 ```ts
 type Call = {
@@ -236,24 +266,7 @@ type Call = {
 type CallJoin = {
   call: Call;
   meeting: object;   // Chime CreateMeeting "Meeting" (MeetingId, MediaRegion, MediaPlacement, ...)
-  attendee: object;  // Chime CreateAttendee "Attendee" (AttendeeId, ExternalUserId, JoinToken)
-};
-
-type ChimeResult = {  // exactly what the native module emits
-  resultId: string;
-  isPartial: boolean;
-  startTimeMs: number; // epoch ms
-  endTimeMs: number;
-  alternatives: {
-    transcript: string;
-    items: {
-      type: "pronunciation" | "punctuation";
-      content: string;
-      startTimeMs: number;
-      endTimeMs: number;
-      attendee: { attendeeId: string; externalUserId: string };
-    }[];
-  }[];
+  attendee: object;  // Chime CreateAttendee "Attendee" (AttendeeId, ExternalUserId = our user id, JoinToken)
 };
 ```
 
@@ -365,7 +378,7 @@ Defined in `backend/app/models.py`, created on startup with `CREATE EXTENSION ve
 | `users` | `id (slug), username, display_name, avatar_url, phonetic_hint, pronunciation_audio_url` |
 | `groups` | `id, name, avatar_url, is_dm, created_at` |
 | `memberships` | `group_id, user_id, joined_at, last_read_message_id` |
-| `messages` | `id, group_id, sender_id, kind, text, ts, reply_to, tsv (generated tsvector, GIN)` |
+| `messages` | `id, group_id, sender_id, kind, text, ts, reply_to, image_path, image_width, image_height, image_description, tsv (generated over text + image_description, GIN)` |
 | `reactions` | `message_id, user_id, emoji` |
 | `message_windows` | `id, group_id, start_message_id, end_message_id, text, embedding vector(EMBEDDING_DIM)` |
 | `glossary` | `id, group_id, term, aliases text[], meaning, kind, confidence, source (seed/auto/human), first_seen_ts, last_explained_ts, source_message_ids bigint[]` |

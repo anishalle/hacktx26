@@ -11,15 +11,19 @@ export type User = {
 
 export type Reaction = { emoji: string; user_id: string };
 
+export type MessageImage = { url: string; width: number; height: number };
+
 export type Message = {
   id: number;
   group_id: number;
   sender_id: string | null;
-  kind: 'text' | 'system';
-  text: string;
+  kind: 'text' | 'system' | 'photo';
+  text: string; // a photo's caption ("" if none)
   ts: string;
   reply_to: number | null;
   reactions: Reaction[];
+  image?: MessageImage | null; // kind "photo"
+  image_description?: string | null; // the AI's description of a photo (alt text); null until ready
 };
 
 export type Member = {
@@ -213,21 +217,14 @@ export type Call = {
 /** `meeting` / `attendee` are Chime's CreateMeeting / CreateAttendee objects, passed straight to the native SDK. */
 export type CallJoin = { call: Call; meeting: Record<string, unknown>; attendee: Record<string, unknown> };
 
-export type ChimeItem = {
-  type: 'pronunciation' | 'punctuation';
-  content: string;
-  startTimeMs: number;
-  endTimeMs: number;
-  attendee: { attendeeId: string; externalUserId: string };
-};
-
-/** One transcript result, exactly as the native Chime module emits it. Times are epoch ms. */
-export type ChimeResult = {
-  resultId: string;
-  isPartial: boolean;
-  startTimeMs: number;
-  endTimeMs: number;
-  alternatives: { transcript: string; items: ChimeItem[] }[];
+/** One speaker's turn so far, from their own microphone (Muse realtime). `text` is cumulative. */
+export type CallCaption = {
+  call_id: number;
+  user_id: string;
+  turn_id: string;
+  text: string;
+  final: boolean;
+  ts: string;
 };
 
 export type RealtimeFrame =
@@ -237,6 +234,7 @@ export type RealtimeFrame =
   | { type: 'ask.new'; data: MemberAsk }
   | { type: 'ask.updated'; data: MemberAsk }
   | { type: 'call.updated'; data: Call }
+  | { type: 'call.caption'; data: CallCaption }
   | { type: 'pong'; data?: unknown };
 
 /** The full client surface. `real.ts` and `mock/` both implement it. */
@@ -247,6 +245,11 @@ export interface Api {
   getGroup(groupId: number, userId: string): Promise<GroupDetail>;
   getMessages(groupId: number, query?: MessageQuery, signal?: AbortSignal): Promise<MessagePage>;
   sendMessage(groupId: number, body: { sender_id: string; text: string; reply_to?: number | null }): Promise<Message>;
+  /** Uploads a local photo (`uri` from the image picker) as a `kind: "photo"` message. */
+  sendPhoto(
+    groupId: number,
+    body: { sender_id: string; uri: string; width?: number; height?: number; text?: string; reply_to?: number | null },
+  ): Promise<Message>;
   toggleReaction(groupId: number, messageId: number, body: { user_id: string; emoji: string }): Promise<Message>;
   markRead(groupId: number, body: { user_id: string; message_id: number }): Promise<void>;
   getGlossary(groupId: number): Promise<GlossaryEntry[]>;
@@ -279,16 +282,11 @@ export interface Api {
   ): Promise<MemberAsk>;
 
   getCall(groupId: number): Promise<Call | null>;
-  /** Starts the group's call (with transcription) or joins the active one. */
+  /** Starts the group's call or joins the active one. */
   joinCall(groupId: number, userId: string): Promise<CallJoin>;
   leaveCall(callId: number, userId: string): Promise<Call>;
-  /** Final results only (max 50); the server dedupes by resultId. */
-  sendTranscripts(callId: number, userId: string, results: ChimeResult[]): Promise<{ stored: number }>;
-  explainCall(
-    callId: number,
-    body: { user_id: string; at_ms: number; pending_results?: ChimeResult[] },
-    signal?: AbortSignal,
-  ): Promise<Explanation>;
+  /** The ? button: `at_ms` is Date.now() frozen at the tap. */
+  explainCall(callId: number, body: { user_id: string; at_ms: number }, signal?: AbortSignal): Promise<Explanation>;
 
   /** Opens the realtime channel for a user. Returns an unsubscribe/close function. */
   connectRealtime(userId: string, handlers: RealtimeHandlers): () => void;

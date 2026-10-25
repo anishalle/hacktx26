@@ -19,9 +19,11 @@ function subtitle(item: InboxItem, meId: string, userById: Props['userById']) {
   if (!m) return 'Say hi';
   if (item.unread_count > 1) return item.unread_count >= 10 ? '10+ new messages' : `${item.unread_count} new messages`;
   if (m.kind === 'system') return m.text;
-  if (m.sender_id === meId) return item.unread_count ? m.text : `You: ${m.text}`;
+  const photo = m.kind === 'photo';
+  const body = photo ? 'Sent a photo' : m.text;
+  if (m.sender_id === meId) return item.unread_count ? body : photo ? 'You sent a photo' : `You: ${m.text}`;
   const sender = userById(m.sender_id);
-  return !item.group.is_dm && sender ? `${firstName(sender.display_name)}: ${m.text}` : m.text;
+  return !item.group.is_dm && sender ? `${firstName(sender.display_name)}: ${body}` : body;
 }
 
 export const InboxRow = memo(function InboxRow({ item, meId, userById, onPress }: Props) {

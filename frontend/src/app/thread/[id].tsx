@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -27,6 +28,7 @@ import { CallBar } from '@/components/thread/CallBar';
 import { CatchupPill } from '@/components/thread/CatchupPill';
 import { Composer } from '@/components/thread/Composer';
 import { NudgeBanner } from '@/components/thread/NudgeBanner';
+import { PhotoViewer } from '@/components/thread/PhotoViewer';
 import { MessageRow, SeenBy, SystemLine, TimeSeparator, type RunPos } from '@/components/thread/rows';
 import { HEADER_ROW, ThreadHeader } from '@/components/thread/ThreadHeader';
 import { Wallpaper } from '@/components/thread/Wallpaper';
@@ -189,8 +191,8 @@ export default function ThreadScreen() {
       }
       const prev = asc[i - 1];
       const next = asc[i + 1];
-      const joinsPrev = !!prev && prev.kind === 'text' && prev.sender_id === m.sender_id && !sepBefore(i);
-      const joinsNext = !!next && next.kind === 'text' && next.sender_id === m.sender_id && !sepBefore(i + 1);
+      const joinsPrev = !!prev && prev.kind !== 'system' && prev.sender_id === m.sender_id && !sepBefore(i);
+      const joinsNext = !!next && next.kind !== 'system' && next.sender_id === m.sender_id && !sepBefore(i + 1);
       const run: RunPos = joinsPrev ? (joinsNext ? 'middle' : 'last') : joinsNext ? 'first' : 'single';
       const mine = m.sender_id === me.id;
       out.push({
@@ -202,7 +204,7 @@ export default function ThreadScreen() {
         showAvatar: !mine && !joinsNext,
       });
     }
-    const newest = [...asc].reverse().find((m) => m.id > 0 && m.kind === 'text');
+    const newest = [...asc].reverse().find((m) => m.id > 0 && m.kind !== 'system');
     if (newest && members && !t.hasMoreAfter) {
       const seen = members
         .filter((mem) => mem.user.id !== me.id && mem.user.id !== newest.sender_id && (mem.last_read_message_id ?? 0) >= newest.id)
@@ -245,6 +247,35 @@ export default function ThreadScreen() {
     [replyTo, t, markRead],
   );
   const nudge = useNudge({ groupId, userId: me.id, hasNewcomers, draft, setDraft, onSend: sendNow });
+
+  // ---- Photos ----------------------------------------------------------------------------------
+  const [viewing, setViewing] = useState<Message | null>(null);
+  const [attachment, setAttachment] = useState<{ uri: string; width: number; height: number } | null>(null);
+  const pickPhoto = useCallback(async () => {
+    // quality < 1 makes iOS hand back a JPEG, which is what the upload expects.
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    const asset = res.canceled ? null : res.assets[0];
+    if (asset) setAttachment({ uri: asset.uri, width: asset.width, height: asset.height });
+  }, []);
+  // A photo skips the nudge checks: its caption goes out as typed.
+  const sendPhotoNow = useCallback(async () => {
+    if (!attachment) return;
+    const photo = attachment;
+    const caption = draft.trim();
+    const reply = replyTo?.id ?? null;
+    setAttachment(null);
+    setDraft('');
+    setReplyTo(null);
+    try {
+      const saved = await t.sendPhoto(photo, caption, reply);
+      markRead(saved.id);
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    } catch (e) {
+      setAttachment(photo);
+      setDraft(caption);
+      Alert.alert('Photo not sent', e instanceof Error ? e.message : String(e));
+    }
+  }, [attachment, draft, replyTo, t, markRead]);
 
   const [kbVisible, setKbVisible] = useState(false);
   useEffect(() => {
@@ -319,7 +350,7 @@ export default function ThreadScreen() {
     const latestInbox = inbox.items.find((it) => it.group.id === groupId)?.last_message;
     const fromWindow = t.hasMoreAfter
       ? undefined
-      : [...t.messages].reverse().find((m) => m.kind === 'text' && m.sender_id && m.sender_id !== me.id);
+      : [...t.messages].reverse().find((m) => m.kind !== 'system' && m.sender_id && m.sender_id !== me.id);
     const lastOther = fromWindow ?? (latestInbox && latestInbox.sender_id !== me.id ? latestInbox : undefined);
     if (group.is_dm) return lastOther ? `Active ${shortAge(lastOther.ts)} ago` : 'Instagram';
     if (lastOther && openedAt - new Date(lastOther.ts).getTime() < 24 * 3600 * 1000) {
@@ -358,7 +389,7 @@ export default function ThreadScreen() {
               m.reply_to
                 ? {
                     name: replied?.sender_id === me.id ? 'you' : (repliedSender?.username ?? 'a message'),
-                    text: replied?.text ?? 'Original message',
+                    text: replied ? (replied.kind === 'photo' ? 'Photo' : replied.text) : 'Original message',
                   }
                 : null
             }
@@ -367,6 +398,7 @@ export default function ThreadScreen() {
             onReply={onReply}
             onCopy={onCopy}
             onExplain={explainMessage}
+            onOpenPhoto={setViewing}
           />
         );
       }
@@ -454,18 +486,21 @@ export default function ThreadScreen() {
             value={draft}
             onChangeText={setDraft}
             highlights={nudge.highlights}
-            sendLabel={nudge.sendLabel}
-            sending={nudge.checkingUnknown}
-            onSend={nudge.send}
+            sendLabel={attachment ? 'Send' : nudge.sendLabel}
+            sending={!attachment && nudge.checkingUnknown}
+            onSend={attachment ? sendPhotoNow : nudge.send}
             reply={
               replyTo
                 ? {
                     name: replyTo.sender_id === me.id ? 'yourself' : (userById(replyTo.sender_id)?.username ?? ''),
-                    text: replyTo.text,
+                    text: replyTo.kind === 'photo' ? 'Photo' : replyTo.text,
                   }
                 : null
             }
             onCancelReply={() => setReplyTo(null)}
+            attachment={attachment}
+            onPickPhoto={pickPhoto}
+            onRemoveAttachment={() => setAttachment(null)}
           />
         </View>
       </KeyboardAvoidingView>
@@ -479,6 +514,7 @@ export default function ThreadScreen() {
       />
       {activeCall ? <CallBar call={activeCall} top={headerHeight + 6} meId={me.id} onJoin={openCall} /> : null}
       {catchup ? <CatchupPill count={catchup.count} top={headerHeight + (activeCall ? 62 : 6)} onPress={openCatchup} /> : null}
+      <PhotoViewer message={viewing} onClose={() => setViewing(null)} />
     </View>
   );
 }

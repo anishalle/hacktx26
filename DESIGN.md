@@ -170,8 +170,8 @@ During a group video call, a small **?** button sits on screen. Tap it whenever 
 **Implementation notes**
 
 - Call surface: Amazon Chime SDK meetings through a small Expo native module (`frontend/modules/chime-call`, wrapping the Chime iOS SDK): audio, video tiles, mute and camera. The server creates the meeting and one attendee per member (Chime's `ExternalUserId` is our user id). Requires an Expo dev build (`npx expo run:ios`), not Expo Go.
-- Speech-to-text: Chime live transcription (Amazon Transcribe) starts with the call; transcript events reach every participant. Each client forwards final results to the API, which stores them in `call_transcripts` (deduplicated by Chime's result id; a late partial never overwrites a final). Partials are on-screen captions only. The server never touches raw audio.
-- The **?** handler is one backend call: `POST /calls/{id}/explain` with `{user_id, at_ms, pending_results}`; the server clips the transcript at `at_ms` by word timestamps (45 s focus, 2 min background), adds results not uploaded yet, and runs the feature 1 pipeline with the call as the subject, so chat history and the glossary apply. Follow-ups go through `POST /explain` like feature 1.
+- Speech-to-text: Meta Muse realtime transcription, one stream per person. Each phone taps its own microphone (alongside Chime) and streams 24 kHz PCM to the API over a WebSocket; the API relays it to Muse with the group's glossary terms as spelling keywords, fans the growing turn out to the call as `call.caption`, and stores each finished turn in `call_transcripts`. One mic per stream means every caption belongs to exactly one person, so speakers never get mixed up.
+- The **?** handler is one backend call: `POST /calls/{id}/explain` with `{user_id, at_ms}`; the server clips the transcript at `at_ms` by word timestamps (45 s focus, 2 min background), adds turns still being spoken, and runs the feature 1 pipeline with the call as the subject, so chat history and the glossary apply. Follow-ups go through `POST /explain` like feature 1.
 - Demo plan: two phones on one call, one person says a planted inside reference, the other taps **?**.
 
 ## Feature 5 — Name pronunciation and the cross-generation angle
@@ -194,8 +194,9 @@ The decision in the middle is the whole product: a confident, sourced answer whe
 
 **1. Import-time indexing (once per group)**
 
-- Store every message as `{id, group_id, sender_id, ts, text, reply_to}`.
-- Keyword index (BM25/Postgres full-text) over message text.
+- Store every message as `{id, group_id, sender_id, ts, text, reply_to}`; a photo message also stores the image and an AI description.
+- **Photos in context:** when a photo is sent, Muse (vision) describes it once (what it shows plus any visible text). From then on every AI feature reads it as `[photo: <description>] <caption>`, so a photo of the plastic-covered couches or a screenshot that says "GRANDMA'S HOUSE" counts as history like any message: it is searched, embedded, retrieved for explanations and catch-up, and holding a photo explains it.
+- Keyword index (BM25/Postgres full-text) over message text and photo descriptions.
 - Embedding index over windows of 10 consecutive messages (not single messages, so a definition and its usage land in the same chunk), embedded with Amazon Bedrock Titan Text Embeddings v2 (1024 dimensions) and searched with pgvector. New windows are embedded in the background as they fill; without AWS credentials retrieval runs on full text alone.
 - **Auto-glossary pass:** one LLM sweep over the history in chunks that extracts recurring non-literal terms — nicknames, place aliases, event names, slang — with `{term, aliases, meaning, confidence, first_seen_ts, source_message_ids}`. This table is what feature 2 uses to detect inside references in a draft, and it is the first thing feature 1 checks.
 
@@ -222,7 +223,7 @@ If the term is absent from this group but is common slang, answer from general k
 
 ## System architecture
 
-One React Native app (Expo) for iOS and Android, one API server, Postgres with pgvector (on Timescale Cloud) for history and embeddings, Meta's Muse for every language task, and Amazon Chime (with Amazon Transcribe live transcription) for calls. Everything is hackathon-simple: no auth, hardcoded demo users, one group chat seeded from a real export.
+One React Native app (Expo) for iOS and Android, one API server, Postgres with pgvector (on Timescale Cloud) for history and embeddings, Meta's Muse for every language task, Amazon Chime for call audio/video, and Muse realtime speech-to-text for captions. Everything is hackathon-simple: no auth, hardcoded demo users, one group chat seeded from a real export.
 
 &#91;embedded content: system architecture · client, API, data and AI services\]
 
@@ -235,14 +236,14 @@ The three screens of the mobile app all talk to one API; the API is the only thi
 | Client | React Native with Expo (TypeScript), Expo Router, NativeWind for styling | One codebase for iOS and Android; native long-press, haptics and bottom sheets make the hold-to-explain feel like iMessage |
 | Gestures and sheets | `react-native-gesture-handler`, `@gorhom/bottom-sheet`, `expo-haptics` | Long-press on a bubble, slide-up explanation sheet, a haptic tick when it opens |
 | Realtime messages | WebSocket (socket.io-client) | New messages fan out to all group members instantly |
-| Calls | Amazon Chime SDK meetings (iOS SDK through a local Expo module) | Hosted rooms with 2–4 tiles and built-in live transcription; needs an Expo dev build, not Expo Go |
-| Call audio to STT | Chime live transcription; clients forward final results to the API | No audio on our server and no STT keys on the device; one transcript store per call |
+| Calls | Amazon Chime SDK meetings (iOS SDK through a local Expo module) | Hosted rooms with 2–4 tiles; needs an Expo dev build, not Expo Go |
+| Call audio to STT | Each phone streams its own mic to the API, which relays it to Muse | One speaker per stream; no STT keys on the device; one transcript store per call |
 | Pronunciation audio | `expo-av` record and playback; upload to the API as m4a | Feature 5 with no extra native code |
 | API | FastAPI (Python) | Same language as the import/indexing scripts and the LLM SDKs |
 | Database | Postgres + pgvector, hosted on Timescale Cloud (local Docker Postgres for tests) | Messages, members, glossary and embeddings in one place; full-text search built in; one shared connection string with no cloud networking to set up |
 | LLM | Meta Muse (`muse-spark-1.3`, minimal reasoning) through the OpenAI-compatible Meta Model API | Fast JSON-mode answers; one model for explain, rewrite, digests and catch-up |
 | Embeddings | Amazon Bedrock Titan Text Embeddings v2 | Only used for the semantic leg of retrieval; the Meta Model API has no embedding model |
-| STT | Amazon Transcribe through Chime live transcription | Partials and finals with word timings and per-attendee speaker labels |
+| STT | Meta Muse realtime (`muse-voice-transcribe-1.0`) | Word-by-word partials in ~1 s, server-side turn detection, glossary keywords for slang |
 
 **React Native notes**
 
@@ -259,13 +260,13 @@ The three screens of the mobile app all talk to one API; the API is the only thi
 | `users` | `id, display_name, avatar_url, pronunciation_audio_url, phonetic_hint` |
 | `groups` | `id, name, created_at` |
 | `memberships` | `group_id, user_id, joined_at` — `joined_at` is what makes someone a newcomer |
-| `messages` | `id, group_id, sender_id, ts, text, reply_to, tsv (full-text)` |
+| `messages` | `id, group_id, sender_id, kind (text/system/photo), ts, text, reply_to, image_path, image_width, image_height, image_description, tsv (full-text over text + description)` |
 | `message_windows` | `id, group_id, start_msg_id, end_msg_id, embedding (vector)` |
 | `glossary` | \`id, group\_id, term, aliases\[\], meaning, kind, confidence, source (auto |
 | `explanations` | \`id, group\_id, user\_id, message\_id |
 | `member_asks` | \`id, group\_id, asked\_user\_id, for\_user\_id, term, status (pending |
 | `nudge_dismissals` | `user_id, group_id, term` |
-| `call_transcripts` | `call_id, result_id, speaker_id, start_ms, end_ms, text, items, is_partial` |
+| `call_transcripts` | `call_id, result_id, speaker_id, start_ms, end_ms, text, items, is_partial` (one row per finished turn) |
 
 **API endpoints**
 
@@ -275,8 +276,8 @@ The three screens of the mobile app all talk to one API; the API is the only thi
 | `POST /groups/{id}/messages` | Send; fans out over WebSocket |
 | `POST /explain` `{group_id, user_id, message_id? \| term?, explanation_id?, follow_up?}` | Feature 1; returns one grounded explanation with sources (see `docs/API.md`) |
 | `POST /groups/{id}/call` `{user_id}` / `POST /calls/{id}/leave` | Feature 4; start or join the group's Chime call / leave it |
-| `POST /calls/{id}/transcripts` `{user_id, results[]}` | Feature 4; store final transcript results |
-| `POST /calls/{id}/explain` `{user_id, at_ms, pending_results?}` | Feature 4; clips the transcript server-side, explains with chat history |
+| `WS /calls/{id}/audio?user_id=` | Feature 4; one person's mic in, `call.caption` frames out to the call |
+| `POST /calls/{id}/explain` `{user_id, at_ms}` | Feature 4; clips the transcript server-side, explains with chat history |
 | `POST /nudge/check` `{group_id, user_id, draft}` | Feature 2; returns `{flagged_terms[], newcomers[], unknown_terms[]}` |
 | `POST /nudge/rewrite` `{group_id, user_id, draft, flagged_terms[]}` | Feature 2; returns the rewritten draft with diff spans |
 | `POST /catchup` `{group_id, user_id, since_message_id}` | Feature 3 |
@@ -285,7 +286,7 @@ The three screens of the mobile app all talk to one API; the API is the only thi
 | `GET /users/{id}/asks` | The member's incoming and outgoing asks (the Requests sheet) |
 | `PUT /users/{id}/pronunciation` | Feature 5 audio upload |
 
-**Realtime events (WebSocket)**: `message.new`, `ask.new` (to the asked member), `ask.updated` (to both people on the ask), `call.updated` (to the group when a call starts, changes or ends).
+**Realtime events (WebSocket)**: `message.new`, `ask.new` (to the asked member), `ask.updated` (to both people on the ask), `call.updated` (to the group when a call starts, changes or ends), `call.caption` (to the call as people speak).
 
 ## Demo data
 

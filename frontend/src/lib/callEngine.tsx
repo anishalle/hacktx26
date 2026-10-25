@@ -1,15 +1,16 @@
-// Feature 4 call media. The native Chime bridge (modules/chime-call) needs an Expo dev build;
-// in mock mode a scripted engine stands in so the whole call + ? flow demos in Expo Go.
+// Feature 4 call media. The native Chime bridge (modules/chime-call) carries audio/video and
+// streams this phone's own mic for captions; it needs an Expo dev build. In mock mode a scripted
+// engine stands in (the mock API plays the captions), so the whole call + ? flow demos in Expo Go.
 import { NativeModule, requireNativeView, requireOptionalNativeModule } from 'expo';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-import { USE_MOCKS, type CallJoin, type ChimeResult } from '@/api';
+import { USE_MOCKS, type CallJoin } from '@/api';
 
 export type CallState = 'connecting' | 'connected' | 'reconnecting' | 'ended';
 
 export type CallEvents = {
-  onTranscript: (event: { results: ChimeResult[] }) => void;
-  onTranscriptionStatus: (event: { status: string; message?: string }) => void;
+  /** Captions stream: connecting | ready | reconnecting | error. */
+  onCaptionStatus: (event: { status: string; message?: string | null }) => void;
   onState: (event: { state: CallState; reason?: string }) => void;
   onError: (event: { message: string }) => void;
   onVideoTile: (event: { tileId: number; attendeeId: string; isLocal: boolean; removed: boolean }) => void;
@@ -27,6 +28,9 @@ export interface CallEngine {
   leave(): Promise<void>;
   setMuted(muted: boolean): Promise<void>;
   setVideoOff(off: boolean): Promise<void>;
+  /** Streams this phone's microphone (24 kHz PCM16) to the captions WebSocket at `url`. */
+  startCaptions(url: string): Promise<void>;
+  stopCaptions(): Promise<void>;
   addListener<K extends keyof CallEvents>(event: K, listener: CallEvents[K]): { remove(): void };
 }
 
@@ -35,6 +39,8 @@ declare class ChimeCallModule extends NativeModule<CallEvents> {
   leave(): Promise<void>;
   setMuted(muted: boolean): Promise<void>;
   setVideoOff(off: boolean): Promise<void>;
+  startCaptions(url: string): Promise<void>;
+  stopCaptions(): Promise<void>;
 }
 
 const Chime = requireOptionalNativeModule<ChimeCallModule>('ChimeCall');
@@ -57,70 +63,25 @@ export function engineFor(join: CallJoin, meId: string): CallEngine | null {
 }
 
 // ---------------------------------------------------------------------------
-// Scripted engine (mock mode)
+// Scripted engine (mock mode): media events only; the mock API plays the captions.
 // ---------------------------------------------------------------------------
 
-// Lines lean on the mock group's glossary ("Grandma", "usual spot"), one unexplained
-// reference ("code yellow") and general slang ("bet"), so every card state shows up.
-const SCRIPT = [
-  'yo are we still doing grandma’s after the game',
-  'yeah but meet at the usual spot first',
-  'bet',
-  'and nobody call a code yellow this time',
-  'lmao that was one time',
-];
-const LINE_GAP_MS = 5200;
-const WORD_MS = 260;
-
-function scriptedEngine(join: CallJoin, meId: string): CallEngine {
+function scriptedEngine(join: CallJoin, _meId: string): CallEngine {
   const subs = new Map<keyof CallEvents, Set<(e: never) => void>>();
   const timers: ReturnType<typeof setTimeout>[] = [];
   const emit = <K extends keyof CallEvents>(name: K, event: Parameters<CallEvents[K]>[0]) =>
     subs.get(name)?.forEach((fn) => (fn as CallEvents[K])(event as never));
   const later = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
 
-  const others = join.call.members.filter((m) => m.user.id !== meId && !m.left_at);
-  const speakers = others.length ? others : join.call.members;
-  const attendees = speakers.map((m) => ({ attendeeId: m.attendee_id, externalUserId: m.user.id }));
-
-  function speak(line: string, index: number, at: number) {
-    const who = attendees[index % attendees.length];
-    const words = line.split(' ');
-    const resultId = `mock-${join.call.id}-${Date.now()}-${index}`;
-    const start = Date.now() + at;
-    const result = (n: number, partial: boolean): ChimeResult => {
-      const items = words.slice(0, n).map((w, i) => ({
-        type: 'pronunciation' as const,
-        content: w,
-        startTimeMs: start + i * WORD_MS,
-        endTimeMs: start + (i + 1) * WORD_MS,
-        attendee: who,
-      }));
-      return {
-        resultId,
-        isPartial: partial,
-        startTimeMs: start,
-        endTimeMs: start + n * WORD_MS,
-        alternatives: [{ transcript: words.slice(0, n).join(' '), items }],
-      };
-    };
-    later(at, () => emit('onVolume', { updates: [{ attendeeId: who.attendeeId, speaking: true }] }));
-    words.forEach((_, i) => later(at + (i + 1) * WORD_MS, () => emit('onTranscript', { results: [result(i + 1, true)] })));
-    later(at + words.length * WORD_MS + 300, () => {
-      emit('onTranscript', { results: [result(words.length, false)] });
-      emit('onVolume', { updates: [{ attendeeId: who.attendeeId, speaking: false }] });
-    });
-  }
-
   return {
     async join() {
       later(0, () => emit('onState', { state: 'connecting' }));
       later(600, () => {
         emit('onState', { state: 'connected' });
-        emit('onParticipants', { attendees: join.call.members.filter((m) => !m.left_at).map((m) => ({ attendeeId: m.attendee_id, externalUserId: m.user.id })) });
-        emit('onTranscriptionStatus', { status: 'started' });
+        emit('onParticipants', {
+          attendees: join.call.members.filter((m) => !m.left_at).map((m) => ({ attendeeId: m.attendee_id, externalUserId: m.user.id })),
+        });
       });
-      SCRIPT.forEach((line, i) => speak(line, i, 1800 + i * LINE_GAP_MS));
       return { cameraEnabled: false };
     },
     async leave() {
@@ -128,6 +89,10 @@ function scriptedEngine(join: CallJoin, meId: string): CallEngine {
     },
     async setMuted() {},
     async setVideoOff() {},
+    async startCaptions() {
+      later(300, () => emit('onCaptionStatus', { status: 'ready' }));
+    },
+    async stopCaptions() {},
     addListener(event, listener) {
       let set = subs.get(event);
       if (!set) subs.set(event, (set = new Set()));

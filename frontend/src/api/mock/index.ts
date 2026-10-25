@@ -3,8 +3,8 @@ import { readSse } from '../sse';
 import type {
   Api,
   Call,
+  CallCaption,
   CatchupEvent,
-  ChimeResult,
   ExplainRequest,
   Explanation,
   FlaggedTerm,
@@ -328,31 +328,75 @@ function mockCatchupBody(groupId: number, userId: string, signal?: AbortSignal) 
 }
 
 // ---------------------------------------------------------------------------
-// Calls (feature 4): one in-memory call per group; the call screen plays a
-// scripted transcript (src/lib/callEngine.ts) and forwards finals here.
+// Calls (feature 4): one in-memory call per group. Joining a fresh call brings in two scripted
+// members whose turns stream as `call.caption` frames word by word, the way the API relays Muse.
 // ---------------------------------------------------------------------------
 const CALL_FOCUS_MS = 45_000;
-type MockCall = Call & { transcripts: Map<string, ChimeResult> };
+const WORD_MS = 280;
+type Turn = { userId: string; turnId: string; text: string; final: boolean; startMs: number; endMs: number };
+type MockCall = Call & { turns: Map<string, Turn>; scripted: Set<string>; timers: ReturnType<typeof setTimeout>[] };
 const calls = new Map<number, MockCall>();
 let nextCallId = 1;
 
+// Lines lean on the mock glossary ("Grandma", "usual spot"), one unexplained reference
+// ("code yellow") and general slang ("bet"), so every ? card state shows up. Turns overlap a little.
+const CALL_SCRIPT = [
+  { who: 0, at: 1500, text: 'yo are we still doing grandma’s after the game tonight' },
+  { who: 1, at: 4300, text: 'yeah but meet at the usual spot first because parking is a nightmare' },
+  { who: 0, at: 7900, text: 'bet' },
+  { who: 1, at: 9400, text: 'and nobody call a code yellow this time please' },
+  { who: 0, at: 12600, text: 'lmao that was one time and you know it' },
+];
+
 const activeCall = (groupId: number) => [...calls.values()].find((c) => c.group_id === groupId && !c.ended_at);
-function callView({ transcripts: _t, ...call }: MockCall): Call {
+function callView({ turns: _t, scripted: _s, timers: _x, ...call }: MockCall): Call {
   return clone(call);
 }
-const resultText = (r: ChimeResult) => r.alternatives[0]?.transcript ?? '';
-const resultSpeaker = (r: ChimeResult) => r.alternatives[0]?.items.find((i) => i.type === 'pronunciation')?.attendee.externalUserId ?? null;
+function toCall(call: MockCall, frame: RealtimeFrame) {
+  for (const m of call.members) if (!m.left_at) toUser(m.user.id, frame);
+}
+function addMember(call: MockCall, userId: string) {
+  const existing = call.members.find((m) => m.user.id === userId);
+  if (existing) existing.left_at = null;
+  else call.members.push({ user: clone(userById.get(userId)!), attendee_id: `mock-${call.id}-${userId}`, joined_at: new Date().toISOString(), left_at: null });
+}
 
-/** Same answer the text pipeline gives, applied to the newest line in the focus window that needs one. */
-function mockExplainCall(call: MockCall, userId: string, atMs: number, pending: ChimeResult[]): Explanation {
-  const byId = new Map(call.transcripts);
-  for (const r of pending) if (!byId.get(r.resultId) || byId.get(r.resultId)!.isPartial) byId.set(r.resultId, r);
-  const focus = [...byId.values()]
-    .filter((r) => r.startTimeMs <= atMs && r.endTimeMs > atMs - CALL_FOCUS_MS && resultText(r).trim())
-    .sort((a, b) => a.startTimeMs - b.startTimeMs);
+function playScript(call: MockCall, joinerId: string) {
+  const g = groupOf(call.group_id);
+  const speakers = g.members.map((m) => m.user_id).filter((id) => id !== joinerId).slice(0, 2);
+  if (!speakers.length) return;
+  speakers.forEach((id) => {
+    call.scripted.add(id);
+    addMember(call, id);
+  });
+  CALL_SCRIPT.forEach(({ who, at, text }, i) => {
+    const userId = speakers[who % speakers.length];
+    const turnId = `mock-${call.id}-${i}`;
+    const words = text.split(' ');
+    words.forEach((_, n) =>
+      call.timers.push(
+        setTimeout(() => {
+          const final = n === words.length - 1;
+          const now = Date.now();
+          const prev = call.turns.get(turnId);
+          const turn: Turn = { userId, turnId, text: words.slice(0, n + 1).join(' '), final, startMs: prev?.startMs ?? now, endMs: now };
+          call.turns.set(turnId, turn);
+          const caption: CallCaption = { call_id: call.id, user_id: userId, turn_id: turnId, text: turn.text, final, ts: new Date(now).toISOString() };
+          toCall(call, { type: 'call.caption', data: caption });
+        }, at + n * WORD_MS),
+      ),
+    );
+  });
+}
+
+/** Same answer the text pipeline gives, applied to the newest turn in the focus window that needs one. */
+function mockExplainCall(call: MockCall, userId: string, atMs: number): Explanation {
+  const focus = [...call.turns.values()]
+    .filter((t) => t.startMs <= atMs && t.endMs > atMs - CALL_FOCUS_MS && t.text.trim())
+    .sort((a, b) => a.startMs - b.startMs);
   const callFields = { call_id: call.id, said_by: null, heard: null };
   if (!focus.length) {
-    const result: Explanation = {
+    return {
       ...mockExplain({ group_id: call.group_id, user_id: userId, term: '' }),
       ...callFields,
       status: 'no_speech',
@@ -361,17 +405,14 @@ function mockExplainCall(call: MockCall, userId: string, atMs: number, pending: 
       meaning: "I didn't catch anything in the last 45 seconds.",
       confidence: 0,
     };
-    return result;
   }
-  const candidates = [...focus].reverse().map((r) => ({ r, e: mockExplain({ group_id: call.group_id, user_id: userId, term: resultText(r) }) }));
-  const { r, e } = candidates.find((c) => c.e.status !== 'plain') ?? candidates[0];
-  const speaker = resultSpeaker(r);
-  const words = resultText(r).split(/\s+/).slice(0, 8).join(' ');
+  const candidates = [...focus].reverse().map((t) => ({ t, e: mockExplain({ group_id: call.group_id, user_id: userId, term: t.text }) }));
+  const { t, e } = candidates.find((c) => c.e.status !== 'plain') ?? candidates[0];
   return {
     ...e,
     ...callFields,
-    said_by: speaker ? (clone(userById.get(speaker)) ?? null) : null,
-    heard: e.status === 'unknown' ? `…${words}…` : null,
+    said_by: clone(userById.get(t.userId)) ?? null,
+    heard: e.status === 'unknown' ? `…${t.text.split(/\s+/).slice(0, 8).join(' ')}…` : null,
   };
 }
 
@@ -473,6 +514,31 @@ export const mockApi: Api = {
         fanOut(groupId, { type: 'read.updated', data: { group_id: groupId, user_id: r.user_id, message_id: m.id } });
       }, 1500 + i * 900),
     );
+    return clone(m);
+  },
+
+  async sendPhoto(groupId, body) {
+    await latency();
+    const m: Message = {
+      id: Math.max(...messages.map((x) => x.id)) + 1,
+      group_id: groupId,
+      sender_id: body.sender_id,
+      kind: 'photo',
+      text: body.text ?? '',
+      ts: new Date().toISOString(),
+      reply_to: body.reply_to ?? null,
+      reactions: [],
+      image: { url: body.uri, width: body.width ?? 1200, height: body.height ?? 900 },
+      image_description: null,
+    };
+    messages.push(m);
+    const me = groupOf(groupId).members.find((x) => x.user_id === body.sender_id);
+    if (me) me.last_read_message_id = m.id;
+    fanOut(groupId, { type: 'message.new', data: m });
+    // The real server describes the photo in the background; the mock just fills it in.
+    setTimeout(() => {
+      m.image_description = 'A photo shared in the chat.';
+    }, 800);
     return clone(m);
   },
 
@@ -709,19 +775,18 @@ export const mockApi: Api = {
     const g = groupOf(groupId);
     if (!g.members.some((m) => m.user_id === userId)) throw new Error(`${userId} is not a member of group ${groupId}`);
     let call = activeCall(groupId);
+    const fresh = !call;
     if (!call) {
-      call = { id: nextCallId++, group_id: groupId, started_by: userId, started_at: new Date().toISOString(), ended_at: null, members: [], transcripts: new Map() };
+      call = { id: nextCallId++, group_id: groupId, started_by: userId, started_at: new Date().toISOString(), ended_at: null, members: [], turns: new Map(), scripted: new Set(), timers: [] };
       calls.set(call.id, call);
     }
-    const attendeeId = `mock-${call.id}-${userId}`;
-    const existing = call.members.find((m) => m.user.id === userId);
-    if (existing) existing.left_at = null;
-    else call.members.push({ user: clone(userById.get(userId)!), attendee_id: attendeeId, joined_at: new Date().toISOString(), left_at: null });
+    addMember(call, userId);
+    if (fresh) playScript(call, userId);
     fanOut(groupId, { type: 'call.updated', data: callView(call) });
     return {
       call: callView(call),
       meeting: { MeetingId: `mock-meeting-${call.id}`, MediaRegion: 'us-east-1' },
-      attendee: { AttendeeId: attendeeId, ExternalUserId: userId },
+      attendee: { AttendeeId: `mock-${call.id}-${userId}`, ExternalUserId: userId },
     };
   },
 
@@ -729,30 +794,24 @@ export const mockApi: Api = {
     await latency();
     const call = calls.get(callId);
     if (!call) throw new Error('Call not found');
+    const now = new Date().toISOString();
     const member = call.members.find((m) => m.user.id === userId && !m.left_at);
-    if (member) member.left_at = new Date().toISOString();
-    if (!call.ended_at && call.members.every((m) => m.left_at)) call.ended_at = new Date().toISOString();
+    if (member) member.left_at = now;
+    // Scripted members leave with the last real one.
+    if (!call.ended_at && call.members.every((m) => m.left_at || call.scripted.has(m.user.id))) {
+      call.timers.splice(0).forEach(clearTimeout);
+      call.members.forEach((m) => (m.left_at ??= now));
+      call.ended_at = now;
+    }
     fanOut(call.group_id, { type: 'call.updated', data: callView(call) });
     return callView(call);
-  },
-
-  async sendTranscripts(callId, _userId, results) {
-    const call = calls.get(callId);
-    if (!call) throw new Error('Call not found');
-    let stored = 0;
-    for (const r of results) {
-      if (r.isPartial || call.transcripts.get(r.resultId)?.isPartial === false) continue;
-      call.transcripts.set(r.resultId, clone(r));
-      stored++;
-    }
-    return { stored };
   },
 
   async explainCall(callId, body, signal) {
     await sleep(900 + Math.random() * 700, signal);
     const call = calls.get(callId);
     if (!call) throw new Error('Call not found');
-    const result = mockExplainCall(call, body.user_id, body.at_ms, body.pending_results ?? []);
+    const result = mockExplainCall(call, body.user_id, body.at_ms);
     explanations.set(result.explanation_id, { term: result.term, meaning: result.meaning, status: result.status });
     return result;
   },

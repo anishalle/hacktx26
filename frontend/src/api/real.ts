@@ -78,6 +78,41 @@ const get = <T>(path: string, query?: Query, signal?: AbortSignal) => request<T>
 const post = <T>(path: string, body: unknown, signal?: AbortSignal, query?: Query) =>
   request<T>('POST', path, { body, signal, query });
 
+/**
+ * Multipart photo upload. Uses XMLHttpRequest: Expo replaces the global fetch, and its FormData
+ * only takes Blobs, while React Native's own networking (behind XHR) sends `{ uri }` file parts.
+ */
+function sendPhoto(
+  groupId: number,
+  body: { sender_id: string; uri: string; text?: string; reply_to?: number | null },
+): Promise<Message> {
+  const form = new FormData();
+  form.append('file', { uri: body.uri, name: 'photo.jpg', type: 'image/jpeg' } as unknown as Blob);
+  form.append('sender_id', body.sender_id);
+  if (body.text) form.append('text', body.text);
+  if (body.reply_to != null) form.append('reply_to', String(body.reply_to));
+  const path = `/groups/${groupId}/photos`;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url(path));
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.onload = () => {
+      let json: unknown = null;
+      try {
+        json = JSON.parse(xhr.responseText);
+      } catch {
+        // non-JSON body
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(json as Message);
+      const detail = (json as { detail?: unknown } | null)?.detail;
+      const text = typeof detail === 'string' ? detail : detail ? JSON.stringify(detail) : `${xhr.status}`;
+      reject(new ApiError(xhr.status, `POST ${path}: ${text}`));
+    };
+    xhr.onerror = () => reject(new ApiError(0, `POST ${path}: network error`));
+    xhr.send(form);
+  });
+}
+
 async function* catchupStream(
   body: { group_id: number; user_id: string; since_message_id?: number },
   signal?: AbortSignal,
@@ -169,6 +204,7 @@ export const realApi: Api = {
   getMessages: (groupId, q: MessageQuery = {}, signal) =>
     get<MessagePage>(`/groups/${groupId}/messages`, { limit: 50, ...q }, signal),
   sendMessage: (groupId, body) => post<Message>(`/groups/${groupId}/messages`, body),
+  sendPhoto,
   toggleReaction: (groupId, messageId, body) => post<Message>(`/groups/${groupId}/messages/${messageId}/reactions`, body),
   markRead: (groupId, body) => post<void>(`/groups/${groupId}/read`, body),
   getGlossary: (groupId) => get<GlossaryEntry[]>(`/groups/${groupId}/glossary`),
@@ -191,8 +227,6 @@ export const realApi: Api = {
   getCall: (groupId) => get<Call | null>(`/groups/${groupId}/call`),
   joinCall: (groupId, userId) => post<CallJoin>(`/groups/${groupId}/call`, { user_id: userId }),
   leaveCall: (callId, userId) => post<Call>(`/calls/${callId}/leave`, { user_id: userId }),
-  sendTranscripts: (callId, userId, results) =>
-    post<{ stored: number }>(`/calls/${callId}/transcripts`, { user_id: userId, results }),
   explainCall: (callId, body, signal) => post<Explanation>(`/calls/${callId}/explain`, body, signal),
 
   connectRealtime,

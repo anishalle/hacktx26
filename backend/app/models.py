@@ -78,6 +78,12 @@ class Membership(Base):
     user: Mapped[User] = relationship(lazy="joined")
 
 
+# Search covers a photo's description too (the migration in app/core/db.py matches).
+TSV_EXPRESSION = (
+    "to_tsvector('english', text || ' ' || coalesce(image_description, ''))"
+)
+
+
 class Message(Base):
     __tablename__ = "messages"
     __table_args__ = (
@@ -90,14 +96,19 @@ class Message(Base):
     sender_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )
-    kind: Mapped[str] = mapped_column(String(16), default="text")
-    text: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(String(16), default="text")  # text|system|photo
+    text: Mapped[str] = mapped_column(Text)  # a photo's caption ("" if none)
     ts: Mapped[datetime] = _now()
     reply_to: Mapped[int | None] = mapped_column(
         ForeignKey("messages.id", ondelete="SET NULL")
     )
+    image_path: Mapped[str | None] = mapped_column(Text)  # file name in MEDIA_DIR
+    image_width: Mapped[int | None]
+    image_height: Mapped[int | None]
+    image_description: Mapped[str | None] = mapped_column(Text)  # Muse, after upload
     tsv: Mapped[Any] = mapped_column(
-        TSVECTOR, Computed("to_tsvector('english', text)", persisted=True)
+        TSVECTOR,
+        Computed(TSV_EXPRESSION, persisted=True),
     )
 
     reactions: Mapped[list["Reaction"]] = relationship(

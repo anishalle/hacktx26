@@ -1,16 +1,20 @@
 import time
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 from httpx import AsyncClient
+from httpx_ws import AsyncWebSocketSession, WebSocketDisconnect, aconnect_ws
+from httpx_ws.transport import ASGIWebSocketTransport
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.main import app
 from app.models import Call, CallTranscript, Glossary
 from app.seed import LoadedFixture
-from app.services import calls, llm, nudge
+from app.services import calls, captions, llm, nudge
 from tests.conftest import WsConnect
 
 URL = "/api/v1"
@@ -27,30 +31,6 @@ def now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def result(
-    rid: str, speaker: str, text: str, start: int, *, partial: bool = False
-) -> dict[str, Any]:
-    """A Chime result with one 300 ms word item per word, starting at `start`."""
-    words = text.split()
-    items = [
-        {
-            "type": "pronunciation",
-            "content": w,
-            "startTimeMs": start + i * 300,
-            "endTimeMs": start + i * 300 + 250,
-            "attendee": {"attendeeId": f"a-{speaker}", "externalUserId": speaker},
-        }
-        for i, w in enumerate(words)
-    ]
-    return {
-        "resultId": rid,
-        "isPartial": partial,
-        "startTimeMs": start,
-        "endTimeMs": start + max(len(words), 1) * 300,
-        "alternatives": [{"transcript": text, "items": items}],
-    }
-
-
 async def _join(client: AsyncClient, gid: int, user: str) -> dict[str, Any]:
     resp = await client.post(f"{URL}/groups/{gid}/call", json={"user_id": user})
     assert resp.status_code == 200, resp.text
@@ -64,6 +44,41 @@ async def _backdate(session: AsyncSession, call_id: int, minutes: int = 10) -> N
         .values(started_at=datetime.now(UTC) - timedelta(minutes=minutes))
     )
     await session.commit()
+
+
+async def _say(
+    session: AsyncSession, call_id: int, user: str, text: str, start_ms: int
+) -> None:
+    """Store a finished turn, as the captions relay does."""
+    end_ms = start_ms + 300 * len(text.split())
+    session.add(
+        CallTranscript(
+            call_id=call_id,
+            result_id=f"t-{user}-{start_ms}",
+            speaker_id=user,
+            start_ms=start_ms,
+            end_ms=end_ms,
+            text=text,
+            items=captions.word_items(user, text, start_ms, end_ms),
+            is_partial=False,
+        )
+    )
+    await session.commit()
+
+
+@asynccontextmanager
+async def _mic(call_id: int, user: str) -> AsyncIterator[AsyncWebSocketSession]:
+    transport = ASGIWebSocketTransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with aconnect_ws(f"{URL}/calls/{call_id}/audio?user_id={user}", c) as ws:
+            yield ws
+
+
+async def _caption(ws: AsyncWebSocketSession) -> dict[str, Any]:
+    while True:
+        frame = await ws.receive_json(timeout=2)
+        if frame["type"] == "call.caption":
+            return frame["data"]
 
 
 # ---------------------------------------------------------------- lifecycle
@@ -86,7 +101,6 @@ async def test_start_join_leave_and_end(
 
     call_id = first["call"]["id"]
     meeting_id = first["meeting"]["MeetingId"]
-    assert meeting_id in fake_chime.transcribing  # transcription starts with the call
     assert first["attendee"]["ExternalUserId"] == "swayam"
     assert first["call"]["started_by"] == "swayam"
 
@@ -117,88 +131,94 @@ async def test_meeting_gone_starts_a_new_call(
     assert second["call"]["id"] != first["call"]["id"]
 
 
-async def test_only_group_members_can_call(
+async def test_only_call_members_can_call_or_stream(
     client: AsyncClient, sample: LoadedFixture
 ) -> None:
     gid = sample.group_id("volleyball")
     resp = await client.post(f"{URL}/groups/{gid}/call", json={"user_id": "nobody"})
     assert resp.status_code in (403, 404)
     call_id = (await _join(client, gid, "swayam"))["call"]["id"]
+    # in the group, not on the call: the socket is refused (surfaces as a group)
+    with pytest.raises((WebSocketDisconnect, ExceptionGroup)):
+        async with _mic(call_id, "maya") as ws:
+            await ws.receive_json(timeout=2)
     dm = sample.group_id("dm_maya_jordan")
-    resp = await client.post(
-        f"{URL}/calls/{call_id}/transcripts", json={"user_id": "nobody", "results": []}
-    )
-    assert resp.status_code in (403, 404)
     assert (await client.get(f"{URL}/groups/{dm}/call")).json() is None
 
 
-# --------------------------------------------------------------- transcripts
+# ------------------------------------------------------------------ captions
 
 
-async def test_finals_dedupe_and_never_regress(
-    client: AsyncClient, session: AsyncSession, sample: LoadedFixture
+async def test_mic_stream_becomes_captions_and_turns(
+    client: AsyncClient,
+    session: AsyncSession,
+    ws_connect: WsConnect,
+    sample: LoadedFixture,
 ) -> None:
     gid = sample.group_id("volleyball")
     call_id = (await _join(client, gid, "swayam"))["call"]["id"]
-    t = now_ms() - 3000
-    final = result("r1", "swayam", "grandma's after the game", t)
-    url = f"{URL}/calls/{call_id}/transcripts"
+    await _join(client, gid, "priya")
 
-    for user in ("swayam", "priya"):  # every client forwards the same final
-        resp = await client.post(url, json={"user_id": user, "results": [final]})
-        assert resp.json() == {"stored": 1}
-    partial = result("r2", "swayam", "bring", t + 1500, partial=True)
-    resp = await client.post(url, json={"user_id": "swayam", "results": [partial]})
-    assert resp.json() == {"stored": 0}  # partials are captions only
+    async with ws_connect("priya") as priya, _mic(call_id, "swayam") as mic:
+        assert await mic.receive_json(timeout=2) == {"type": "ready"}
+        await mic.send_bytes(b"grandmas after")
+        first = await _caption(priya)
+        await mic.send_bytes(b"the game")
+        second = await _caption(priya)
+        assert captions.live_turns[call_id]  # mid-sentence: visible to the ? button
+        await mic.send_bytes(b"")  # end of turn
+        done = await _caption(priya)
 
-    # a late partial for r1 (via the ? button's pending results) can't overwrite it
-    late = result("r1", "swayam", "grandma's", t, partial=True)
-    await client.post(
-        f"{URL}/calls/{call_id}/explain",
-        json={
-            "user_id": "priya",
-            "at_ms": now_ms() - 60_000,
-            "pending_results": [late],
-        },
+    assert (first["user_id"], first["text"], first["final"]) == (
+        "swayam",
+        "grandmas after",
+        False,
     )
+    assert second["text"] == "grandmas after the game"  # cumulative within a turn
+    assert second["turn_id"] == first["turn_id"]
+    assert (done["text"], done["final"]) == ("grandmas after the game", True)
     rows = (await session.scalars(select(CallTranscript))).all()
-    assert [(r.result_id, r.text, r.is_partial, r.speaker_id) for r in rows] == [
-        ("r1", "grandma's after the game", False, "swayam")
+    assert [(r.speaker_id, r.text, r.is_partial) for r in rows] == [
+        ("swayam", "grandmas after the game", False)
     ]
+    assert [i["content"] for i in rows[0].items] == ["grandmas", "after", "the", "game"]
 
-    old = result("r3", "swayam", "too old", t - 3_600_000)
-    resp = await client.post(url, json={"user_id": "swayam", "results": [old]})
-    assert resp.status_code == 422
-    future = result("r4", "swayam", "from the future", now_ms() + 60_000)
-    resp = await client.post(url, json={"user_id": "swayam", "results": [future]})
-    assert resp.status_code == 422
+
+async def test_muse_reconnects_for_the_same_mic(
+    client: AsyncClient,
+    sample: LoadedFixture,
+    fake_asr: captions.FakeASR,
+) -> None:
+    gid = sample.group_id("volleyball")
+    call_id = (await _join(client, gid, "swayam"))["call"]["id"]
+    async with _mic(call_id, "swayam") as mic:
+        assert await mic.receive_json(timeout=2) == {"type": "ready"}
+        await fake_asr.sessions[0].close()  # Muse ends the session (60 min limit)
+        assert await mic.receive_json(timeout=2) == {"type": "ready"}
+    assert len(fake_asr.sessions) == 2
+    assert "Grandma" in fake_asr.sessions[0].keywords  # glossary guides spelling
 
 
 def test_clip_keeps_only_words_inside_the_window() -> None:
     t = 1_000_000
     rows = [
         CallTranscript(
-            result_id="r1",
             speaker_id="swayam",
             start_ms=t,
             end_ms=t + 1200,
             text="meet at grandma's later",
-            items=result("r1", "swayam", "meet at grandma's later", t)["alternatives"][
-                0
-            ]["items"],
-            is_partial=False,
+            items=captions.word_items("swayam", "meet at grandma's later", t, t + 1200),
         ),
         CallTranscript(
-            result_id="r2",
             speaker_id=None,
             start_ms=t + 2000,
             end_ms=t + 3000,
             text="no word timings",
             items=[],
-            is_partial=False,
         ),
     ]
-    assert calls.clip(rows, t + 600, t + 950) == [("swayam", "grandma's later")]
+    # words are 300 ms apart: "at" ends at t+600, "later" starts at t+900
+    assert calls.clip(rows, t + 601, t + 950) == [("swayam", "grandma's later")]
     assert calls.clip(rows, t, t + 3000) == [
         ("swayam", "meet at grandma's later"),
         (None, "no word timings"),
@@ -222,17 +242,14 @@ async def test_question_button_explains_with_chat_history(
     grandma = await session.scalar(select(Glossary).where(Glossary.term == "Grandma"))
     assert grandma is not None
     at = now_ms()
-    await client.post(
-        f"{URL}/calls/{call_id}/transcripts",
-        json={
-            "user_id": "swayam",
-            "results": [
-                result("bg", "jordan", "ok who is bringing snacks", at - 90_000),
-                result("old", "maya", "this is way too old", at - 400_000),
-            ],
-        },
-    )
-    pending = [result("now", "swayam", "grandma's after the game", at - 4000)]
+    await _say(session, call_id, "jordan", "ok who is bringing snacks", at - 90_000)
+    await _say(session, call_id, "maya", "this is way too old", at - 400_000)
+    # swayam is mid-sentence when priya taps ?
+    captions.live_turns[call_id] = {
+        "swayam:0:0": captions.LiveTurn(
+            "swayam", "grandma's after the game", at - 4000, at - 2800
+        )
+    }
 
     def answer(call: llm.LLMCall) -> dict[str, Any]:
         assert "CALL BACKGROUND:\n[T1 Jordan" in call.user
@@ -251,8 +268,7 @@ async def test_question_button_explains_with_chat_history(
 
     fake_llm.handler = answer
     resp = await client.post(
-        f"{URL}/calls/{call_id}/explain",
-        json={"user_id": "priya", "at_ms": at, "pending_results": pending},
+        f"{URL}/calls/{call_id}/explain", json={"user_id": "priya", "at_ms": at}
     )
     assert resp.status_code == 200, resp.text
     out = resp.json()
@@ -287,17 +303,20 @@ async def test_question_button_explains_with_chat_history(
 
 
 async def test_unknown_on_a_call_says_what_it_heard(
-    client: AsyncClient, sample: LoadedFixture, fake_llm: llm.FakeLLM
+    client: AsyncClient,
+    session: AsyncSession,
+    sample: LoadedFixture,
+    fake_llm: llm.FakeLLM,
 ) -> None:
     gid = sample.group_id("volleyball")
     call_id = (await _join(client, gid, "jordan"))["call"]["id"]
     await _join(client, gid, "priya")
-    pending = [result("p", "jordan", "bro you're getting procs", now_ms() - 3000)]
+    await _say(session, call_id, "jordan", "bro you're getting procs", now_ms() - 3000)
     fake_llm.queue({"term": "procs", "meaning": "?", "kind": "unknown", "said_in": 1})
     out = (
         await client.post(
             f"{URL}/calls/{call_id}/explain",
-            json={"user_id": "priya", "at_ms": now_ms(), "pending_results": pending},
+            json={"user_id": "priya", "at_ms": now_ms()},
         )
     ).json()
     assert out["status"] == "unknown"

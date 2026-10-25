@@ -8,8 +8,8 @@
 - Every test has a FakeLLM installed (an unexpected LLM call fails the test);
   request `fake_llm` to script it. See app/services/llm.py.
 - Every test has a FakeEmbedder installed (never Bedrock); see
-  app/services/embeddings.py. Likewise a FakeChime (never AWS); see
-  app/services/calls.py.
+  app/services/embeddings.py. Likewise a FakeChime (never AWS) and a FakeASR (never
+  Muse); see app/services/calls.py and app/services/captions.py.
 """
 
 import json
@@ -32,7 +32,7 @@ from app.core.config import settings
 from app.main import app
 from app.models import Base
 from app.seed import FIXTURES_DIR, LoadedFixture, load_fixture_data
-from app.services import calls, embeddings, llm
+from app.services import calls, captions, embeddings, llm
 from app.services.realtime import hub
 
 LoadFixture = Callable[..., Awaitable[LoadedFixture]]
@@ -100,6 +100,15 @@ def fake_chime() -> Iterator[calls.FakeChime]:
     calls.set_chime(fake)
     yield fake
     calls.set_chime(None)
+
+
+@pytest.fixture(autouse=True)
+def fake_asr() -> Iterator[captions.FakeASR]:
+    fake = captions.FakeASR()
+    captions.set_asr(fake.open)
+    yield fake
+    captions.set_asr(None)
+    captions.live_turns.clear()
 
 
 @pytest.fixture

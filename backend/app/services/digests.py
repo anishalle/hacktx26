@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Select, func, select, text
+from sqlalchemy import Select, case, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -63,13 +63,29 @@ class Chunk:
     end_id: int
 
 
+def message_text(m: Any = Message) -> Any:
+    """How the AI reads a message: a photo is `[photo: <description>] <caption>`.
+    Takes the Message class (a SQL expression) or a Message row (a string)."""
+    if m is Message:
+        described = func.concat(
+            "[photo: ",
+            func.coalesce(Message.image_description, "not described yet"),
+            "] ",
+            Message.text,
+        )
+        return case((Message.kind == "photo", described), else_=Message.text)
+    if m.kind != "photo":
+        return m.text
+    return f"[photo: {m.image_description or 'not described yet'}] {m.text}".strip()
+
+
 def lines_query(group_id: int) -> Select[Any]:
     """Select Line columns for a group's messages; callers add filters and order."""
     return (
         select(
             Message.id,
             Message.ts,
-            Message.text,
+            message_text().label("text"),
             func.coalesce(User.display_name, "system").label("name"),
         )
         .outerjoin(User, User.id == Message.sender_id)

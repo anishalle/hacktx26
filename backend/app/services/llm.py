@@ -42,12 +42,21 @@ class LLMCall:
     effort: str | None
     json_mode: bool
     stream: bool = False
+    images: list[str] = field(default_factory=list)  # data: URLs sent with `user`
 
 
 class LLMBackend(Protocol):
     async def complete(self, call: LLMCall) -> str: ...
 
     def stream(self, call: LLMCall) -> AsyncIterator[str]: ...
+
+
+def _content(call: LLMCall) -> str | list[dict[str, Any]]:
+    if not call.images:
+        return call.user
+    return [{"type": "text", "text": call.user}] + [
+        {"type": "image_url", "image_url": {"url": url}} for url in call.images
+    ]
 
 
 class OpenAIBackend:
@@ -72,7 +81,7 @@ class OpenAIBackend:
             "model": settings.LLM_MODEL,
             "messages": [
                 {"role": "system", "content": call.system},
-                {"role": "user", "content": call.user},
+                {"role": "user", "content": _content(call)},
             ],
             "max_tokens": call.max_tokens,
         }
@@ -177,10 +186,17 @@ def _effort(effort: str | None) -> str | None:
 
 
 async def complete_json(
-    system: str, user: str, *, max_tokens: int = 3000, effort: str | None = None
+    system: str,
+    user: str,
+    *,
+    max_tokens: int = 3000,
+    effort: str | None = None,
+    images: list[str] | None = None,
 ) -> dict[str, Any]:
     """JSON-object completion; retries once if the reply doesn't parse."""
-    call = LLMCall(system, user, max_tokens, _effort(effort), json_mode=True)
+    call = LLMCall(
+        system, user, max_tokens, _effort(effort), json_mode=True, images=images or []
+    )
     for attempt in range(2):
         text = await asyncio.wait_for(
             _backend.complete(call), settings.LLM_TIMEOUT_S + 5
@@ -193,9 +209,17 @@ async def complete_json(
 
 
 async def complete_text(
-    system: str, user: str, *, max_tokens: int = 3000, effort: str | None = None
+    system: str,
+    user: str,
+    *,
+    max_tokens: int = 3000,
+    effort: str | None = None,
+    images: list[str] | None = None,
 ) -> str:
-    call = LLMCall(system, user, max_tokens, _effort(effort), json_mode=False)
+    """Plain-text completion; `images` are data: URLs Muse looks at with `user`."""
+    call = LLMCall(
+        system, user, max_tokens, _effort(effort), json_mode=False, images=images or []
+    )
     return await asyncio.wait_for(_backend.complete(call), settings.LLM_TIMEOUT_S + 5)
 
 

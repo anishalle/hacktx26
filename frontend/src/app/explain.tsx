@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -20,7 +21,7 @@ const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { m
 
 /** Feature 1: a private explanation of one message (or a bare term from catch-up). Never posts anything. */
 export default function ExplainSheet() {
-  const params = useLocalSearchParams<{ groupId: string; messageId?: string; text?: string; term?: string }>();
+  const params = useLocalSearchParams<{ groupId: string; messageId?: string; text?: string; term?: string; image?: string }>();
   const groupId = Number(params.groupId);
   const messageId = params.messageId ? Number(params.messageId) : undefined;
   const router = useRouter();
@@ -98,7 +99,16 @@ export default function ExplainSheet() {
         {phase === 'loading' ? <ActivityIndicator color={colors.textSecondary} /> : null}
       </View>
 
-      {quote ? (
+      {params.image ? (
+        <View style={styles.photoQuote}>
+          <Image source={{ uri: params.image }} style={styles.photoThumb} contentFit="cover" />
+          {params.text && params.text !== 'Photo' ? (
+            <Text style={[styles.quoteText, { flex: 1 }]} numberOfLines={4}>
+              “{params.text}”
+            </Text>
+          ) : null}
+        </View>
+      ) : quote ? (
         <View style={styles.quote}>
           <Text style={styles.quoteText} numberOfLines={4}>
             {params.term && !params.text ? quote : `“${quote}”`}
@@ -209,9 +219,18 @@ function SourceRow({ message, sender, meId, onPress }: { message: Message; sende
         <Text style={styles.sourceMeta}>
           {name} · {shortDate(message.ts)}
         </Text>
-        <Text style={styles.sourceText} numberOfLines={3}>
-          {message.text}
-        </Text>
+        {message.image ? (
+          <View style={styles.sourcePhoto}>
+            <Image source={{ uri: message.image.url }} style={styles.sourceThumb} contentFit="cover" />
+            <Text style={[styles.sourceText, { flex: 1 }]} numberOfLines={3}>
+              {message.text || 'Photo'}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.sourceText} numberOfLines={3}>
+            {message.text}
+          </Text>
+        )}
       </View>
       <Icon name="arrow.up.forward" size={12} color={colors.textTertiary} style={{ marginTop: 4 }} />
     </Pressable>
@@ -387,6 +406,10 @@ const styles = StyleSheet.create({
   subtitle: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
   quote: { borderLeftWidth: 3, borderLeftColor: colors.sparkle, paddingLeft: 12, paddingVertical: 2, marginBottom: 6 },
   quoteText: { color: colors.textSecondary, fontSize: 15, fontStyle: 'italic', lineHeight: 21 },
+  photoQuote: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 },
+  photoThumb: { width: 72, height: 72, borderRadius: 12, backgroundColor: colors.surface },
+  sourcePhoto: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  sourceThumb: { width: 40, height: 40, borderRadius: 8, backgroundColor: colors.surface },
   meaningCard: { marginTop: 10, gap: 10 },
   label: { color: colors.sparkle, fontSize: 13, fontWeight: '600' },
   meaning: { color: colors.text, fontSize: 17, lineHeight: 24 },

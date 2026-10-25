@@ -24,8 +24,8 @@ The LLM is Meta's Muse through the OpenAI-compatible Meta Model API (`MODEL_API_
 Titan v2 through the default AWS credential chain (`aws configure`, region `AWS_REGION`, default
 `us-east-1`); without credentials, hold-to-explain retrieval is full-text only. Environment variables
 override `.env`.
-Feature 4 (calls) uses Amazon Chime SDK meetings with live transcription through the same AWS
-credentials; see "Calls" below.
+Feature 4 (calls) uses Amazon Chime SDK meetings through the same AWS credentials and Muse
+realtime speech-to-text for captions; see "Calls" below.
 The shared database is Postgres + pgvector on Timescale Cloud: paste its `postgres://...?sslmode=require`
 connection string into `DATABASE_URL` as-is. It listens on a non-standard port that some venue
 Wi-Fi blocks; use a VPN or hotspot if connections time out. Running `app.seed` against it wipes
@@ -89,6 +89,13 @@ docker run --rm -p 8000:8000 --env-file .env hacktx26
 
 Inside Docker, `localhost` in `DATABASE_URL` is the container itself; use `host.docker.internal`.
 
+## Photos
+
+Photo messages are stored under `MEDIA_DIR` (default `backend/media`, gitignored; a Docker volume on
+the homelab) and served at `/api/v1/media/<name>`; `PUBLIC_URL` sets the origin in their URLs. Muse
+describes each photo after upload, and that description is how every AI feature sees it. New
+columns are added to an existing database on startup (`app/core/db.py` `UPGRADES`).
+
 ## Calls
 
 Group calls (feature 4) run on Amazon Chime through a local Expo module
@@ -100,8 +107,9 @@ cd frontend
 npx expo run:ios                           # build and install the dev build (Simulator or a device)
 ```
 
-The backend's AWS identity needs `chime:CreateMeeting`, `CreateAttendee`, `DeleteAttendee`,
-`DeleteMeeting` and `StartMeetingTranscription`. A real call needs two devices with microphones.
+The backend's AWS identity needs `chime:CreateMeeting`, `CreateAttendee`, `DeleteAttendee` and
+`DeleteMeeting`. Captions use Muse realtime speech-to-text through the same `MODEL_API_KEY`: each
+phone streams its own mic to `/calls/{id}/audio`. A real call needs two devices with microphones.
 
 ## Frontend
 

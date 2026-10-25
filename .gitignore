@@ -12,3 +12,4 @@ backend/scripts/.cache/
 
 # agent worktrees
 .claude/worktrees/
+backend/media/

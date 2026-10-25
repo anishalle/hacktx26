@@ -22,6 +22,7 @@ if settings.SENTRY_DSN and settings.FASTAPI_ENV != "development":
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    settings.MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     await db.init_db()
     yield
     await db.engine.dispose()

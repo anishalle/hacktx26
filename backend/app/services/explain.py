@@ -15,6 +15,8 @@ left uncited or below MIN_CONFIDENCE becomes "unknown", which offers a private a
 (app/services/asks.py). Follow-ups reuse the stored context snapshot.
 """
 
+import asyncio
+import base64
 import logging
 import re
 from dataclasses import asdict, dataclass, field
@@ -26,6 +28,7 @@ from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
+from app.core.config import settings
 from app.models import Explanation, Glossary, MemberAsk, Membership, Message, User
 from app.services import asks, embeddings, llm, nudge
 from app.services.digests import (
@@ -34,6 +37,7 @@ from app.services.digests import (
     fetch_lines,
     lines_query,
     local,
+    message_text,
     render_lines,
 )
 from app.services.messages import require_member, require_message
@@ -94,6 +98,13 @@ claim needs one.
 "slang" (or the right kind), the general meaning in `meaning`.
 - Otherwise, when the evidence doesn't explain it: kind "unknown", confidence below \
 0.4. Never guess at an inside reference.
+- PHOTO (the pressed message is `[photo: ...]` and the image is attached): explain it \
+for someone who may not know internet culture or the group, e.g. an older relative. \
+Say in plain words what it shows, what it means (a meme, a reaction image, an inside \
+reference; general knowledge is fine for a well-known meme, then set general true), \
+and why the sender posted it right then, from the messages around it (cite them). \
+`term` is the meme or reference if there is one. A photo is never kind "plain" unless \
+it really is just a picture of something, and then still say why it was sent.
 - FOLLOW-UP QUESTION present: answer that question about this message in 1-3 \
 sentences with the same rules; `term` stays the main term."""
 
@@ -115,6 +126,7 @@ class Context:
     call_id: int | None = None
     transcript: dict[int, str | None] = field(default_factory=dict)  # T<n> -> speaker
     heard: str | None = None  # the newest call line, for "I caught: ..."
+    image_path: str | None = None  # explaining a photo: Muse sees the image itself
 
     def snapshot(self) -> dict[str, Any]:
         return asdict(self)
@@ -171,10 +183,10 @@ async def _expand(
             """SELECT a.anchor, min(w.id), max(w.id)
             FROM unnest(CAST(:anchors AS bigint[])) AS a(anchor)
             CROSS JOIN LATERAL (
-              (SELECT id FROM messages WHERE group_id = :g AND kind = 'text'
+              (SELECT id FROM messages WHERE group_id = :g AND kind <> 'system'
                  AND id <= a.anchor ORDER BY id DESC LIMIT :before)
               UNION ALL
-              (SELECT id FROM messages WHERE group_id = :g AND kind = 'text'
+              (SELECT id FROM messages WHERE group_id = :g AND kind <> 'system'
                  AND id > a.anchor ORDER BY id LIMIT :after)
             ) AS w
             GROUP BY a.anchor"""
@@ -196,7 +208,7 @@ async def _term_hits(
         return []
     stmt = select(Message.id).where(
         Message.group_id == group_id,
-        Message.kind == "text",
+        Message.kind != "system",
         Message.tsv.op("@@")(func.websearch_to_tsquery("english", query)),
     )
     if exclude is not None:
@@ -221,7 +233,7 @@ async def _text_hits(
         select(Message.id)
         .where(
             Message.group_id == group_id,
-            Message.kind == "text",
+            Message.kind != "system",
             Message.id != (exclude if exclude is not None else -1),
             Message.tsv.op("@@")(tsq),
         )
@@ -261,7 +273,7 @@ async def build_context(
     if call:
         subject = " ".join(line.text for line in call.focus)
     else:
-        subject = message.text if message else term or ""
+        subject = message_text(message) if message else term or ""
 
     matched = {m.term.id: m.term for m in index.find(subject)}
     if term and (known := index.resolve(term)):
@@ -356,7 +368,7 @@ async def build_context(
         near = await fetch_lines(
             session,
             lines_query(group_id)
-            .where(Message.kind == "text", Message.id.between(lo, hi))
+            .where(Message.kind != "system", Message.id.between(lo, hi))
             .order_by(Message.id),
         )
         shown = {line.id for line in near}
@@ -373,7 +385,7 @@ async def build_context(
         window = await fetch_lines(
             session,
             lines_query(group_id)
-            .where(Message.kind == "text", Message.id.between(lo, hi))
+            .where(Message.kind != "system", Message.id.between(lo, hi))
             .order_by(Message.id),
         )
         new = [line for line in window if line.id not in shown]
@@ -408,6 +420,7 @@ async def build_context(
         call_id=call.call_id if call else None,
         transcript=transcript,
         heard=call.focus[-1].text if call else None,
+        image_path=message.image_path if message and message.kind == "photo" else None,
     )
 
 
@@ -483,8 +496,10 @@ def ground(
     lines = [n for n in lines if n != said_in]  # a phrase can't explain itself
     cited = bool(msgs or gloss or answers or lines)
 
-    if meaning and kind == "plain" and not follow_up:
-        status: schemas.ExplainStatus = "plain"
+    if meaning and kind == "plain" and not follow_up and ctx.image_path:
+        status: schemas.ExplainStatus = "explained"  # what it shows + why it was sent
+    elif meaning and kind == "plain" and not follow_up:
+        status = "plain"
         term = None
     elif meaning and data.get("general") is True and kind not in ("plain", "unknown"):
         status = "general"
@@ -543,10 +558,21 @@ async def _ask_target(
     )
 
 
-async def _generate(user_prompt: str) -> dict[str, Any]:
+async def _photo_url(path: str) -> str | None:
+    try:
+        jpeg = await asyncio.to_thread((settings.MEDIA_DIR / path).read_bytes)
+    except OSError:
+        log.warning("explain: photo %s is missing", path)
+        return None
+    return "data:image/jpeg;base64," + base64.b64encode(jpeg).decode()
+
+
+async def _generate(user_prompt: str, images: list[str]) -> dict[str, Any]:
     try:
         return await nudge.hedged(
-            lambda: llm.complete_json(EXPLAIN_SYSTEM, user_prompt, max_tokens=2500),
+            lambda: llm.complete_json(
+                EXPLAIN_SYSTEM, user_prompt, max_tokens=2500, images=images
+            ),
             hedge_after=HEDGE_S,
             timeout=TIMEOUT_S,
         )
@@ -582,8 +608,8 @@ async def explain(
         term = " ".join((body.term or "").split()) or None
         if message is None and term is None:
             raise HTTPException(422, "Send message_id or term")
-        if message is not None and message.kind != "text":
-            raise HTTPException(422, "Only text messages can be explained")
+        if message is not None and message.kind == "system":
+            raise HTTPException(422, "System messages can't be explained")
         ctx = await build_context(session, membership, message, term)
         previous = None
     return await answer(session, ctx, follow_up, previous, body.explanation_id)
@@ -615,7 +641,8 @@ async def answer(
         prompt += f"\n\nPREVIOUS ANSWER: {previous}\nFOLLOW-UP QUESTION: {follow_up}"
     await session.commit()  # don't hold a pooled connection across the LLM call
 
-    data = await _generate(prompt)
+    photo = await _photo_url(ctx.image_path) if ctx.image_path else None
+    data = await _generate(prompt, [photo] if photo else [])
     g = ground(data, ctx, {a.id for a in private}, follow_up=bool(follow_up))
 
     source_ids = list(g.message_ids)

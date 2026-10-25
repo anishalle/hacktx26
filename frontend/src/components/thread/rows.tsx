@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { memo, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
@@ -29,6 +30,7 @@ type MessageRowProps = {
   onReply: (m: Message) => void;
   onCopy: (m: Message) => void;
   onExplain: (m: Message) => void;
+  onOpenPhoto: (m: Message) => void;
 };
 
 function corners(run: RunPos, mine: boolean) {
@@ -62,8 +64,9 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
   const { width } = useWindowDimensions();
   const maxBubble = Math.round(width * (mine ? 0.74 : 0.72));
   const pending = m.id < 0;
+  const photo = m.kind === 'photo' && m.image ? m.image : null;
 
-  const bubble = (
+  const textBubble = (
     <Pressable
       onPress={() => {
         const now = Date.now();
@@ -85,6 +88,27 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
       </View>
     </Pressable>
   );
+
+  let bubble = textBubble;
+  if (photo) {
+    // Fit the photo in 65% of the width and 320 pt of height, keeping its shape.
+    const aspect = photo.width > 0 && photo.height > 0 ? photo.width / photo.height : 1;
+    const w = Math.min(width * 0.65, 320 * aspect);
+    bubble = (
+      <View style={{ alignItems: mine ? 'flex-end' : 'flex-start', gap: 2 }}>
+        <Pressable onPress={() => p.onOpenPhoto(m)} accessibilityRole="imagebutton" accessibilityLabel={m.image_description ?? 'Photo'}>
+          <Image
+            source={{ uri: photo.url }}
+            style={[styles.photo, { width: w, height: w / aspect }, pending && { opacity: 0.7 }]}
+            contentFit="cover"
+            transition={150}
+          />
+          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.photoFlash, { opacity: flash }]} />
+        </Pressable>
+        {m.text ? textBubble : null}
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.row, mine ? styles.rowMine : null, { marginTop: run === 'single' || run === 'first' ? 6 : 2 }]}>
@@ -199,6 +223,8 @@ const styles = StyleSheet.create({
   emojiWrap: { paddingHorizontal: 2 },
   emoji: { fontSize: 40, lineHeight: 48 },
   flash: { backgroundColor: 'rgba(255,255,255,0.28)' },
+  photo: { borderRadius: 18, backgroundColor: colors.bubbleIn },
+  photoFlash: { borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.28)' },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -49,8 +49,10 @@ async def test_messages_newest_page(client: AsyncClient, sample: LoadedFixture) 
     first = page["messages"][0]
     assert first["reply_to"] == sample.msg("volleyball", 11)
     assert set(first) == {
-        "id", "group_id", "sender_id", "kind", "text", "ts", "reply_to", "reactions"
+        "id", "group_id", "sender_id", "kind", "text", "ts", "reply_to", "reactions",
+        "image", "image_description",
     }  # fmt: skip
+    assert first["image"] is None and first["image_description"] is None
     canon = next(m for m in page["messages"] if m["id"] == sample.msg("volleyball", 13))
     assert {r["user_id"] for r in canon["reactions"]} == {"jordan", "maya", "leo"}
 

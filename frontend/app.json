@@ -29,7 +29,15 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-image"
+      "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pick photos to share in your group chats.",
+          "cameraPermission": "Your camera is used to share video in group calls.",
+          "microphonePermission": "Your microphone is used for group calls and their live captions."
+        }
+      ]
     ],
     "scheme": "hacktx26",
     "backgroundColor": "#000000",

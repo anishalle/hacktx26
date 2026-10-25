@@ -15,7 +15,14 @@ export function useExplain() {
         pathname: '/explain',
         params: {
           groupId: String(target.groupId),
-          ...(target.message ? { messageId: String(target.message.id), text: target.message.text } : {}),
+          ...(target.message
+            ? {
+                messageId: String(target.message.id),
+                // a photo shows as a thumbnail; its quote is the caption (or just "Photo")
+                text: target.message.kind === 'photo' ? target.message.text || 'Photo' : target.message.text,
+                ...(target.message.image ? { image: target.message.image.url } : {}),
+              }
+            : {}),
           ...(target.term ? { term: target.term } : {}),
         },
       });
