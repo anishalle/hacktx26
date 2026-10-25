@@ -6,3 +6,9 @@ __pycache__/
 .ruff_cache/
 dist/
 *.egg-info/
+
+# seed generator LLM cache and transcripts
+backend/scripts/.cache/
+
+# agent worktrees
+.claude/worktrees/

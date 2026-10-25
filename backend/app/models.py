@@ -1,9 +1,207 @@
-"""API schemas live here; add SQLModel table models when persistence is needed."""
+"""SQLAlchemy table models, mirroring the "Data model" section of docs/API.md."""
 
-from typing import Literal
+from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import (
+    BigInteger,
+    Computed,
+    DateTime,
+    Float,
+    ForeignKey,
+    Identity,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from app.core.config import settings
 
 
-class HealthResponse(BaseModel):
-    status: Literal["ok"]
+class Base(DeclarativeBase):
+    type_annotation_map = {datetime: DateTime(timezone=True)}
+
+
+def _group_fk() -> Any:
+    return ForeignKey("groups.id", ondelete="CASCADE")
+
+
+def _user_fk() -> Any:
+    return ForeignKey("users.id", ondelete="CASCADE")
+
+
+def _now() -> Any:
+    return mapped_column(server_default=func.now())
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True)
+    display_name: Mapped[str] = mapped_column(String(128))
+    avatar_url: Mapped[str | None] = mapped_column(Text)
+    phonetic_hint: Mapped[str | None] = mapped_column(Text)
+    pronunciation_audio_url: Mapped[str | None] = mapped_column(Text)
+
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    name: Mapped[str] = mapped_column(String(128))
+    avatar_url: Mapped[str | None] = mapped_column(Text)
+    is_dm: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = _now()
+
+    memberships: Mapped[list["Membership"]] = relationship(
+        back_populates="group", order_by="Membership.joined_at"
+    )
+
+
+class Membership(Base):
+    __tablename__ = "memberships"
+
+    group_id: Mapped[int] = mapped_column(_group_fk(), primary_key=True)
+    user_id: Mapped[str] = mapped_column(_user_fk(), primary_key=True, index=True)
+    joined_at: Mapped[datetime] = _now()
+    last_read_message_id: Mapped[int | None] = mapped_column(BigInteger)
+
+    group: Mapped[Group] = relationship(back_populates="memberships")
+    user: Mapped[User] = relationship(lazy="joined")
+
+
+class Message(Base):
+    __tablename__ = "messages"
+    __table_args__ = (
+        Index("ix_messages_group_id_id", "group_id", "id"),
+        Index("ix_messages_tsv", "tsv", postgresql_using="gin"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk())
+    sender_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    kind: Mapped[str] = mapped_column(String(16), default="text")
+    text: Mapped[str] = mapped_column(Text)
+    ts: Mapped[datetime] = _now()
+    reply_to: Mapped[int | None] = mapped_column(
+        ForeignKey("messages.id", ondelete="SET NULL")
+    )
+    tsv: Mapped[Any] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('english', text)", persisted=True)
+    )
+
+    reactions: Mapped[list["Reaction"]] = relationship(
+        order_by="Reaction.created_at", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class Reaction(Base):
+    __tablename__ = "reactions"
+
+    message_id: Mapped[int] = mapped_column(
+        ForeignKey("messages.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(_user_fk(), primary_key=True)
+    emoji: Mapped[str] = mapped_column(String(32), primary_key=True)
+    created_at: Mapped[datetime] = _now()
+
+
+class MessageWindow(Base):
+    __tablename__ = "message_windows"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk(), index=True)
+    start_message_id: Mapped[int] = mapped_column(BigInteger)
+    end_message_id: Mapped[int] = mapped_column(BigInteger)
+    text: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[Any | None] = mapped_column(Vector(settings.EMBEDDING_DIM))
+
+
+class Glossary(Base):
+    __tablename__ = "glossary"
+    __table_args__ = (
+        Index("uq_glossary_group_term", "group_id", text("lower(term)"), unique=True),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk())
+    term: Mapped[str] = mapped_column(Text)
+    aliases: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), default=list, server_default="{}"
+    )
+    meaning: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(String(32))
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    source: Mapped[str] = mapped_column(
+        String(16), default="auto"
+    )  # seed | auto | human
+    first_seen_ts: Mapped[datetime] = _now()
+    last_explained_ts: Mapped[datetime | None]
+    source_message_ids: Mapped[list[int]] = mapped_column(
+        ARRAY(BigInteger), default=list, server_default="{}"
+    )
+
+
+class NudgeDismissal(Base):
+    __tablename__ = "nudge_dismissals"
+
+    user_id: Mapped[str] = mapped_column(_user_fk(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk(), primary_key=True)
+    term: Mapped[str] = mapped_column(Text, primary_key=True)
+    created_at: Mapped[datetime] = _now()
+
+
+class ChunkDigest(Base):
+    __tablename__ = "chunk_digests"
+    __table_args__ = (UniqueConstraint("group_id", "start_message_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk())
+    start_message_id: Mapped[int] = mapped_column(BigInteger)
+    end_message_id: Mapped[int] = mapped_column(BigInteger)
+    start_ts: Mapped[datetime]
+    end_ts: Mapped[datetime]
+    message_count: Mapped[int]
+    digest: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = _now()
+
+
+class Explanation(Base):
+    __tablename__ = "explanations"
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk(), index=True)
+    user_id: Mapped[str] = mapped_column(_user_fk())
+    message_id: Mapped[int] = mapped_column(
+        ForeignKey("messages.id", ondelete="CASCADE")
+    )
+    answer: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = _now()
+
+
+class MemberAsk(Base):
+    __tablename__ = "member_asks"
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk(), index=True)
+    asked_user_id: Mapped[str] = mapped_column(_user_fk())
+    for_user_id: Mapped[str] = mapped_column(_user_fk())
+    term: Mapped[str] = mapped_column(Text)
+    message_id: Mapped[int | None] = mapped_column(
+        ForeignKey("messages.id", ondelete="SET NULL")
+    )
+    status: Mapped[str] = mapped_column(
+        String(16), default="pending"
+    )  # pending|answered|declined
+    answer: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _now()

@@ -1,0 +1,974 @@
+{
+  "nominal_now": "2026-10-25T12:00:00",
+  "timezone": "America/Chicago",
+  "notes": [
+    "Hand-written outline for scripts/generate_seed.py. Times are a nominal local clock (timezone);",
+    "the story is written for a demo on Sunday 2026-10-25 around noon: Priya joined Friday at noon, the",
+    "playoff game is Saturday evening, the drama is Saturday night, and the hangout it argues about is",
+    "Sunday 8pm, still ahead at demo time. The fixture stores offsets before nominal_now plus an anchor;",
+    "the loader moves the anchor by whole weeks so weekdays and clock times in the text stay true.",
+    "Sections are generated in batches; 'after' chains a section to the tail of an earlier one. A beat's",
+    "'done' text is what later batches of the same section are told already happened. Scripts are",
+    "inserted verbatim where the LLM places a {\"script\": key} marker, so term origins are exact.",
+    "The generated transcripts in scripts/transcripts/ are committed and hand-fixed; see generate_seed.py."
+  ],
+  "batch_size": 110,
+  "style": [
+    "texting like real college students: mostly lowercase, slang (fr, ngl, lowkey, bet, ong, deadass, 💀, 😭), typos, abbreviations (u, rn, tmrw, idk, wya)",
+    "short bursts: the same person often sends 2-4 short messages in a row; long messages are rare",
+    "uneven participation: a few people talk a lot, some lurk and drop one-liners; never round-robin through the cast",
+    "people talk over each other, threads interleave, some questions get ignored",
+    "occasional links: imleagues.com schedule links, tiktok.com or instagram.com/reel links, google maps links",
+    "mild swearing is fine; nothing explicit or mean-spirited",
+    "never use real full names of people not in the chat, never mention being an AI or a script"
+  ],
+  "users": [
+    {
+      "id": "swayam",
+      "username": "swayamm",
+      "display_name": "Swayam Patel",
+      "persona": "chill, the host: lives in a rented house off Riverside with roommates, gets teased about it, defends his house"
+    },
+    {
+      "id": "aakash",
+      "username": "aakash",
+      "display_name": "Aakash Mehta",
+      "persona": "organizer and peacemaker, CS major, made the group chat, forces decisions"
+    },
+    {
+      "id": "kobe",
+      "username": "kobe.wav",
+      "display_name": "Kobe Nguyen",
+      "persona": "dramatic, constantly gets roasted, inconsistent serve, takes it well"
+    },
+    {
+      "id": "goy",
+      "username": "goy",
+      "display_name": "Govind Iyer",
+      "persona": "goes by goy, roaster-in-chief, dry sarcastic one-liners, coins nicknames"
+    },
+    {
+      "id": "enrique",
+      "username": "enriquee_",
+      "display_name": "Enrique Morales",
+      "persona": "hype man, LMAOOO and caps, loyal, gets heated when people flake"
+    },
+    {
+      "id": "mike",
+      "username": "mikeyy.r",
+      "display_name": "Mike Russo",
+      "persona": "flaky but likable, lives in Jester, has a car and usually drives people, cooks badly"
+    },
+    {
+      "id": "jaden",
+      "username": "jaden.lo",
+      "display_name": "Jaden Lo",
+      "persona": "lurker, sends tiktok links and one-word replies, always late to read the chat"
+    },
+    {
+      "id": "natalie",
+      "username": "nat.alie",
+      "display_name": "Natalie Chen",
+      "persona": "team captain, practical, posts imleagues schedule links and game times"
+    },
+    {
+      "id": "rohan",
+      "username": "rohan.v",
+      "display_name": "Rohan Verma",
+      "persona": "foodie, rates every taco, always hungry"
+    },
+    {
+      "id": "tiff",
+      "username": "tiff",
+      "display_name": "Tiffany Ho",
+      "persona": "blunt, no patience for excuses, funny in a mean-but-loving way"
+    },
+    {
+      "id": "dani",
+      "username": "dani.ortiz",
+      "display_name": "Dani Ortiz",
+      "persona": "emoji heavy, sweet, outfit and playlist person"
+    },
+    {
+      "id": "ben",
+      "username": "ben_c",
+      "display_name": "Ben Carter",
+      "persona": "quiet, rare but very funny one-liners"
+    },
+    {
+      "id": "priya",
+      "username": "priya.k",
+      "display_name": "Priya Kapoor",
+      "phonetic_hint": "PREE-yah",
+      "persona": "international student from Pune, new to UT this semester, played volleyball back home, polite"
+    },
+    {
+      "id": "meera",
+      "username": "meera.iyer",
+      "display_name": "Meera Iyer",
+      "persona": "Priya's friend from Pune, also at UT, a year ahead, practical big-sister energy"
+    },
+    {
+      "id": "dev",
+      "username": "devshah_",
+      "display_name": "Dev Shah",
+      "persona": "stressed CS student, always behind on the project"
+    },
+    {
+      "id": "lena",
+      "username": "lenapark",
+      "display_name": "Lena Park",
+      "persona": "organized CS student, shares notes, runs the study group"
+    }
+  ],
+  "groups": [
+    {
+      "key": "volleyball",
+      "name": "IM volleyball 🏐",
+      "description": "UT Austin intramural volleyball team group chat: a friend group that plays RecSports IM volleyball at Gregory Gym and hangs out outside of games",
+      "members": [
+        {
+          "user": "swayam",
+          "last_read": "recent"
+        },
+        {
+          "user": "aakash",
+          "last_read": "recent"
+        },
+        {
+          "user": "kobe",
+          "last_read": "recent"
+        },
+        {
+          "user": "goy",
+          "last_read": "recent"
+        },
+        {
+          "user": "enrique",
+          "last_read": "recent"
+        },
+        {
+          "user": "mike",
+          "last_read": "recent"
+        },
+        {
+          "user": "jaden",
+          "last_read": {
+            "unread": 140
+          }
+        },
+        {
+          "user": "natalie",
+          "last_read": "recent"
+        },
+        {
+          "user": "rohan",
+          "last_read": "recent"
+        },
+        {
+          "user": "tiff",
+          "last_read": "recent"
+        },
+        {
+          "user": "dani",
+          "last_read": "recent"
+        },
+        {
+          "user": "ben",
+          "last_read": "recent"
+        },
+        {
+          "user": "priya",
+          "joined": "2026-10-23T12:00:00",
+          "last_read": null,
+          "silent": true
+        }
+      ],
+      "reactions": {
+        "rate": 0.05,
+        "emojis": [
+          "❤️",
+          "😂"
+        ]
+      },
+      "terms": [
+        {
+          "term": "Grandma's",
+          "aliases": [
+            "grandmas",
+            "grandma"
+          ],
+          "meaning": "Swayam's house off Riverside, where the group hangs out. Named after someone joked it smells like a grandma's house.",
+          "kind": "nickname",
+          "glossary": true,
+          "origin": {
+            "script": "grandmas",
+            "first_seen": 0,
+            "explained": [
+              4
+            ],
+            "sources": [
+              0,
+              3,
+              4
+            ]
+          },
+          "explain_markers": [
+            "riverside",
+            "swayams house",
+            "swayams place",
+            "smells like",
+            "mothball"
+          ]
+        },
+        {
+          "term": "usual spot",
+          "aliases": [
+            "the usual spot"
+          ],
+          "meaning": "The back lot behind Gregory Gym where the group parks and meets up before games.",
+          "kind": "place",
+          "glossary": true,
+          "origin": {
+            "script": "usual_spot",
+            "first_seen": 4,
+            "explained": [
+              4
+            ],
+            "sources": [
+              1,
+              3,
+              4
+            ]
+          },
+          "explain_markers": [
+            "behind greg",
+            "behind gregory",
+            "back lot",
+            "loading dock"
+          ]
+        },
+        {
+          "term": "the Incident",
+          "aliases": [
+            "incident"
+          ],
+          "meaning": "The night Mike set off the fire alarm at Jester by making ramen, and the whole dorm had to evacuate at 2am.",
+          "kind": "event",
+          "glossary": true,
+          "origin": {
+            "script": "incident",
+            "first_seen": 5,
+            "explained": [
+              6
+            ],
+            "sources": [
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "explain_markers": [
+            "fire alarm",
+            "ramen",
+            "evacuat"
+          ]
+        },
+        {
+          "term": "procs",
+          "aliases": [
+            "proc",
+            "procced",
+            "proccing",
+            "procd"
+          ],
+          "meaning": "Slang for getting roasted repeatedly, back to back; every new roast is another proc.",
+          "kind": "slang",
+          "glossary": true,
+          "origin": {
+            "script": "procs",
+            "first_seen": 0,
+            "explained": [
+              2
+            ],
+            "sources": [
+              0,
+              2
+            ]
+          },
+          "explain_markers": [
+            "back to back",
+            "roasted"
+          ]
+        },
+        {
+          "term": "Torchy's Tuesday",
+          "aliases": [
+            "torchys tuesday",
+            "torchy tuesday",
+            "torchys tues"
+          ],
+          "meaning": "The group's weekly Tuesday taco run to Torchy's Tacos after practice.",
+          "kind": "event",
+          "glossary": true,
+          "origin": {
+            "script": "torchys",
+            "first_seen": 2,
+            "explained": [
+              3
+            ],
+            "sources": [
+              1,
+              2,
+              3
+            ]
+          },
+          "explain_markers": [
+            "every tuesday",
+            "weekly taco",
+            "taco run"
+          ]
+        },
+        {
+          "term": "pull a Brayden",
+          "aliases": [
+            "brayden",
+            "braydens",
+            "pulled a brayden",
+            "pulling a brayden",
+            "pulls a brayden"
+          ],
+          "hint": "it means flaking or bailing at the last minute, but nobody ever says that, says who brayden is, or asks; nobody named brayden is in the chat. Use it only as a passing jab or warning in banter (like 'dont pull a brayden on monday' or 'brayden behavior'), never as the label for a bail that just happened in the previous few messages",
+          "glossary": false,
+          "never_explain": true
+        }
+      ],
+      "scripts": {
+        "usual_spot": [
+          {
+            "s": "mike",
+            "t": "wait where are we even meeting before games"
+          },
+          {
+            "s": "swayam",
+            "t": "back lot behind gregory gym, theres always parking there after 6"
+          },
+          {
+            "s": "aakash",
+            "t": "the lot behind greg? by the loading dock?"
+          },
+          {
+            "s": "swayam",
+            "t": "yea that one. thats our spot now"
+          },
+          {
+            "s": "goy",
+            "t": "ok the back lot behind gregory gym is officially the usual spot"
+          },
+          {
+            "s": "kobe",
+            "t": "usual spot it is 🫡"
+          }
+        ],
+        "grandmas": [
+          {
+            "s": "kobe",
+            "t": "ok im inside swayams house rn and why does it smell like a grandmas house"
+          },
+          {
+            "s": "enrique",
+            "t": "LMAOOO it literally does. like mothballs and vicks"
+          },
+          {
+            "s": "swayam",
+            "t": "bro thats my candles"
+          },
+          {
+            "s": "goy",
+            "t": "swayam lives at grandma's now"
+          },
+          {
+            "s": "aakash",
+            "t": "ok from now on swayams place off riverside = grandma's"
+          },
+          {
+            "s": "swayam",
+            "t": "i hate all of u"
+          },
+          {
+            "s": "mike",
+            "t": "see yall at grandma's next weekend 👵"
+          }
+        ],
+        "procs": [
+          {
+            "s": "goy",
+            "t": "kobe getting procs today holy"
+          },
+          {
+            "s": "jaden",
+            "t": "whats procs"
+          },
+          {
+            "s": "goy",
+            "t": "like when u get roasted back to back to back nonstop. every time someone clowns u thats another proc"
+          },
+          {
+            "s": "natalie",
+            "t": "so kobe has been getting procs since 2019"
+          },
+          {
+            "s": "kobe",
+            "t": "why is it always me"
+          },
+          {
+            "s": "enrique",
+            "t": "+1 proc 💀"
+          }
+        ],
+        "torchys": [
+          {
+            "s": "rohan",
+            "t": "we should make tacos a weekly thing"
+          },
+          {
+            "s": "aakash",
+            "t": "torchys every tuesday after practice. no excuses"
+          },
+          {
+            "s": "tiff",
+            "t": "torchy's tuesday 🌮"
+          },
+          {
+            "s": "swayam",
+            "t": "ok torchy's tuesday is officially a thing. weekly taco run every tuesday after practice, attendance mandatory"
+          },
+          {
+            "s": "mike",
+            "t": "trailer park trashy or im not coming"
+          }
+        ],
+        "incident": [
+          {
+            "s": "natalie",
+            "t": "why is jester evacuating rn its 2am"
+          },
+          {
+            "s": "mike",
+            "t": "ok so dont be mad"
+          },
+          {
+            "s": "kobe",
+            "t": "MIKE"
+          },
+          {
+            "s": "mike",
+            "t": "i was making ramen in the microwave and forgot to put water in it"
+          },
+          {
+            "s": "enrique",
+            "t": "the whole building is outside in pajamas at 2am bc of mike 💀"
+          },
+          {
+            "s": "goy",
+            "t": "this is the incident. we are never letting this go"
+          },
+          {
+            "s": "aakash",
+            "t": "for the record: the night mike set off the jester fire alarm making ramen will forever be known as the Incident"
+          }
+        ]
+      },
+      "timeline": [
+        {
+          "id": "h1_summer_start",
+          "start": "2026-05-20T15:00:00",
+          "end": "2026-06-05T23:00:00",
+          "count": 90,
+          "pace": "normal",
+          "context": "Aakash just created this group chat for friends who signed up together for a UT RecSports summer intramural volleyball team. Most of them know each other from freshman year; some are staying in Austin for summer classes or internships.",
+          "beats": [
+            "aakash makes the gc, people join and say hi, terrible team name brainstorm (bad volleyball puns)",
+            "natalie registers the team on imleagues and drops the link, first game is at gregory gym",
+            "confusion about where to park and meet before the first game",
+            {
+              "beat": "they settle where to meet before games",
+              "script": "usual_spot"
+            },
+            "first game: they lose badly, jokes about kobe's serve, someone posts a tiktok",
+            "next week they meet at the usual spot before the game and win their first match, celebration"
+          ],
+          "use_terms": [
+            "usual spot"
+          ]
+        },
+        {
+          "id": "h2_grandmas",
+          "start": "2026-06-06T10:00:00",
+          "end": "2026-06-30T23:00:00",
+          "count": 90,
+          "pace": "normal",
+          "context": "The summer league is going ok (1-1). Swayam just moved into a rented house off Riverside with two roommates for summer and fall.",
+          "beats": [
+            "game logistics, meeting at the usual spot, someone running late",
+            "swayam invites everyone to his new place off riverside saturday for a smash bros and movie night, drops a google maps link",
+            {
+              "beat": "that saturday night at swayam's house",
+              "script": "grandmas"
+            },
+            "the next days they keep calling his house grandma's, swayam bought new candles, people plan to go back to grandma's",
+            "league standings, natalie posts the imleagues link, summer class complaints"
+          ],
+          "use_terms": [
+            "usual spot",
+            "Grandma's"
+          ]
+        },
+        {
+          "id": "h3_procs",
+          "start": "2026-07-01T11:00:00",
+          "end": "2026-07-25T23:00:00",
+          "count": 90,
+          "pace": "normal",
+          "context": "Mid summer league. They hang out at Grandma's a lot and meet at the usual spot before games.",
+          "beats": [
+            "4th of july plans, someone is at lake travis, fireworks videos",
+            "game night: kobe whiffs a serve and then dives into the bleachers, everyone clowns him",
+            {
+              "beat": "the roasting of kobe gets a name",
+              "script": "procs"
+            },
+            "the roasting continues as a running gag, aakash tries to defend kobe and gets procs too",
+            "someone almost flakes on a game last minute and goy says something like 'dont pull a brayden on us', nobody explains it",
+            "hangout at grandma's planned for the weekend, meet at the usual spot"
+          ],
+          "use_terms": [
+            "usual spot",
+            "Grandma's",
+            "procs",
+            "pull a Brayden"
+          ]
+        },
+        {
+          "id": "h4_torchys",
+          "start": "2026-07-26T10:00:00",
+          "end": "2026-08-20T23:00:00",
+          "count": 90,
+          "pace": "normal",
+          "context": "End of the summer league. Kobe still getting procs constantly.",
+          "beats": [
+            "summer league playoffs: they lose in the quarterfinals, sad, everyone blames kobe's serve",
+            "rohan says they need comfort tacos and wants a tradition after tuesday practice",
+            {
+              "beat": "a weekly taco tradition is born",
+              "script": "torchys"
+            },
+            "the first torchy's tuesday: orders (trailer park, green chile queso), photos, rohan rates everything",
+            "end of summer: people traveling home, fall move-in dates, mike got a room in jester west",
+            "second torchy's tuesday, someone skips and gets procs, plans for grandma's before classes start"
+          ],
+          "use_terms": [
+            "usual spot",
+            "Grandma's",
+            "procs",
+            "Torchy's Tuesday"
+          ]
+        },
+        {
+          "id": "h5_incident",
+          "start": "2026-08-21T09:00:00",
+          "end": "2026-09-06T23:00:00",
+          "count": 100,
+          "pace": "normal",
+          "context": "Fall semester is starting. Mike just moved into Jester West. Torchy's Tuesday continues weekly.",
+          "beats": [
+            "move-in week chaos, mike moving into jester, dorm complaints, first day of classes",
+            "fall IM league signups, natalie registers the team again and posts the imleagues link",
+            {
+              "beat": "late on a weeknight around 2am, chaos at jester",
+              "script": "incident"
+            },
+            "next morning people wake up to the messages, photo of everyone outside jester in pajamas, mike's RA wrote him up, mike getting procs",
+            "torchy's tuesday back on for fall, meet at the usual spot"
+          ],
+          "use_terms": [
+            "usual spot",
+            "Grandma's",
+            "procs",
+            "Torchy's Tuesday",
+            "the Incident"
+          ]
+        },
+        {
+          "id": "h6_fall_league",
+          "start": "2026-09-07T10:00:00",
+          "end": "2026-09-30T23:00:00",
+          "count": 120,
+          "pace": "normal",
+          "context": "Fall IM league season. All the group's running jokes are in full swing.",
+          "beats": [
+            "fall league games: results, natalie posts the schedule, they're 3-1",
+            "texas football watch party at grandma's, longhorns win, chaos",
+            "someone brings up the Incident whenever mike mentions cooking anything",
+            "weekly torchy's tuesday, mike skips one",
+            "midterms start, people stressing in the library",
+            "jaden bails on a game an hour before; later someone jokes about brayden behavior, nobody explains it",
+            "someone gets a parking ticket at the usual spot, outrage"
+          ],
+          "use_terms": [
+            "usual spot",
+            "Grandma's",
+            "procs",
+            "Torchy's Tuesday",
+            "the Incident",
+            "pull a Brayden"
+          ]
+        },
+        {
+          "id": "h7_october",
+          "start": "2026-10-01T10:00:00",
+          "end": "2026-10-23T11:55:00",
+          "count": 120,
+          "pace": "normal",
+          "context": "October. The team is in the IM playoff race and down a player because Dani sprained her ankle.",
+          "beats": [
+            "group halloween costume ideas",
+            "games continue, dani sprains her ankle and is out for weeks, they need a sixth player",
+            "mike flakes on torchy's tuesday again and enrique notices a pattern",
+            "they plan a hangout at grandma's on sunday oct 25 at 8pm; mike says he'll drive the north campus people like always",
+            "procs and the Incident come up in banter",
+            "on tuesday oct 20 aakash says he has a friend from his OS class, priya, an international student from pune who just moved here this semester and played volleyball back home, and asks if he can add her; people say yes; on friday oct 23 just before noon aakash says he's adding her now"
+          ],
+          "use_terms": [
+            "usual spot",
+            "Grandma's",
+            "procs",
+            "Torchy's Tuesday",
+            "the Incident",
+            "pull a Brayden"
+          ]
+        },
+        {
+          "system": "aakash added priya.k",
+          "at": "2026-10-23T12:00:00"
+        },
+        {
+          "id": "p1_welcome",
+          "start": "2026-10-23T12:00:30",
+          "end": "2026-10-24T01:30:00",
+          "count": 120,
+          "pace": "normal",
+          "context": "Friday. Aakash just added priya (priya.k), a new international student from Pune who played volleyball back home, to fill their open spot for the IM playoffs. Priya is in the group but never sends a message (she hasn't opened the chat). Plans: IM playoff opener tomorrow (Saturday) at 6:30pm at Gregory Gym, meet at the usual spot at 6; hangout at Grandma's on Sunday at 8pm; Mike usually drives the north campus people.",
+          "beats": [
+            "people welcome priya ('welcome priya!!', 'aakash's friend from class?'), ask her questions she doesn't answer, joke she's already scared of the chat",
+            "someone tells priya to come to grandma's sunday and to meet at the usual spot before saturday's game, without explaining what either is",
+            "kobe gets procs for something; jokes about the Incident when mike mentions cooking",
+            "friday evening: natalie posts the imleagues playoff link, saturday 6:30 at gregory; people going out on a friday night",
+            "late friday night memes and reel links"
+          ],
+          "use_terms": [
+            "Grandma's",
+            "usual spot",
+            "procs",
+            "the Incident"
+          ]
+        },
+        {
+          "id": "p2_saturday",
+          "start": "2026-10-24T09:30:00",
+          "end": "2026-10-24T19:15:00",
+          "count": 270,
+          "pace": "normal",
+          "context": "Saturday (no class). Priya is in the chat but silent. Tonight: IM playoff opener at 6:30pm at Gregory Gym, meet at the usual spot at 6. Tomorrow (Sunday) 8pm: hangout at Grandma's, Mike driving the north campus people.",
+          "beats": [
+            "lazy saturday morning: someone is hungover from friday night, brunch, laundry, saturday chores",
+            "torchy's tuesday recap from this past tuesday (kobe spilled the queso) and who's coming next tuesday",
+            "sunday at grandma's confirmed for 8pm, swayam asks who's bringing snacks, mike says he's driving the north campus people",
+            "afternoon: lineup for tonight, they tag priya to come play, meet at the usual spot at 6",
+            "around 6pm at the gym: people arriving, who has the ball, then live game updates from people on the bench",
+            "after the game around 7pm: they won in 3 sets (25-21, 22-25, 15-11), hype, kobe got an ace and nobody can believe it"
+          ],
+          "use_terms": [
+            "Grandma's",
+            "usual spot",
+            "Torchy's Tuesday",
+            "procs"
+          ]
+        },
+        {
+          "id": "p3_drama",
+          "start": "2026-10-24T19:20:00",
+          "end": "2026-10-25T02:40:00",
+          "count": 420,
+          "pace": "heated",
+          "after": "p2_saturday",
+          "context": "Saturday night, right after winning the playoff opener. Everyone is hyped for tomorrow (Sunday) at Grandma's at 8pm. Mike was supposed to drive the north campus people. Priya is in the chat but silent. Facts that must stay consistent: Mike bails exactly ONCE, for ONE reason (his girlfriend's birthday dinner with her parents tomorrow night); after that everyone knows he is not coming and nobody expects him there. There is exactly ONE vote, run by aakash after midnight; mike does not vote. Nobody volunteers to drive or says who is driving anywhere in this part. When people say 'tomorrow' they mean Sunday.",
+          "beats": [
+            "post-game hype, talking about tomorrow at grandma's",
+            {
+              "beat": "mike drops it: he can't make tomorrow anymore, his girlfriend's birthday dinner with her parents got moved to sunday night",
+              "done": "Mike ALREADY announced he can't come tomorrow (his gf's birthday dinner with her parents). Don't have him announce it again or give another reason; everyone knows he's out."
+            },
+            "enrique is annoyed: mike always does this. tiff is annoyed too and blunt about it",
+            "goy roasts mike and mike gets procs all night; later, in a different tangent, someone uses 'pull a brayden' as a passing jab without explaining it",
+            {
+              "beat": "the argument: is it even worth going without mike? natalie suggests postponing to next week; swayam says he already cleaned grandma's and bought snacks",
+              "done": "They ALREADY argued about whether it's worth going without mike; natalie suggested postponing; swayam already cleaned and bought snacks. No vote has happened yet."
+            },
+            "someone brings up the Incident (like 'after the Incident you owe us'), mike defends himself",
+            "midnight tangent: memes, kobe gets procs too, someone points out mike skipped torchy's tuesday twice",
+            {
+              "beat": "after midnight aakash forces a decision with ONE quick vote in chat (keep or postpone); people reply keep/postpone; majority wants to keep the plan; mike stays out of it",
+              "done": "Aakash ALREADY ran the one vote; keep won. No more votes."
+            },
+            {
+              "beat": "aakash states the decision clearly: still going tomorrow (sunday), 8pm at grandma's, meet at the usual spot at 7:30",
+              "done": "Decision is final: still going Sunday 8pm at Grandma's, meetup at the usual spot at 7:30. Mike is not coming."
+            },
+            "enrique and tiff are still salty at mike; mike says 'my bad fr'",
+            "late: someone asks 'wait so who's driving now that mike's out' and nobody answers; the chat drifts to other stuff and people go to sleep"
+          ],
+          "use_terms": [
+            "Grandma's",
+            "usual spot",
+            "procs",
+            "Torchy's Tuesday",
+            "the Incident",
+            "pull a Brayden"
+          ]
+        },
+        {
+          "id": "p4_sunday",
+          "start": "2026-10-25T08:30:00",
+          "end": "2026-10-25T11:57:00",
+          "count": 310,
+          "pace": "normal",
+          "after": "p3_drama",
+          "context": "Sunday morning, the morning after the big argument (no class today). Decided last night: still going TONIGHT (sunday) 8pm at Grandma's, meet at the usual spot at 7:30. When anyone restates the plan they say '8pm at grandma's' (or 'tonight at 8'); 7:30 is only the meetup at the usual spot. Mike is NOT coming tonight (his girlfriend's birthday dinner) and everyone knows it; nobody expects him there. Enrique and Tiff are still annoyed at Mike for bailing. Still unresolved: who's driving, since Mike was going to. Nobody answers or resolves who is driving anywhere in this part. Priya is in the chat but silent. Next playoff game is monday 8:15pm.",
+          "beats": [
+            "people waking up to hundreds of messages, jaden asks what he missed, people answer vaguely with inside jokes",
+            "someone asks again who's driving tonight; the question gets buried and nobody answers",
+            "natalie posts the IM playoff bracket (imleagues link): they're seeded 3rd, next game monday 8:15pm",
+            "torchy's tuesday this week: who's in, rohan wants to try the new taco of the month",
+            "memes, tiktok and reel links, kobe gets procs; someone jokes 'no braydens tonight' in passing",
+            "mike tries to make up (offers to pay at torchy's tuesday), enrique is still curt, tiff ignores him",
+            "swayam asks for a headcount for grandma's tonight at 8, people list who's coming, someone tags priya ('priya u coming tonight??') with no response",
+            "late morning random banter; the very last message is someone asking 'fr tho who's driving tonight' with no reply"
+          ],
+          "use_terms": [
+            "Grandma's",
+            "usual spot",
+            "procs",
+            "Torchy's Tuesday",
+            "the Incident",
+            "pull a Brayden"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "dm_aakash_priya",
+      "is_dm": true,
+      "description": "a direct message chat between Aakash and Priya, who met in their Operating Systems (CS 439) class",
+      "members": [
+        {
+          "user": "aakash",
+          "last_read": "end"
+        },
+        {
+          "user": "priya",
+          "last_read": {
+            "unread": 2
+          }
+        }
+      ],
+      "timeline": [
+        {
+          "id": "dm_aakash_priya",
+          "start": "2026-10-22T16:00:00",
+          "end": "2026-10-25T10:30:00",
+          "count": 16,
+          "pace": "chill",
+          "context": "Aakash met Priya in class; she mentioned she played volleyball back in Pune. Write in clean, friendly texting; Priya's English is fluent and a bit more formal than Aakash's.",
+          "beats": [
+            "thursday: aakash asks if she wants to join their IM volleyball team since they need a sixth for the playoffs, she says yes happily",
+            "friday oct 23 around noon: aakash says he's adding her to the group chat now, fair warning they're chaotic and talk in inside jokes",
+            "priya thanks him and asks what to bring to games",
+            "saturday: aakash says the game is at 6:30 and the sunday plan is at grandma's, he'll explain later what that means; they chat about the OS project",
+            "sunday morning (unread by priya): aakash says the gc went crazy last night lol, and asks if she's coming tonight"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "dm_priya_meera",
+      "is_dm": true,
+      "description": "a direct message chat between Priya and her friend Meera, both from Pune, both at UT Austin",
+      "members": [
+        {
+          "user": "priya",
+          "last_read": "end"
+        },
+        {
+          "user": "meera",
+          "last_read": "end"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "dm_priya_meera",
+          "start": "2026-10-21T19:00:00",
+          "end": "2026-10-24T22:30:00",
+          "count": 22,
+          "pace": "chill",
+          "context": "Two friends from Pune catching up. They text in English with a little Hinglish.",
+          "beats": [
+            "priya is homesick, they plan to cook poha together, meera tells her which h-e-b has the indian aisle",
+            "plans for the diwali event at the indian students association",
+            "friday: priya says she just got added to a volleyball group chat and everyone talks in code, meera laughs and says american college group chats are like that",
+            "saturday night: priya asks if she should go to some hangout on sunday night, meera says yes go make friends"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "os_study",
+      "name": "OS study grp 💻",
+      "description": "a study group chat for UT's CS 439 Operating Systems class",
+      "members": [
+        {
+          "user": "lena",
+          "last_read": "end"
+        },
+        {
+          "user": "dev",
+          "last_read": "recent"
+        },
+        {
+          "user": "aakash",
+          "last_read": {
+            "unread": 3
+          }
+        },
+        {
+          "user": "priya",
+          "last_read": {
+            "unread": 6
+          }
+        }
+      ],
+      "timeline": [
+        {
+          "id": "os_study",
+          "start": "2026-10-22T13:00:00",
+          "end": "2026-10-25T11:40:00",
+          "count": 26,
+          "pace": "chill",
+          "context": "Four classmates working on the threads project (project 2) for CS 439. Priya joined the study group this week.",
+          "beats": [
+            "thursday: lena shares her lecture notes on semaphores and condition variables",
+            "dev panicking about project 2, the thread scheduler, deadline sunday night 11:59",
+            "priya asks a question about priority donation and lena explains",
+            "they plan to meet at the PCL library saturday afternoon; aakash can't, he has a volleyball game",
+            "sunday morning (unread by priya): dev's tests are failing, lena shares that the TAs have sunday office hours, dev asks if anyone wants to pair"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "dm_swayam_mike",
+      "is_dm": true,
+      "description": "a direct message chat between Swayam and Mike",
+      "members": [
+        {
+          "user": "mike",
+          "last_read": "end"
+        },
+        {
+          "user": "swayam",
+          "last_read": {
+            "unread": 4
+          }
+        }
+      ],
+      "timeline": [
+        {
+          "id": "dm_swayam_mike",
+          "start": "2026-10-24T22:10:00",
+          "end": "2026-10-25T11:30:00",
+          "count": 15,
+          "pace": "chill",
+          "context": "Saturday night, the night Mike bailed on sunday's hangout at Grandma's (swayam's house) for his girlfriend's birthday dinner with her parents. In the group chat people were mad at him. Nobody discusses who is driving.",
+          "beats": [
+            "mike privately apologizes to swayam, says he feels bad bailing on grandma's",
+            "swayam is lukewarm: 'its fine man' but says enrique is pretty mad",
+            "sunday morning (unread by swayam): mike sends a few messages offering to drop off snacks this afternoon before his dinner and asking if swayam is mad at him"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "dm_swayam_enrique",
+      "is_dm": true,
+      "description": "a direct message chat between Swayam and Enrique",
+      "members": [
+        {
+          "user": "enrique",
+          "last_read": "end"
+        },
+        {
+          "user": "swayam",
+          "last_read": "end"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "dm_swayam_enrique",
+          "start": "2026-10-24T23:00:00",
+          "end": "2026-10-25T11:10:00",
+          "count": 18,
+          "pace": "chill",
+          "context": "Saturday night into Sunday morning. Enrique venting to Swayam about Mike bailing on sunday at Grandma's. Who's driving tonight stays unresolved here too (enrique's car is in the shop).",
+          "beats": [
+            "enrique vents: mike always does this, this is like the third time",
+            "swayam tries to calm him down, says it'll still be fun",
+            "they wonder who's driving, enrique says his car's in the shop, neither has an answer",
+            "sunday morning: they talk about what to cook tonight, swayam says not ramen, they laugh about the Incident"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "dm_goy_swayam",
+      "is_dm": true,
+      "description": "a direct message chat between Goy and Swayam",
+      "members": [
+        {
+          "user": "goy",
+          "last_read": "end"
+        },
+        {
+          "user": "swayam",
+          "last_read": {
+            "unread": 1
+          }
+        }
+      ],
+      "timeline": [
+        {
+          "id": "dm_goy_swayam",
+          "start": "2026-10-20T17:30:00",
+          "end": "2026-10-25T09:00:00",
+          "count": 8,
+          "pace": "chill",
+          "context": "Two friends with dry humor.",
+          "beats": [
+            "tuesday: goy asks if swayam is going to torchy's tuesday tonight and wants a ride, they joke about kobe",
+            "sunday morning (unread by swayam): goy sends a meme link about mike"
+          ]
+        }
+      ]
+    }
+  ]
+}

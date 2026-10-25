@@ -1,0 +1,723 @@
+{
+ "users": [
+  {
+   "id": "aakash",
+   "username": "aakash.m",
+   "display_name": "Aakash Mehta",
+   "avatar_url": null,
+   "phonetic_hint": "uh-KAASH",
+   "pronunciation_audio_url": null
+  },
+  {
+   "id": "swayam",
+   "username": "swayam.p",
+   "display_name": "Swayam Patel",
+   "avatar_url": null,
+   "phonetic_hint": "SWAY-um",
+   "pronunciation_audio_url": null
+  },
+  {
+   "id": "maya",
+   "username": "maya.chen",
+   "display_name": "Maya Chen",
+   "avatar_url": null,
+   "phonetic_hint": null,
+   "pronunciation_audio_url": null
+  },
+  {
+   "id": "jordan",
+   "username": "jordanlee",
+   "display_name": "Jordan Lee",
+   "avatar_url": null,
+   "phonetic_hint": null,
+   "pronunciation_audio_url": null
+  },
+  {
+   "id": "nina",
+   "username": "nina.alv",
+   "display_name": "Nina Alvarez",
+   "avatar_url": null,
+   "phonetic_hint": "NEE-nah",
+   "pronunciation_audio_url": null
+  },
+  {
+   "id": "leo",
+   "username": "leo.park",
+   "display_name": "Leo Park",
+   "avatar_url": null,
+   "phonetic_hint": null,
+   "pronunciation_audio_url": null
+  },
+  {
+   "id": "sam",
+   "username": "sam.okafor",
+   "display_name": "Sam Okafor",
+   "avatar_url": null,
+   "phonetic_hint": null,
+   "pronunciation_audio_url": null
+  },
+  {
+   "id": "priya",
+   "username": "priya.k",
+   "display_name": "Priya Kapoor",
+   "avatar_url": null,
+   "phonetic_hint": "PREE-yah",
+   "pronunciation_audio_url": null
+  }
+ ],
+ "groups": [
+  {
+   "key": "volleyball",
+   "name": "Thursday Volleyball 🏐",
+   "avatar_url": null,
+   "is_dm": false,
+   "members": [
+    {
+     "user_id": "aakash",
+     "joined_offset_s": 3474000,
+     "last_read_idx": 61
+    },
+    {
+     "user_id": "swayam",
+     "joined_offset_s": 3474000,
+     "last_read_idx": 60
+    },
+    {
+     "user_id": "maya",
+     "joined_offset_s": 3474000,
+     "last_read_idx": 60
+    },
+    {
+     "user_id": "jordan",
+     "joined_offset_s": 3474000,
+     "last_read_idx": 59
+    },
+    {
+     "user_id": "nina",
+     "joined_offset_s": 3445200,
+     "last_read_idx": 57
+    },
+    {
+     "user_id": "leo",
+     "joined_offset_s": 3445200,
+     "last_read_idx": 61
+    },
+    {
+     "user_id": "sam",
+     "joined_offset_s": 3444000,
+     "last_read_idx": 40
+    },
+    {
+     "user_id": "priya",
+     "joined_offset_s": 172800,
+     "last_read_idx": null
+    }
+   ],
+   "messages": [
+    {
+     "idx": 0,
+     "sender_id": null,
+     "kind": "system",
+     "text": "aakash created the group",
+     "offset_s": 3474000
+    },
+    {
+     "idx": 1,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "ok thursday volleyball chat is official. 6:45 at the rec center every week",
+     "offset_s": 3473940
+    },
+    {
+     "idx": 2,
+     "sender_id": "swayam",
+     "kind": "text",
+     "text": "lets gooo",
+     "offset_s": 3473880
+    },
+    {
+     "idx": 3,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "do we have enough people for 6v6?",
+     "offset_s": 3470400
+    },
+    {
+     "idx": 4,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "if nina and leo come yes",
+     "offset_s": 3470100
+    },
+    {
+     "idx": 5,
+     "sender_id": "nina",
+     "kind": "text",
+     "text": "i'm in! where do we park though? the main lot is always full on thursdays",
+     "offset_s": 3441600
+    },
+    {
+     "idx": 6,
+     "sender_id": "leo",
+     "kind": "text",
+     "text": "back lot behind the rec center, by the tennis courts. that's the usual spot",
+     "offset_s": 3441400,
+     "reply_to_idx": 5
+    },
+    {
+     "idx": 7,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "yeah usual spot = back lot behind the rec center. meet there at 6:40 and we walk in together",
+     "offset_s": 3441200
+    },
+    {
+     "idx": 8,
+     "sender_id": "nina",
+     "kind": "text",
+     "text": "perfect ty",
+     "offset_s": 3441100,
+     "reactions": [
+      {
+       "user_id": "leo",
+       "emoji": "👍"
+      }
+     ]
+    },
+    {
+     "idx": 9,
+     "sender_id": "swayam",
+     "kind": "text",
+     "text": "my parents are out of town all weekend, house is free saturday",
+     "offset_s": 3121200
+    },
+    {
+     "idx": 10,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "GRANDMA'S HOUSE IS OPEN",
+     "offset_s": 3121140
+    },
+    {
+     "idx": 11,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "why do you keep calling it grandma's lol",
+     "offset_s": 3121080
+    },
+    {
+     "idx": 12,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "bc swayam's place has plastic on the couches and a candy dish by the door. it's literally a grandma house",
+     "offset_s": 3121020,
+     "reply_to_idx": 11
+    },
+    {
+     "idx": 13,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "ok from now on swayam's house = Grandma. it's canon",
+     "offset_s": 3120960,
+     "reactions": [
+      {
+       "user_id": "jordan",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "maya",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "leo",
+       "emoji": "😂"
+      }
+     ]
+    },
+    {
+     "idx": 14,
+     "sender_id": "swayam",
+     "kind": "text",
+     "text": "i hate this but fine",
+     "offset_s": 3120900
+    },
+    {
+     "idx": 15,
+     "sender_id": "sam",
+     "kind": "text",
+     "text": "grandma's saturday then?",
+     "offset_s": 3120840
+    },
+    {
+     "idx": 16,
+     "sender_id": "swayam",
+     "kind": "text",
+     "text": "yeah come thru after 8",
+     "offset_s": 3120780
+    },
+    {
+     "idx": 17,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "great game tonight everyone",
+     "offset_s": 2858400
+    },
+    {
+     "idx": 18,
+     "sender_id": "leo",
+     "kind": "text",
+     "text": "jordan's serves were unreal",
+     "offset_s": 2858340,
+     "reactions": [
+      {
+       "user_id": "jordan",
+       "emoji": "❤️"
+      }
+     ]
+    },
+    {
+     "idx": 19,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "been practicing 😤",
+     "offset_s": 2858280
+    },
+    {
+     "idx": 20,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "reminder: usual spot at 6:40 tomorrow",
+     "offset_s": 2527200
+    },
+    {
+     "idx": 21,
+     "sender_id": "nina",
+     "kind": "text",
+     "text": "might be 5 min late",
+     "offset_s": 2527100
+    },
+    {
+     "idx": 22,
+     "sender_id": "sam",
+     "kind": "text",
+     "text": "same, traffic on 35 is bad",
+     "offset_s": 2527000
+    },
+    {
+     "idx": 23,
+     "sender_id": "swayam",
+     "kind": "text",
+     "text": "grandma's is hosting again this weekend. bring snacks",
+     "offset_s": 2250000
+    },
+    {
+     "idx": 24,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "i'll bring chips",
+     "offset_s": 2249940
+    },
+    {
+     "idx": 25,
+     "sender_id": "leo",
+     "kind": "text",
+     "text": "drinks on me",
+     "offset_s": 2249880
+    },
+    {
+     "idx": 26,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "who has the ball? i left it in maya's car",
+     "offset_s": 1918800
+    },
+    {
+     "idx": 27,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "it's in my trunk, i'll bring it",
+     "offset_s": 1918710
+    },
+    {
+     "idx": 28,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "court 2 is closed this week, we're on court 4",
+     "offset_s": 1656000
+    },
+    {
+     "idx": 29,
+     "sender_id": "nina",
+     "kind": "text",
+     "text": "same usual spot for parking?",
+     "offset_s": 1655940
+    },
+    {
+     "idx": 30,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "yep",
+     "offset_s": 1655880
+    },
+    {
+     "idx": 31,
+     "sender_id": "sam",
+     "kind": "text",
+     "text": "anyone want to sign up for the fall rec league?",
+     "offset_s": 1306800
+    },
+    {
+     "idx": 32,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "yes!!",
+     "offset_s": 1306680
+    },
+    {
+     "idx": 33,
+     "sender_id": "leo",
+     "kind": "text",
+     "text": "how much is it",
+     "offset_s": 1306560
+    },
+    {
+     "idx": 34,
+     "sender_id": "sam",
+     "kind": "text",
+     "text": "$40 per person for the season",
+     "offset_s": 1306440
+    },
+    {
+     "idx": 35,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "i'm in",
+     "offset_s": 1306320,
+     "reactions": [
+      {
+       "user_id": "sam",
+       "emoji": "🔥"
+      }
+     ]
+    },
+    {
+     "idx": 36,
+     "sender_id": "swayam",
+     "kind": "text",
+     "text": "grandma's movie night friday? my parents are gone again",
+     "offset_s": 871200
+    },
+    {
+     "idx": 37,
+     "sender_id": "nina",
+     "kind": "text",
+     "text": "yesss",
+     "offset_s": 871140
+    },
+    {
+     "idx": 38,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "i'll be there after 9",
+     "offset_s": 871080
+    },
+    {
+     "idx": 39,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "league schedule dropped, first game is next thursday",
+     "offset_s": 536400
+    },
+    {
+     "idx": 40,
+     "sender_id": "leo",
+     "kind": "text",
+     "text": "we need a team name",
+     "offset_s": 536340
+    },
+    {
+     "idx": 41,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "Grandma's Spikers",
+     "offset_s": 536280,
+     "reactions": [
+      {
+       "user_id": "jordan",
+       "emoji": "😂"
+      },
+      {
+       "user_id": "swayam",
+       "emoji": "🙄"
+      }
+     ]
+    },
+    {
+     "idx": 42,
+     "sender_id": "swayam",
+     "kind": "text",
+     "text": "absolutely not",
+     "offset_s": 536220
+    },
+    {
+     "idx": 43,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "hey all, my friend priya just moved here and plays libero. adding her",
+     "offset_s": 173400
+    },
+    {
+     "idx": 44,
+     "sender_id": null,
+     "kind": "system",
+     "text": "aakash added priya",
+     "offset_s": 172800
+    },
+    {
+     "idx": 45,
+     "sender_id": "priya",
+     "kind": "text",
+     "text": "hi everyone! thanks for having me 👋",
+     "offset_s": 172740
+    },
+    {
+     "idx": 46,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "welcome priya!!",
+     "offset_s": 172680
+    },
+    {
+     "idx": 47,
+     "sender_id": "nina",
+     "kind": "text",
+     "text": "yay another libero",
+     "offset_s": 172620
+    },
+    {
+     "idx": 48,
+     "sender_id": "leo",
+     "kind": "text",
+     "text": "welcome 🏐",
+     "offset_s": 172560
+    },
+    {
+     "idx": 49,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "first league game thursday!! who's in",
+     "offset_s": 129600
+    },
+    {
+     "idx": 50,
+     "sender_id": "priya",
+     "kind": "text",
+     "text": "me!",
+     "offset_s": 129540
+    },
+    {
+     "idx": 51,
+     "sender_id": "sam",
+     "kind": "text",
+     "text": "in",
+     "offset_s": 129480
+    },
+    {
+     "idx": 52,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "in",
+     "offset_s": 129420
+    },
+    {
+     "idx": 53,
+     "sender_id": "swayam",
+     "kind": "text",
+     "text": "grandma's after the game thursday, usual spot at 6:40 before",
+     "offset_s": 108000
+    },
+    {
+     "idx": 54,
+     "sender_id": "nina",
+     "kind": "text",
+     "text": "🙌",
+     "offset_s": 107940
+    },
+    {
+     "idx": 55,
+     "sender_id": "leo",
+     "kind": "text",
+     "text": "bringing the speaker to grandma's",
+     "offset_s": 107880
+    },
+    {
+     "idx": 56,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "don't forget the usual spot, the main lot is closed for an event",
+     "offset_s": 18000
+    },
+    {
+     "idx": 57,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "copy",
+     "offset_s": 17940
+    },
+    {
+     "idx": 58,
+     "sender_id": "sam",
+     "kind": "text",
+     "text": "is grandma's still on after?",
+     "offset_s": 17880
+    },
+    {
+     "idx": 59,
+     "sender_id": "swayam",
+     "kind": "text",
+     "text": "yep grandma's is on, bring snacks",
+     "offset_s": 17820
+    },
+    {
+     "idx": 60,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "omw to the usual spot",
+     "offset_s": 2400
+    },
+    {
+     "idx": 61,
+     "sender_id": "leo",
+     "kind": "text",
+     "text": "here, parked by the tennis courts",
+     "offset_s": 600
+    }
+   ],
+   "glossary": [
+    {
+     "term": "Grandma",
+     "aliases": [
+      "grandma's",
+      "grandmas",
+      "grandma's house"
+     ],
+     "meaning": "Swayam's house. The group calls it Grandma's because it has plastic-covered couches and a candy dish by the door.",
+     "kind": "nickname",
+     "confidence": 0.95,
+     "first_seen_idx": 10,
+     "last_explained_idx": 13,
+     "source_idxs": [
+      10,
+      12,
+      13
+     ]
+    },
+    {
+     "term": "usual spot",
+     "aliases": [
+      "the usual spot",
+      "usual place"
+     ],
+     "meaning": "The back parking lot behind the rec center, by the tennis courts, where the group meets at 6:40 before Thursday games.",
+     "kind": "place",
+     "confidence": 0.9,
+     "first_seen_idx": 6,
+     "last_explained_idx": 7,
+     "source_idxs": [
+      6,
+      7
+     ]
+    }
+   ]
+  },
+  {
+   "key": "dm_aakash_priya",
+   "name": "",
+   "is_dm": true,
+   "members": [
+    {
+     "user_id": "aakash",
+     "joined_offset_s": 259200,
+     "last_read_idx": 3
+    },
+    {
+     "user_id": "priya",
+     "joined_offset_s": 259200,
+     "last_read_idx": 2
+    }
+   ],
+   "messages": [
+    {
+     "idx": 0,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "hey! adding you to the volleyball chat in a sec",
+     "offset_s": 173700
+    },
+    {
+     "idx": 1,
+     "sender_id": "priya",
+     "kind": "text",
+     "text": "amazing thank you!!",
+     "offset_s": 173500
+    },
+    {
+     "idx": 2,
+     "sender_id": "aakash",
+     "kind": "text",
+     "text": "thursdays are super chill, don't worry about the league stuff",
+     "offset_s": 72000
+    },
+    {
+     "idx": 3,
+     "sender_id": "priya",
+     "kind": "text",
+     "text": "sounds good, see you thursday",
+     "offset_s": 68400
+    }
+   ],
+   "glossary": []
+  },
+  {
+   "key": "dm_maya_jordan",
+   "name": "",
+   "is_dm": true,
+   "members": [
+    {
+     "user_id": "maya",
+     "joined_offset_s": 2592000,
+     "last_read_idx": 2
+    },
+    {
+     "user_id": "jordan",
+     "joined_offset_s": 2592000,
+     "last_read_idx": 1
+    }
+   ],
+   "messages": [
+    {
+     "idx": 0,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "did you pay the league fee yet",
+     "offset_s": 259200
+    },
+    {
+     "idx": 1,
+     "sender_id": "jordan",
+     "kind": "text",
+     "text": "not yet, venmo sam tonight",
+     "offset_s": 258900
+    },
+    {
+     "idx": 2,
+     "sender_id": "maya",
+     "kind": "text",
+     "text": "reminder lol",
+     "offset_s": 7200
+    }
+   ],
+   "glossary": []
+  }
+ ]
+}
