@@ -152,6 +152,7 @@ class WsEvent(Schema):
         "ask.updated",
         "call.updated",
         "call.caption",
+        "lore.updated",
         "pong",
     ]
     data: dict[str, Any] | None = None
@@ -231,6 +232,7 @@ class Explanation(Schema):
     call_id: int | None = None
     said_by: User | None = None
     heard: str | None = None
+    lore: list["Lore"] = []
 
 
 class AskCreate(Schema):
@@ -451,3 +453,75 @@ class CallCaption(Schema):
 class CallExplainRequest(Schema):
     user_id: str
     at_ms: Millis
+
+
+# Feature 6: Lore
+
+LoreStatus = Literal["suggested", "kept", "dismissed", "removed"]
+
+
+class LoreCaption(Schema):
+    user_id: str
+    text: str
+    start_ms: int
+    end_ms: int
+
+
+class LoreReplay(Schema):
+    id: int
+    call_id: int
+    audio_url: str
+    duration_ms: int
+    started_at: UtcDatetime
+    captions: list[LoreCaption]
+
+
+class LoreTerm(Schema):
+    term: str
+    glossary_id: int | None
+
+
+class LoreCover(Schema):
+    photo: Message | None = None
+    replay: LoreReplay | None = None
+
+
+class Lore(Schema):
+    id: int
+    group_id: int
+    group_name: str
+    title: str
+    story: str
+    status: LoreStatus
+    source: Literal["chat", "call"]
+    call_id: int | None
+    started_at: UtcDatetime
+    ended_at: UtcDatetime
+    people: list[User]
+    terms: list[LoreTerm]
+    cover: LoreCover
+    anchor_message_id: int | None
+    message_count: int
+    photo_count: int
+    replay_count: int
+    kept_by: User | None
+    kept_at: UtcDatetime | None
+
+
+class LoreDetail(Lore):
+    messages: list[Message]
+    photos: list[Message]
+    replays: list[LoreReplay]
+    related: list[Lore]
+
+
+class LoreFeed(Schema):
+    items: list[Lore]
+    next_cursor: str | None
+
+
+class LoreAction(Schema):
+    user_id: str
+
+
+Explanation.model_rebuild()

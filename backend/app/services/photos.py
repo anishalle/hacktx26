@@ -25,7 +25,7 @@ from app import schemas
 from app.core import db
 from app.core.config import settings
 from app.models import Message
-from app.services import digests, embeddings, llm
+from app.services import digests, embeddings, llm, lore
 from app.services.messages import require_member, require_message
 from app.services.realtime import broadcast_group
 
@@ -126,6 +126,7 @@ async def describe(message_id: int) -> None:
             log.exception("couldn't describe photo %s", message_id)
     digests.schedule_digest(group_id)
     embeddings.schedule_index(group_id)
+    lore.schedule_detect(group_id)
 
 
 _tasks: set[asyncio.Task[None]] = set()

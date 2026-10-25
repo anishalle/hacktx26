@@ -184,6 +184,24 @@ During a group video call, a small **?** button sits on screen. Tap it whenever 
 
 **Cross-generation / family chat.** The same explain mechanic works in a family group chat where a parent doesn't know what "6-7" or "rizz" means. For terms with no in-chat definition, the pipeline can fall back to a general slang source (the model's own knowledge, or a trending-slang feed) and say so: *Not defined in this chat; generally it means…* This is a one-line addition to the pipeline and a strong secondary story for the pitch. No separate UI.
 
+## Feature 6 — Lore: the group's kept moments
+
+Every group has history a newcomer missed: the night of "the Incident", the day Swayam's house became "Grandma's", the first Torchy's Tuesday. Lore keeps those moments as a feed you can scroll like Reels, so the history is something you browse rather than something you have to ask about.
+
+**What a lore entry is.** A moment that happened: a title ("The Incident: Mike's ramen fire alarm"), a 1–3 sentence story, when, who was there, and its evidence — the messages, photos and call replays behind it — plus the glossary terms it involves and related lore.
+
+**How moments are found**
+
+- *Chat:* background detection rides on the catch-up chunk digests (their "events") and quick triggers on recent messages — bursts, reaction piles, photo clusters. Muse decides which are worth keeping and writes the title and story from the supplied lines only. A candidate that matches existing lore (embedding similarity) is attached to it instead of duplicated.
+- *Calls (instant replay):* the server already receives each person's mic for captions, so it keeps the last ~30 s mixed, with the caption timeline. Signals — three or more people talking at once, a loudness spike (laughter), a **?** tap, phrases like "no way" or "remember when", glossary terms said aloud — save a replay a few seconds later. One moment, one suggestion.
+- *Backfill:* the first run goes over existing history and keeps the strongest moments automatically, so the feed starts with the group's real lore.
+
+**Keeping.** Detection only suggests. In chat a small card appears under the moment's messages — *Keep this as lore? "Mike's ramen fire alarm"* — and on a call a Keep chip appears for everyone on it. Any member taps Keep (first tap wins for the group) or dismisses; any member can remove a kept entry later.
+
+**The feed.** The Reels tab becomes Lore: full-screen vertical paging across all your groups, with a group filter. Each card shows the cover (a photo, or a replay that plays the audio with the caption bubbles appearing in sync), title, group, date, people and the story. Swiping left opens a clean panel: the story, key messages (tap to jump into the thread), every photo from the moment, its replays, the terms (tap to explain), and related lore — tap one to open it and keep going down memory lane.
+
+**Lore and explanations.** Explaining "the Incident" shows a *See the lore* card that opens the moment; terms inside a moment open the explain sheet.
+
 ## AI context pipeline
 
 We never hand the model the whole chat. Each **?** is a targeted retrieval around the flagged term, a short grounded answer, and, when history has no answer, a private ask to the member who knows. This is what makes it more than semantic search: it resolves meaning, it knows what was said before the newcomer joined, and it closes the loop with a human when the data isn't there.
@@ -267,6 +285,7 @@ The three screens of the mobile app all talk to one API; the API is the only thi
 | `member_asks` | \`id, group\_id, asked\_user\_id, for\_user\_id, term, status (pending |
 | `nudge_dismissals` | `user_id, group_id, term` |
 | `call_transcripts` | `call_id, result_id, speaker_id, start_ms, end_ms, text, items, is_partial` (one row per finished turn) |
+| `lore`, `lore_replays` | Feature 6: kept moments (title, story, people, terms, evidence ids, embedding) and saved call replays (WAV + caption timeline) |
 
 **API endpoints**
 

@@ -31,6 +31,7 @@ from app import schemas
 from app.core import db
 from app.core.config import settings
 from app.models import Call, CallMember, CallTranscript, Glossary
+from app.services import replays
 from app.services.realtime import hub
 
 log = logging.getLogger(__name__)
@@ -186,6 +187,7 @@ class _Relay:
     session_no: int = 0
     turn_no: int = 0
     turn: LiveTurn | None = None
+    moments: replays.CallMoments | None = None  # instant replay buffer (feature 6)
     audience: list[str] = field(default_factory=list)
     audience_at: float = 0.0
 
@@ -234,6 +236,10 @@ class _Relay:
             if text.strip():
                 await self.store(turn)
                 await self.caption(text, final=True)
+                if self.moments is not None:
+                    self.moments.add_turn(
+                        self.user_id, text, turn.start_ms, turn.end_ms
+                    )
             live_turns.get(self.call_id, {}).pop(self.turn_key, None)
             self.turn, self.turn_no = None, self.turn_no + 1
         elif kind == "error":
@@ -278,12 +284,14 @@ async def relay(ws: WebSocket, call_id: int, user_id: str) -> None:
         )[:MAX_KEYWORDS]
     await ws.accept()
     state = _Relay(call_id, user_id)
+    state.moments = replays.moments(call_id, call.group_id, keywords)
     audio: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=200)
 
     async def receive() -> None:
         try:
             while True:
                 frame = await ws.receive_bytes()
+                state.moments.add_audio(user_id, frame, now_ms())
                 if audio.full():  # Muse stalled: drop the oldest frame, stay live
                     audio.get_nowait()
                 audio.put_nowait(frame)

@@ -13,6 +13,7 @@ async def main(args: argparse.Namespace) -> None:
         await seed(
             digests_enabled=not args.no_digests,
             embeddings_enabled=not args.no_embeddings,
+            lore_enabled=not args.no_lore,
             paths=args.fixtures or None,
             now=datetime.now(UTC) if args.no_anchor else None,
         )
@@ -31,6 +32,9 @@ if __name__ == "__main__":
         "--no-embeddings",
         action="store_true",
         help="skip embedding message windows (Bedrock)",
+    )
+    parser.add_argument(
+        "--no-lore", action="store_true", help="skip the lore backfill (Muse)"
     )
     parser.add_argument(
         "--no-anchor",

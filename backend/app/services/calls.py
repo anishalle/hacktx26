@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import schemas
 from app.core.config import settings
 from app.models import Call, CallMember, CallTranscript, Explanation, User
-from app.services import captions, explain
+from app.services import captions, explain, replays
 from app.services.messages import require_group, require_member
 from app.services.realtime import broadcast_group
 
@@ -174,6 +174,7 @@ async def get_call(session: AsyncSession, group_id: int) -> schemas.Call | None:
 
 async def _end(session: AsyncSession, call: Call) -> None:
     call.ended_at = datetime.now(UTC)
+    replays.forget(call.id)
     for m in call.members:
         m.left_at = m.left_at or call.ended_at
     try:
@@ -286,6 +287,7 @@ async def explain_call(
     membership = await require_member(session, call.group_id, body.user_id)
     if body.at_ms > int(time.time() * 1000) + CLOCK_SKEW_MS:
         raise HTTPException(422, "at_ms is in the future")
+    replays.signal(call_id, "question")  # a ? tap marks a moment worth replaying
 
     since = body.at_ms - FOCUS_MS - BACKGROUND_MS
     rows = list(

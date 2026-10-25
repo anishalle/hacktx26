@@ -285,3 +285,59 @@ class CallTranscript(Base):
     items: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
     is_partial: Mapped[bool]
     received_at: Mapped[datetime] = _now()
+
+
+class LoreReplay(Base):
+    """Feature 6: a saved call moment, the mixed audio (WAV in MEDIA_DIR) and the
+    caption timeline, with offsets in ms from the clip start."""
+
+    __tablename__ = "lore_replays"
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    call_id: Mapped[int] = mapped_column(ForeignKey("calls.id", ondelete="CASCADE"))
+    group_id: Mapped[int] = mapped_column(_group_fk(), index=True)
+    audio_path: Mapped[str] = mapped_column(Text)
+    duration_ms: Mapped[int]
+    started_at: Mapped[datetime]
+    captions: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    signal: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[datetime] = _now()
+
+
+class Lore(Base):
+    """Feature 6: a group's moment (suggested, kept, dismissed or removed)."""
+
+    __tablename__ = "lore"
+    __table_args__ = (Index("ix_lore_group_status", "group_id", "status"),)
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    group_id: Mapped[int] = mapped_column(_group_fk())
+    title: Mapped[str] = mapped_column(Text)
+    story: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="suggested")
+    source: Mapped[str] = mapped_column(String(8), default="chat")  # chat|call
+    call_id: Mapped[int | None] = mapped_column(
+        ForeignKey("calls.id", ondelete="SET NULL")
+    )
+    started_at: Mapped[datetime]
+    ended_at: Mapped[datetime]
+    people: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), default=list, server_default="{}"
+    )
+    terms: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), default=list, server_default="{}"
+    )
+    message_ids: Mapped[list[int]] = mapped_column(
+        ARRAY(BigInteger), default=list, server_default="{}"
+    )
+    replay_ids: Mapped[list[int]] = mapped_column(
+        ARRAY(Integer), default=list, server_default="{}"
+    )
+    anchor_message_id: Mapped[int | None] = mapped_column(BigInteger)
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    embedding: Mapped[Any | None] = mapped_column(Vector(settings.EMBEDDING_DIM))
+    kept_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    kept_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = _now()

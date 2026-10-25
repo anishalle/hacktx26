@@ -135,6 +135,7 @@ every group the user is in:
 | `ask.updated` | `MemberAsk`, sent to both people on the ask when it is answered or declined |
 | `call.updated` | `Call`, sent to every group member when a call starts, someone joins or leaves, or it ends |
 | `call.caption` | `CallCaption`, sent to every member on the call as someone speaks (feature 4) |
+| `lore.updated` | `Lore`, sent to the group when a moment is suggested, kept, dismissed or removed (feature 6). A call suggestion (`source: "call"`, `status: "suggested"`) goes only to the people on that call |
 
 The client may send `{ "type": "ping" }`; the server answers `{ "type": "pong" }`.
 
@@ -184,6 +185,7 @@ type Explanation = {
   call_id: number | null;
   said_by: User | null;       // who said the explained phrase on the call
   heard: string | null;       // status unknown on a call: the words it caught, e.g. "…getting procs…"
+  lore: Lore[];               // kept lore this term/message belongs to (max 2): show "See the lore"
 };
 
 type MemberAsk = {
@@ -269,6 +271,77 @@ type CallJoin = {
   attendee: object;  // Chime CreateAttendee "Attendee" (AttendeeId, ExternalUserId = our user id, JoinToken)
 };
 ```
+
+## Feature 6: Lore
+
+A group's kept moments: things that happened (an inside joke being born, the Incident, a trip),
+each with a title, a short story, who was there, and its evidence (messages, photos, call replays).
+Moments are found automatically (chat and calls) and **suggested**; any member taps **Keep**
+(first tap wins for the group) or dismisses. Kept lore shows in the Lore feed (the Reels tab) across
+all your groups. Any member can remove a kept entry. Backfill over existing history keeps the
+strongest moments automatically.
+
+| Method | Path | Body / query | Returns |
+| --- | --- | --- | --- |
+| GET | `/users/{user_id}/lore` | `?group_id=&cursor=&limit=20` (max 50) | `LoreFeed`: kept lore in the user's groups, newest moment first |
+| GET | `/lore/{lore_id}` | `?user_id=` | `LoreDetail` (any status; members only) |
+| GET | `/groups/{group_id}/lore/suggestions` | `?user_id=` | `Lore[]`: chat suggestions still waiting (`status: "suggested"`, `source: "chat"`) |
+| POST | `/lore/{lore_id}/keep` | `{ user_id }` | `Lore`; suggested → kept (already kept: returned as is; dismissed: 409). A kept call replay that matches existing lore is attached to it and that lore is returned. Pushes `lore.updated` |
+| POST | `/lore/{lore_id}/dismiss` | `{ user_id }` | `Lore`; suggested → dismissed. Pushes `lore.updated` |
+| POST | `/lore/{lore_id}/remove` | `{ user_id }` | `Lore`; kept → removed. Pushes `lore.updated` |
+
+```ts
+type LoreStatus = "suggested" | "kept" | "dismissed" | "removed";
+
+type LoreReplay = {
+  id: number;
+  call_id: number;
+  audio_url: string;          // WAV (24 kHz mono), absolute
+  duration_ms: number;
+  started_at: string;         // wall-clock start of the clip
+  captions: { user_id: string; text: string; start_ms: number; end_ms: number }[]; // offsets into the clip
+};
+
+type Lore = {
+  id: number;
+  group_id: number;
+  group_name: string;
+  title: string;              // "The Incident: Mike's ramen fire alarm"
+  story: string;              // 1-3 sentences, plain English
+  status: LoreStatus;
+  source: "chat" | "call";
+  call_id: number | null;     // call suggestions: the call it came from
+  started_at: string;
+  ended_at: string;
+  people: User[];
+  terms: { term: string; glossary_id: number | null }[]; // tap → explain the term
+  cover: { photo: Message | null; replay: LoreReplay | null }; // at most one set; both null = text card
+  anchor_message_id: number | null; // chat suggestions: show the Keep card after this message
+  message_count: number;
+  photo_count: number;
+  replay_count: number;
+  kept_by: User | null;       // null for backfilled lore
+  kept_at: string | null;
+};
+
+type LoreDetail = Lore & {
+  messages: Message[];        // key messages, oldest first (tap → thread around=id)
+  photos: Message[];          // kind "photo"
+  replays: LoreReplay[];
+  related: Lore[];            // up to 6 kept lore in the same group, most related first
+};
+
+type LoreFeed = { items: Lore[]; next_cursor: string | null };
+```
+
+Server design (not part of the contract): chat moments come from the catch-up chunk digests'
+events plus quick triggers (message bursts, reaction piles, photo clusters) on recent messages; Muse
+picks the ones worth keeping and writes title and story from the supplied lines only. A candidate
+that matches existing lore by embedding is attached to it instead of duplicating it; related lore
+is found the same way. On a call the server keeps the last ~30 s of everyone's mic audio (mixed)
+and captions; signals (3+ people talking at once, a loudness spike against the call's baseline,
+a ? tap, phrases like "no way" / "remember when", glossary terms said aloud) save a replay a few
+seconds later, at most one per moment.
 
 ## Feature 2: pre-send clarity nudge
 
@@ -389,3 +462,5 @@ Defined in `backend/app/models.py`, created on startup with `CREATE EXTENSION ve
 | `calls` | `id, group_id, meeting_id, meeting jsonb, started_by, started_at, ended_at` |
 | `call_members` | `call_id, user_id, attendee_id, joined_at, left_at` |
 | `call_transcripts` | `call_id, result_id, speaker_id, start_ms, end_ms, text, items jsonb, is_partial` |
+| `lore` | `id, group_id, title, story, status, source, call_id, started_at, ended_at, people text[], terms text[], message_ids bigint[], replay_ids int[], anchor_message_id, score, embedding vector, kept_by, kept_at, created_at` |
+| `lore_replays` | `id, call_id, group_id, audio_path, duration_ms, started_at, captions jsonb, signal, created_at` |

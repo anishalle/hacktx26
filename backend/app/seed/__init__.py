@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import db
 from app.models import Glossary, Group, Membership, Message, Reaction, User
-from app.services import digests, embeddings
+from app.services import digests, embeddings, lore
 
 log = logging.getLogger(__name__)
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -177,12 +177,13 @@ async def seed(
     *,
     digests_enabled: bool = True,
     embeddings_enabled: bool = True,
+    lore_enabled: bool = True,
     paths: list[Path] | None = None,
     now: datetime | None = None,
 ) -> None:
-    """Drop and recreate every table, load fixtures, then embed message windows and
-    backfill digests. `now` overrides the load time (default: real time, aligned to
-    each fixture's anchor)."""
+    """Drop and recreate every table, load fixtures, then embed message windows,
+    backfill digests and keep each group's strongest lore. `now` overrides the load
+    time (default: real time, aligned to each fixture's anchor)."""
     await db.init_db(drop=True)
     loaded = LoadedFixture()
     async with db.SessionLocal() as session:
@@ -195,12 +196,9 @@ async def seed(
             for key, group in loaded.groups.items():
                 n = await embeddings.index_group(session, group.id)
                 log.info("embedded %s: %d windows", key, n)
-        if not digests_enabled:
-            return
-        for key, group in loaded.groups.items():
-            try:
-                n = await digests.backfill_digests(session, group.id)
-                log.info("digested %s: %d chunks", key, n)
-            except NotImplementedError:
-                log.warning("backfill_digests not implemented yet; skipping digests")
-                break
+        for key, group in loaded.groups.items() if digests_enabled else ():
+            n = await digests.backfill_digests(session, group.id)
+            log.info("digested %s: %d chunks", key, n)
+        for key, group in loaded.groups.items() if lore_enabled else ():
+            kept = await lore.backfill_group(session, group.id)
+            log.info("lore %s: kept %d", key, len(kept))

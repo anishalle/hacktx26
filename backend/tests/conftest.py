@@ -32,7 +32,7 @@ from app.core.config import settings
 from app.main import app
 from app.models import Base
 from app.seed import FIXTURES_DIR, LoadedFixture, load_fixture_data
-from app.services import calls, captions, embeddings, llm
+from app.services import calls, captions, embeddings, llm, lore, replays
 from app.services.realtime import hub
 
 LoadFixture = Callable[..., Awaitable[LoadedFixture]]
@@ -109,6 +109,16 @@ def fake_asr() -> Iterator[captions.FakeASR]:
     yield fake
     captions.set_asr(None)
     captions.live_turns.clear()
+
+
+@pytest.fixture(autouse=True)
+async def _lore_state() -> AsyncIterator[None]:
+    lore.reset()
+    yield
+    await lore.drain()
+    await replays.drain()
+    replays.calls.clear()
+    lore.reset()
 
 
 @pytest.fixture

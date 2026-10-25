@@ -30,7 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import crud, schemas
 from app.core.config import settings
 from app.models import Explanation, Glossary, MemberAsk, Membership, Message, User
-from app.services import asks, embeddings, llm, nudge
+from app.services import asks, embeddings, llm, lore, nudge
 from app.services.digests import (
     Line,
     as_id,
@@ -710,4 +710,10 @@ async def answer(
         heard=(f"…{g.term or ctx.heard}…" if g.term or ctx.heard else None)
         if ctx.call_id and g.status == "unknown"
         else None,
+        lore=await lore.for_explanation(
+            session,
+            ctx.group_id,
+            g.term if g.status in ("explained", "general") else None,
+            [ctx.message_id or 0, *(s.id for s in sources)],
+        ),
     )

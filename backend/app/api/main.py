@@ -6,6 +6,7 @@ from app.api.routes import (
     explain,
     groups,
     home,
+    lore,
     media,
     nudge,
     users,
@@ -20,5 +21,6 @@ api_router.include_router(media.router)
 api_router.include_router(ws.router)
 api_router.include_router(explain.router)
 api_router.include_router(calls.router)
+api_router.include_router(lore.router)
 api_router.include_router(nudge.router)
 api_router.include_router(catchup.router)
