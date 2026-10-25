@@ -3,8 +3,8 @@
 The shared contract between the iOS app (`frontend/`) and the API (`backend/`). Both sides build
 against this file; change it here first, then in code.
 
-- Base URL: `http://localhost:8000/api/v1` (the iOS Simulator reaches the Mac at `localhost`).
-  The app reads it from `EXPO_PUBLIC_API_URL`.
+- Base URL: `https://hacktx26.anishalle.com/api/v1`, the shared dev API on the homelab (the app's
+  default). For a local backend use `http://localhost:8000/api/v1` via `EXPO_PUBLIC_API_URL`.
 - All timestamps are ISO 8601 UTC strings. JSON bodies use `snake_case`.
 - There is no auth. Every request that acts "as" someone carries `user_id`. The app has a hidden
   demo-user switcher.

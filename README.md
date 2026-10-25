@@ -72,6 +72,14 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+## Dev server
+
+The shared dev API runs on the homelab at `https://hacktx26.anishalle.com/api/v1` (Docker,
+`~/apps/hacktx26`, NGINX + Let's Encrypt in front); the app uses it by default. Redeploy the
+current backend with `deploy/homelab/deploy.sh` (add `--env` only to replace the server's `.env`,
+which also holds its AWS keys). Point the app at a local backend with
+`EXPO_PUBLIC_API_URL=http://localhost:8000/api/v1`.
+
 ## Docker
 
 ```sh

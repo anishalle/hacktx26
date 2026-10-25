@@ -1,0 +1,10 @@
+# Dev API at https://hacktx26.anishalle.com (homelab, ~/apps/hacktx26).
+# NGINX on the host terminates TLS and proxies to 127.0.0.1:8740.
+services:
+  api:
+    build: .
+    container_name: hacktx26-api
+    env_file: .env
+    ports:
+      - "127.0.0.1:8740:8000"
+    restart: unless-stopped
