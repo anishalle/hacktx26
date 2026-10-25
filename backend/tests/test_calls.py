@@ -251,26 +251,28 @@ def test_chime_word_bounds_expand_segment_before_storage(
     assert (word.start_time_ms, word.end_time_ms) == (word_start, word_end)
 
 
-def test_reversed_word_range_is_still_rejected():
-    with pytest.raises(ValueError, match="Word endTimeMs"):
-        TranscriptResult.model_validate(
-            {
-                "resultId": "invalid-word",
-                "isPartial": False,
-                "startTimeMs": NOW - 2000,
-                "endTimeMs": NOW - 1000,
-                "alternatives": [
-                    {
-                        "transcript": "hello",
-                        "items": [
-                            {
-                                "content": "hello",
-                                "startTimeMs": NOW - 1000,
-                                "endTimeMs": NOW - 1500,
-                                "attendee": {"attendeeId": "speaker"},
-                            }
-                        ],
-                    }
-                ],
-            }
-        )
+def test_reversed_chime_word_end_is_normalized_to_its_start():
+    result = TranscriptResult.model_validate(
+        {
+            "resultId": "invalid-word",
+            "isPartial": False,
+            "startTimeMs": NOW - 2000,
+            "endTimeMs": NOW - 1000,
+            "alternatives": [
+                {
+                    "transcript": "hello",
+                    "items": [
+                        {
+                            "content": "hello",
+                            "startTimeMs": NOW - 1000,
+                            "endTimeMs": NOW - 1500,
+                            "attendee": {"attendeeId": "speaker"},
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    word = result.alternatives[0].items[0]
+    assert word.start_time_ms == NOW - 1000
+    assert word.end_time_ms == word.start_time_ms
