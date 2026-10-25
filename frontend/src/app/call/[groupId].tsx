@@ -19,6 +19,7 @@ import {
   Animated,
   KeyboardAvoidingView,
   LayoutAnimation,
+  type LayoutChangeEvent,
   Pressable,
   StyleSheet,
   Text,
@@ -48,6 +49,8 @@ const GAP = 12;
 // systemIndigo: a bare 'indigo' tint resolves to CSS indigo (#4B0082), not the UIKit color.
 const SYSTEM_INDIGO = '#5E5CE6';
 const SPEAKING_MS = 1500; // a fresh caption counts as speaking (Chime volume also does)
+const CAPTION_SHOWN_MS = 4500; // CaptionBubble fades out 4 s after a speaker's last word
+const CAPTION_GAP = 8;
 
 /** Feature 4: a FaceTime-style group call (Amazon Chime) with live per-speaker captions and a private ?. */
 export default function CallScreen() {
@@ -140,6 +143,30 @@ function layoutTiles(n: number, width: number, top: number, bottom: number, grid
   }));
 }
 
+/**
+ * Tops for the live caption bubbles. Each wants to hang off the bottom of its speaker's tile, but
+ * staggered tiles overlap, so from the lowest up each showing bubble is lifted to clear the one
+ * below it (and `floor`, the top of your own caption or the bottom pills). Never above `ceiling`.
+ */
+function placeCaptions(
+  items: { key: string; top: number; height: number; shown: boolean }[],
+  floor: number,
+  ceiling: number,
+): Record<string, number> {
+  const tops: Record<string, number> = {};
+  let limit = floor;
+  for (const it of [...items].sort((a, b) => b.top - a.top)) {
+    if (!it.shown) {
+      tops[it.key] = it.top;
+      continue;
+    }
+    const top = Math.max(ceiling, Math.min(it.top, limit - it.height));
+    tops[it.key] = top;
+    limit = top - CAPTION_GAP;
+  }
+  return tops;
+}
+
 function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: string; onLeft: () => void }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -152,6 +179,13 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
   const [speakerOn, setSpeakerOn] = useState(true);
   const [card, setCard] = useState<CardState | null>(null);
   const [grid, setGrid] = useState(false);
+  const [captionsOn, setCaptionsOn] = useState(true);
+  // Rendered caption heights by speaker ('me' for your own), so bubbles can be kept apart.
+  const [captionH, setCaptionH] = useState<Record<string, number>>({});
+  const measureCaption = (key: string) => (e: LayoutChangeEvent) => {
+    const h = Math.round(e.nativeEvent.layout.height);
+    setCaptionH((c) => (c[key] === h ? c : { ...c, [key]: h }));
+  };
   const [panelShown, setPanelShown] = useState(true);
   const [panelY] = useState(() => new Animated.Value(0));
   const now = useNow(500);
@@ -229,6 +263,21 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
   const areaTop = insets.top + PANEL_H + 24;
   const areaBottom = height - insets.bottom - PIP.h - 28;
   const frames = layoutTiles(remotes.length, width, areaTop, areaBottom, grid);
+  const showing = (userId: string | null | undefined) =>
+    !!userId && now - (call.captions[userId]?.updatedAt ?? 0) < CAPTION_SHOWN_MS;
+  const selfCaptionBottom = insets.bottom + 16 + PIP.h + 10;
+  const captionTops = placeCaptions(
+    remotes.map((p, i) => ({
+      key: p.attendeeId,
+      top: frames[i] ? frames[i].y + frames[i].h - 18 : 0,
+      height: captionH[p.attendeeId] ?? 0,
+      shown: showing(p.userId),
+    })),
+    showing(me.id)
+      ? height - selfCaptionBottom - (captionH.me ?? 0) - CAPTION_GAP
+      : height - insets.bottom - 16 - 34 - CAPTION_GAP,
+    areaTop,
+  );
   const people = call.participants.length;
   const group = items.find((it) => it.group.id === join.call.group_id)?.group;
   const title = groupName || group?.name || 'Group call';
@@ -269,17 +318,19 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
         ))}
       </Pressable>
 
-      {/* Captions sit above every tile, each anchored to its speaker's tile. */}
+      {/* Captions sit above every tile, each anchored to its speaker's tile and nudged up when two
+          speakers' bubbles would overlap. Hidden captions keep streaming for the ?. */}
       {remotes.map((p, i) => {
         const f = frames[i];
-        if (!f || !p.userId) return null;
+        if (!captionsOn || !f || !p.userId) return null;
         const maxWidth = Math.min(width - GAP * 2, f.w + 60);
         const x = f.side === 'left' ? f.x + 8 : Math.max(GAP, f.x + f.w - 8 - maxWidth);
         return (
           <View
             key={`cap-${p.attendeeId}`}
             pointerEvents="none"
-            style={[styles.captionSlot, { left: x, top: f.y + f.h - 18, width: maxWidth }]}
+            style={[styles.captionSlot, { left: x, top: captionTops[p.attendeeId] ?? f.y + f.h - 18, width: maxWidth }]}
+            onLayout={measureCaption(p.attendeeId)}
           >
             <CaptionBubble caption={call.captions[p.userId]} maxWidth={maxWidth} tail={f.side} />
           </View>
@@ -289,17 +340,20 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
       {/* Your own tile: picture-in-picture, bottom right, with your caption above it. */}
       {local ? (
         <>
-          <View
-            style={[styles.pipCaption, { right: GAP, bottom: insets.bottom + 16 + PIP.h + 10, width: width * 0.55 }]}
-            pointerEvents="none"
-          >
-            <CaptionBubble
-              caption={call.captions[me.id] as SpeakerCaption | undefined}
-              maxWidth={width * 0.55}
-              small
-              tail="right"
-            />
-          </View>
+          {captionsOn ? (
+            <View
+              style={[styles.pipCaption, { right: GAP, bottom: selfCaptionBottom, width: width * 0.55 }]}
+              pointerEvents="none"
+              onLayout={measureCaption('me')}
+            >
+              <CaptionBubble
+                caption={call.captions[me.id] as SpeakerCaption | undefined}
+                maxWidth={width * 0.55}
+                small
+                tail="right"
+              />
+            </View>
+          ) : null}
           <View style={[styles.pip, { right: GAP, bottom: insets.bottom + 16 }, speaking(local) && styles.speaking]}>
             {local.tileId !== undefined && !call.videoOff ? (
               <ChimeVideo tileId={local.tileId} mirror style={StyleSheet.absoluteFill} />
@@ -315,21 +369,36 @@ function CallRoom({ join, groupName, onLeft }: { join: CallJoin; groupName: stri
         </>
       ) : null}
 
-      {remotes.length > 1 ? (
+      <View style={[styles.pills, { left: GAP, bottom: insets.bottom + 16 }]}>
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setGrid((g) => !g);
+            setCaptionsOn((on) => !on);
           }}
-          style={[styles.gridPill, { left: GAP, bottom: insets.bottom + 16 }]}
-          accessibilityLabel={grid ? 'Staggered layout' : 'Grid layout'}
+          style={[styles.gridPill, styles.ccPill]}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: captionsOn }}
+          accessibilityLabel="Live captions"
         >
-          <BlurView tint="dark" intensity={60} style={[StyleSheet.absoluteFill, grid && styles.gridPillOn]} />
-          <Icon name="square.grid.2x2.fill" size={15} color={grid ? '#111' : 'white'} />
-          <Text style={[styles.gridText, grid && { color: '#111' }]}>Grid</Text>
+          <BlurView tint="dark" intensity={60} style={[StyleSheet.absoluteFill, captionsOn && styles.gridPillOn]} />
+          <Icon name={captionsOn ? 'captions.bubble.fill' : 'captions.bubble'} size={16} color={captionsOn ? '#111' : 'white'} />
         </Pressable>
-      ) : null}
+        {remotes.length > 1 ? (
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setGrid((g) => !g);
+            }}
+            style={styles.gridPill}
+            accessibilityLabel={grid ? 'Staggered layout' : 'Grid layout'}
+          >
+            <BlurView tint="dark" intensity={60} style={[StyleSheet.absoluteFill, grid && styles.gridPillOn]} />
+            <Icon name="square.grid.2x2.fill" size={15} color={grid ? '#111' : 'white'} />
+            <Text style={[styles.gridText, grid && { color: '#111' }]}>Grid</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
       {/* When the panel is tucked away, the ? stays one tap away. */}
       {!panelShown ? (
@@ -605,8 +674,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  pills: { position: 'absolute', flexDirection: 'row', gap: 8, zIndex: 4 },
   gridPill: {
-    position: 'absolute',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -614,8 +683,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 17,
     overflow: 'hidden',
-    zIndex: 4,
   },
+  ccPill: { width: 34, paddingHorizontal: 0, justifyContent: 'center' },
   gridPillOn: { backgroundColor: 'white' },
   gridText: { color: 'white', fontSize: 15, fontWeight: '600' },
   floatingAsk: { position: 'absolute', alignSelf: 'center', zIndex: 7 },
