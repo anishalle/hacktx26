@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,16 +21,26 @@ type Props = {
   /** This card is the one on screen. */
   active: boolean;
   onRemoved: (id: number) => void;
+  /** The panel is (being) swiped open or closed, so the screen can clear its header. */
+  onPanelChange?: (id: number, open: boolean) => void;
 };
 
 /**
  * One page of the Lore feed: the moment's cover full-bleed with its title and story over it.
  * Swiping left pages to the LorePanel (texts, photos, replays, related lore).
  */
-export function LoreCard({ lore, width, height, active, onRemoved }: Props) {
+export function LoreCard({ lore, width, height, active, onRemoved, onPanelChange }: Props) {
   const [page, setPage] = useState(0);
   const pages = ['card', 'panel'] as const;
+  const panelShown = useRef(false);
   const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => setPage(Math.round(e.nativeEvent.contentOffset.x / width));
+  // Report as soon as the swipe gets going, not only once it settles.
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const shown = e.nativeEvent.contentOffset.x > width * 0.08;
+    if (shown === panelShown.current) return;
+    panelShown.current = shown;
+    onPanelChange?.(lore.id, shown);
+  };
 
   return (
     <FlatList
@@ -41,6 +51,8 @@ export function LoreCard({ lore, width, height, active, onRemoved }: Props) {
       showsHorizontalScrollIndicator={false}
       keyExtractor={(k) => k}
       onMomentumScrollEnd={onScrollEnd}
+      onScroll={onScroll}
+      scrollEventThrottle={32}
       style={{ width, height }}
       renderItem={({ item }) => (
         <View style={{ width, height }}>

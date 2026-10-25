@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -143,7 +144,7 @@ export function LorePanel({ lore, open, onRemoved }: Props) {
 
             {detail.related.length ? (
               <Section icon="sparkles" title="More lore like this">
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.relatedRow} contentContainerStyle={styles.relatedRowContent}>
                   {detail.related.map((r) => (
                     <Pressable
                       key={r.id}
@@ -153,15 +154,26 @@ export function LorePanel({ lore, open, onRemoved }: Props) {
                       }}
                       style={({ pressed }) => [styles.related, pressed && { opacity: 0.7 }]}>
                       {r.cover.photo?.image ? (
-                        <Image source={{ uri: r.cover.photo.image.url }} style={styles.relatedImg} contentFit="cover" />
+                        <>
+                          <Image source={{ uri: r.cover.photo.image.url }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.85)']} locations={[0.35, 1]} style={StyleSheet.absoluteFill} />
+                        </>
                       ) : (
-                        <View style={[styles.relatedImg, styles.relatedText]}>
-                          <Icon name={r.cover.replay ? 'waveform' : 'sparkles'} size={20} color={colors.sparkle} />
-                        </View>
+                        <LinearGradient colors={COVERS[r.id % COVERS.length]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill}>
+                          <View style={styles.relatedTop}>
+                            <Icon name={r.cover.replay ? 'waveform' : 'quote.opening'} size={16} color="rgba(255,255,255,0.6)" />
+                            <Text style={styles.relatedStory} numberOfLines={4}>
+                              {r.story}
+                            </Text>
+                          </View>
+                        </LinearGradient>
                       )}
-                      <Text style={styles.relatedTitle} numberOfLines={2}>
-                        {r.title}
-                      </Text>
+                      <View style={styles.relatedMeta}>
+                        <Text style={styles.relatedTitle} numberOfLines={3}>
+                          {r.title}
+                        </Text>
+                        <Text style={styles.relatedWhen}>{separatorLabel(r.started_at)}</Text>
+                      </View>
                     </Pressable>
                   ))}
                 </ScrollView>
@@ -174,10 +186,26 @@ export function LorePanel({ lore, open, onRemoved }: Props) {
           <Text style={styles.removeText}>Remove from Lore</Text>
         </Pressable>
       </ScrollView>
+      {/* Content scrolls under the status bar: keep a solid strip there. */}
+      <LinearGradient
+        colors={['#0B0B0D', '#0B0B0D', 'rgba(11,11,13,0)']}
+        locations={[0, 0.7, 1]}
+        style={[styles.statusScrim, { height: insets.top + 14 }]}
+        pointerEvents="none"
+      />
       <PhotoViewer message={viewing} onClose={() => setViewing(null)} />
     </View>
   );
 }
+
+/** Covers for lore without a photo, picked by id so a card keeps its color. */
+const COVERS = [
+  ['#3A1C71', '#1B2A5C'],
+  ['#5B2A86', '#B33F62'],
+  ['#0F4C75', '#3282B8'],
+  ['#1E5631', '#2F855A'],
+  ['#7B3F00', '#C05621'],
+] as const;
 
 function Section({ icon, title, children }: { icon: 'waveform' | 'photo.on.rectangle' | 'bubble.left.and.bubble.right' | 'sparkles'; title: string; children: React.ReactNode }) {
   return (
@@ -223,10 +251,15 @@ const styles = StyleSheet.create({
   msgName: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 2 },
   msgText: { color: colors.text, fontSize: 15, lineHeight: 20 },
   msgPhoto: { width: 140, height: 100, borderRadius: 10, marginVertical: 4 },
-  related: { width: 150 },
-  relatedImg: { width: 150, height: 190, borderRadius: 14, backgroundColor: colors.surface },
-  relatedText: { alignItems: 'center', justifyContent: 'center' },
-  relatedTitle: { color: colors.text, fontSize: 13, fontWeight: '600', marginTop: 6 },
+  statusScrim: { position: 'absolute', top: 0, left: 0, right: 0 },
+  relatedRow: { marginHorizontal: -20 },
+  relatedRowContent: { gap: 10, paddingHorizontal: 20 },
+  related: { width: 150, height: 200, borderRadius: 14, overflow: 'hidden', backgroundColor: colors.surface, justifyContent: 'flex-end' },
+  relatedTop: { padding: 12, gap: 6 },
+  relatedStory: { color: 'rgba(255,255,255,0.82)', fontSize: 12, lineHeight: 16 },
+  relatedMeta: { padding: 10, gap: 2 },
+  relatedTitle: { color: 'white', fontSize: 14, fontWeight: '700', lineHeight: 18 },
+  relatedWhen: { color: 'rgba(255,255,255,0.65)', fontSize: 11 },
   remove: { marginTop: 36, alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 18 },
   removeText: { color: '#FF6B6B', fontSize: 15, fontWeight: '600' },
 });

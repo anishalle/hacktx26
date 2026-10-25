@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Pressable,
   ScrollView,
@@ -81,6 +82,8 @@ export default function LoreScreen() {
       const feed = await api.getLoreFeed(me.id, { ...(groupId ? { group_id: groupId } : {}), cursor });
       setItems((prev) => [...prev, ...feed.items.filter((i) => !prev.some((p) => p.id === i.id))]);
       setCursor(feed.next_cursor);
+    } catch {
+      // Keep the cursor: the next scroll toward the end tries this page again.
     } finally {
       loadingMore.current = false;
     }
@@ -97,6 +100,15 @@ export default function LoreScreen() {
 
   const removed = useCallback((id: number) => setItems((prev) => prev.filter((p) => p.id !== id)), []);
 
+  // The title and filters float over the cards; they step aside while a card's panel is open.
+  const [panelOpen, setPanelOpen] = useState<number | null>(null);
+  const onPanelChange = useCallback((id: number, open: boolean) => setPanelOpen((cur) => (open ? id : cur === id ? null : cur)), []);
+  const headerHidden = panelOpen !== null && panelOpen === items[visible]?.id;
+  const [headerOpacity] = useState(() => new Animated.Value(1));
+  useEffect(() => {
+    Animated.timing(headerOpacity, { toValue: headerHidden ? 0 : 1, duration: 160, useNativeDriver: true }).start();
+  }, [headerHidden, headerOpacity]);
+
   const onViewable = useCallback(({ viewableItems }: { viewableItems: ListViewToken[] }) => {
     const first = viewableItems[0];
     if (first?.index != null) setVisible(first.index);
@@ -111,7 +123,14 @@ export default function LoreScreen() {
           data={items}
           keyExtractor={(l) => String(l.id)}
           renderItem={({ item, index }) => (
-            <LoreCard lore={item} width={width} height={height} active={focused && index === visible} onRemoved={removed} />
+            <LoreCard
+              lore={item}
+              width={width}
+              height={height}
+              active={focused && index === visible}
+              onRemoved={removed}
+              onPanelChange={onPanelChange}
+            />
           )}
           pagingEnabled
           showsVerticalScrollIndicator={false}
@@ -146,7 +165,9 @@ export default function LoreScreen() {
         </View>
       )}
 
-      <View style={[styles.header, { paddingTop: insets.top + 6 }]} pointerEvents="box-none">
+      <Animated.View
+        style={[styles.header, { paddingTop: insets.top + 6, opacity: headerOpacity }]}
+        pointerEvents={headerHidden ? 'none' : 'box-none'}>
         <Text style={styles.logo}>Lore</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
           {[{ id: null as number | null, name: 'All' }, ...groups].map((g) => {
@@ -168,7 +189,7 @@ export default function LoreScreen() {
             );
           })}
         </ScrollView>
-      </View>
+      </Animated.View>
     </View>
   );
 }
