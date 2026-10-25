@@ -374,7 +374,9 @@ export const mockApi: Api = {
   async nudgeAside({ group_id, draft, term, meaning }) {
     await sleep(600 + Math.random() * 400);
     const idx = draft.toLowerCase().indexOf(term.toLowerCase());
-    const clean = meaning.trim().replace(/[.!]+$/, '');
+    let clean = meaning.trim().replace(/[.!]+$/, '');
+    // Keep the member's casing style: an aside reads as a clause, not a sentence.
+    if (clean.length > 1 && clean[1] === clean[1].toLowerCase()) clean = clean[0].toLowerCase() + clean.slice(1);
     const id = Math.max(...glossary.map((g) => g.id)) + 1;
     glossary.push({
       id,
