@@ -1,0 +1,1 @@
+C:/Users/swaya/hacktx26/hacktx26/.test-tools/pgsql/bin/postgres.exe "-D" ".test-tools/pgdata" "-p" "55432" "-h" "127.0.0.1"

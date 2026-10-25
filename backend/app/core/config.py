@@ -14,7 +14,8 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "HackRice 26"
     API_V1_STR: str = "/api/v1"
-    FRONTEND_HOST: str = "http://localhost:5173"
+    FRONTEND_HOST: str = "http://localhost:8081"
+    PRONUNCIATION_DB: Path = Path("data/pronunciations.sqlite3")
     FASTAPI_ENV: Literal["development", "staging", "production"] = "development"
     SENTRY_DSN: HttpUrl | None = None
 

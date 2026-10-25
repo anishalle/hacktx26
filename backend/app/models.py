@@ -7,3 +7,9 @@ from pydantic import BaseModel
 
 class HealthResponse(BaseModel):
     status: Literal["ok"]
+
+
+class UserProfile(BaseModel):
+    id: str
+    display_name: str
+    pronunciation_url: str | None = None
