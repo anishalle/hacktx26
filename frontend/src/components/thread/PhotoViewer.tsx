@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Message } from '@/api';
-import { colors } from '@/theme';
+import { callColors as colors } from '@/theme';
 
 import { Icon } from '../Icon';
 

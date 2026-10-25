@@ -10,7 +10,7 @@ import { Glass } from '@/components/GlassCircle';
 import { Icon } from '@/components/Icon';
 import { firstName } from '@/lib/format';
 import { useSession } from '@/state/session';
-import { colors } from '@/theme';
+import { callColors as colors } from '@/theme';
 
 const AUTO_DISMISS_MS = 15_000;
 
@@ -65,7 +65,12 @@ export function CallExplainCard({ card, groupId, meId, onRetry, onDismiss }: Pro
     setBusy(true);
     setErr(null);
     try {
-      const res = await api.explain({ group_id: groupId, user_id: meId, explanation_id: result.explanation_id, follow_up: question });
+      const res = await api.explain({
+        group_id: groupId,
+        user_id: meId,
+        explanation_id: result.explanation_id,
+        follow_up: question,
+      });
       setAnswers((a) => [...a, { ...res, follow_up: res.follow_up ?? question }]);
       setQ('');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -77,9 +82,14 @@ export function CallExplainCard({ card, groupId, meId, onRetry, onDismiss }: Pro
   };
 
   return (
-    <Glass style={styles.card}>
+    <Glass dark style={styles.card}>
       <Pressable onPress={onDismiss} style={styles.head} hitSlop={6} accessibilityLabel="Dismiss">
-        <LinearGradient colors={['#A033FF', '#5B51F5', '#3797F0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.badge}>
+        <LinearGradient
+          colors={['#4F70CC', '#567ED8', '#85A8FF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.badge}
+        >
           <Icon name="questionmark" size={13} weight="bold" color="white" />
         </LinearGradient>
         <Text style={styles.title} numberOfLines={1}>
@@ -91,7 +101,11 @@ export function CallExplainCard({ card, groupId, meId, onRetry, onDismiss }: Pro
                 ? `What ${saidBy} meant`
                 : 'What that meant'}
         </Text>
-        {card.phase === 'loading' ? <ActivityIndicator size="small" color={colors.textSecondary} /> : <Icon name="xmark" size={13} color={colors.textSecondary} />}
+        {card.phase === 'loading' ? (
+          <ActivityIndicator size="small" color={colors.textSecondary} />
+        ) : (
+          <Icon name="xmark" size={13} color={colors.textSecondary} />
+        )}
       </Pressable>
 
       {card.phase === 'error' ? (
@@ -147,8 +161,16 @@ export function CallExplainCard({ card, groupId, meId, onRetry, onDismiss }: Pro
                 keyboardAppearance="dark"
                 editable={!busy}
               />
-              <Pressable onPress={followUp} disabled={!q.trim() || busy} style={[styles.askGo, (!q.trim() || busy) && { opacity: 0.4 }]}>
-                {busy ? <ActivityIndicator size="small" color="white" /> : <Icon name="arrow.up" size={13} weight="bold" color="white" />}
+              <Pressable
+                onPress={followUp}
+                disabled={!q.trim() || busy}
+                style={[styles.askGo, (!q.trim() || busy) && { opacity: 0.4 }]}
+              >
+                {busy ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Icon name="arrow.up" size={13} weight="bold" color="white" />
+                )}
               </Pressable>
             </View>
           ) : null}
@@ -168,7 +190,16 @@ export function CallExplainCard({ card, groupId, meId, onRetry, onDismiss }: Pro
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 22, padding: 14, paddingBottom: 12, gap: 8, overflow: 'hidden', backgroundColor: 'rgba(28,31,36,0.72)' },
+  card: {
+    borderRadius: 22,
+    padding: 14,
+    paddingBottom: 12,
+    gap: 8,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(20,31,49,0.90)',
+    borderWidth: 1,
+    borderColor: '#30425D',
+  },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '700' },
@@ -182,8 +213,23 @@ const styles = StyleSheet.create({
   answerQ: { color: colors.textSecondary, fontSize: 12, marginBottom: 4 },
   answerText: { color: colors.text, fontSize: 15, lineHeight: 20 },
   askRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  askInput: { flex: 1, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 14, color: colors.text, fontSize: 14 },
-  askGo: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
+  askInput: {
+    flex: 1,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 14,
+    color: colors.text,
+    fontSize: 14,
+  },
+  askGo: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.action,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   error: { flex: 1, color: '#FF6B6B', fontSize: 13 },
   link: { color: colors.blue, fontSize: 14, fontWeight: '600' },
   footer: { flexDirection: 'row', alignItems: 'center', gap: 4 },

@@ -24,11 +24,21 @@ export function CatchupPill({ count, top, onPress }: { count: number; top: numbe
           transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }],
         },
       ]}
-      pointerEvents="box-none">
-      <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => pressed && { transform: [{ scale: 0.97 }] }}>
+      pointerEvents="box-none"
+    >
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        style={({ pressed }) => pressed && { transform: [{ scale: 0.97 }] }}
+      >
         <Glass interactive style={styles.pill}>
           <View style={styles.tint} />
-          <LinearGradient colors={['#A033FF', '#5B51F5', '#3797F0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.spark}>
+          <LinearGradient
+            colors={['#007AFF', '#0875E8', '#116DD6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.spark}
+          >
             <Icon name="sparkles" size={12} color="white" weight="semibold" />
           </LinearGradient>
           <Text style={styles.text}>
@@ -56,7 +66,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
-  tint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(30,30,36,0.82)' },
+  tint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(250,250,252,0.94)' },
   spark: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   text: { color: colors.text, fontSize: 15, fontWeight: '600' },
   count: { color: colors.textSecondary, fontWeight: '500' },

@@ -40,22 +40,36 @@ export function NudgeBanner({ banner, onRewrite, onKeepMine, onAddAside, onSubmi
             { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) },
           ],
         },
-      ]}>
+      ]}
+    >
       <Glass style={styles.card}>
         <View style={styles.tint} />
         <View style={styles.top}>
-          <LinearGradient colors={['#A033FF', '#5B51F5', '#3797F0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.spark}>
+          <LinearGradient
+            colors={['#007AFF', '#0875E8', '#116DD6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.spark}
+          >
             <Icon name="sparkles" size={14} color="white" weight="semibold" />
           </LinearGradient>
           <Text style={styles.message}>{banner.data.message}</Text>
-          <Pressable onPress={banner.kind === 'check' ? onKeepMine : onDismiss} hitSlop={10} accessibilityLabel="Dismiss suggestion">
+          <Pressable
+            onPress={banner.kind === 'check' ? onKeepMine : onDismiss}
+            hitSlop={10}
+            accessibilityLabel="Dismiss suggestion"
+          >
             <Icon name="xmark" size={12} weight="semibold" color={colors.textSecondary} />
           </Pressable>
         </View>
 
         {banner.kind === 'check' ? (
           <View style={styles.actions}>
-            <Pressable onPress={onRewrite} disabled={banner.busy} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
+            <Pressable
+              onPress={onRewrite}
+              disabled={banner.busy}
+              style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
+            >
               {banner.busy ? (
                 <ActivityIndicator size="small" color="#000" />
               ) : (
@@ -65,7 +79,11 @@ export function NudgeBanner({ banner, onRewrite, onKeepMine, onAddAside, onSubmi
                 </>
               )}
             </Pressable>
-            <Pressable onPress={onKeepMine} disabled={banner.busy} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
+            <Pressable
+              onPress={onKeepMine}
+              disabled={banner.busy}
+              style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
+            >
               <Text style={styles.secondaryText}>Keep mine</Text>
             </Pressable>
           </View>
@@ -85,7 +103,8 @@ export function NudgeBanner({ banner, onRewrite, onKeepMine, onAddAside, onSubmi
             <Pressable
               onPress={() => onSubmitAside(meaning)}
               disabled={banner.busy || !meaning.trim()}
-              style={[styles.asideGo, !meaning.trim() && { opacity: 0.4 }]}>
+              style={[styles.asideGo, !meaning.trim() && { opacity: 0.4 }]}
+            >
               {banner.busy ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
@@ -110,7 +129,7 @@ export function NudgeBanner({ banner, onRewrite, onKeepMine, onAddAside, onSubmi
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 10, paddingBottom: 8 },
   card: { borderRadius: 22, padding: 12, overflow: 'hidden' },
-  tint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(30, 26, 48, 0.55)' },
+  tint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(245,248,255,0.94)' },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   spark: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   message: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 19 },
@@ -147,5 +166,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
   },
-  asideGo: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
+  asideGo: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.action,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

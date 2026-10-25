@@ -72,7 +72,8 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
         const now = Date.now();
         if (now - lastTap.current < 280) p.onReact(m, '❤️');
         lastTap.current = now;
-      }}>
+      }}
+    >
       <View
         style={[
           emojiOnly ? styles.emojiWrap : styles.bubble,
@@ -80,10 +81,14 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
           !emojiOnly && corners(run, mine),
           !emojiOnly && { backgroundColor: mine ? p.tint : colors.bubbleIn },
           pending && { opacity: 0.7 },
-        ]}>
-        <Text style={emojiOnly ? styles.emoji : styles.text}>{m.text}</Text>
+        ]}
+      >
+        <Text style={emojiOnly ? styles.emoji : [styles.text, { color: mine ? '#FFFFFF' : colors.text }]}>{m.text}</Text>
         {!emojiOnly ? (
-          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, corners(run, mine), styles.flash, { opacity: flash }]} />
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, corners(run, mine), styles.flash, { opacity: flash }]}
+          />
         ) : null}
       </View>
     </Pressable>
@@ -96,7 +101,11 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
     const w = Math.min(width * 0.65, 320 * aspect);
     bubble = (
       <View style={{ alignItems: mine ? 'flex-end' : 'flex-start', gap: 2 }}>
-        <Pressable onPress={() => p.onOpenPhoto(m)} accessibilityRole="imagebutton" accessibilityLabel={m.image_description ?? 'Photo'}>
+        <Pressable
+          onPress={() => p.onOpenPhoto(m)}
+          accessibilityRole="imagebutton"
+          accessibilityLabel={m.image_description ?? 'Photo'}
+        >
           <Image
             source={{ uri: photo.url }}
             style={[styles.photo, { width: w, height: w / aspect }, pending && { opacity: 0.7 }]}
@@ -121,7 +130,10 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
         {p.showName && p.sender ? <Text style={styles.name}>{p.sender.username}</Text> : null}
         {p.replied ? (
           <View style={[styles.quote, mine ? { alignItems: 'flex-end' } : null]}>
-            <Text style={styles.quoteLabel}>{mine ? 'You replied to ' : 'Replied to '}{p.replied.name}</Text>
+            <Text style={styles.quoteLabel}>
+              {mine ? 'You replied to ' : 'Replied to '}
+              {p.replied.name}
+            </Text>
             <View style={styles.quoteBubble}>
               <Text style={styles.quoteText} numberOfLines={2}>
                 {p.replied.text}
@@ -133,11 +145,17 @@ export const MessageRow = memo(function MessageRow(p: MessageRowProps) {
           onReact={(e) => p.onReact(m, e)}
           onReply={() => p.onReply(m)}
           onCopy={() => p.onCopy(m)}
-          onExplain={() => p.onExplain(m)}>
+          onExplain={() => p.onExplain(m)}
+        >
           {bubble}
         </MessageMenu>
         {m.reactions.length ? (
-          <ReactionPill reactions={m.reactions} mine={mine} userById={p.userById} onPress={() => p.onReact(m, m.reactions[0].emoji)} />
+          <ReactionPill
+            reactions={m.reactions}
+            mine={mine}
+            userById={p.userById}
+            onPress={() => p.onReact(m, m.reactions[0].emoji)}
+          />
         ) : null}
       </View>
     </View>
@@ -241,7 +259,13 @@ const styles = StyleSheet.create({
   pillCount: { color: colors.textSecondary, fontSize: 12, marginLeft: 4 },
   quote: { marginBottom: -10, paddingBottom: 12, marginTop: 4 },
   quoteLabel: { color: colors.textSecondary, fontSize: 12, marginBottom: 4, marginHorizontal: 12 },
-  quoteBubble: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, paddingBottom: 16 },
+  quoteBubble: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingBottom: 16,
+  },
   quoteText: { color: colors.textSecondary, fontSize: 14 },
   sep: {
     color: colors.textSecondary,
@@ -265,7 +289,7 @@ const styles = StyleSheet.create({
     height: 18,
     paddingHorizontal: 6,
     borderRadius: 9,
-    backgroundColor: '#2C2F34',
+    backgroundColor: colors.separator,
     justifyContent: 'center',
     marginRight: 4,
   },

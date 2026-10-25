@@ -87,9 +87,15 @@ export default function ExplainSheet() {
       style={styles.sheet}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets>
+      automaticallyAdjustKeyboardInsets
+    >
       <View style={styles.header}>
-        <LinearGradient colors={['#A033FF', '#5B51F5', '#3797F0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerIcon}>
+        <LinearGradient
+          colors={['#007AFF', '#0875E8', '#116DD6']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerIcon}
+        >
           <Icon name="questionmark" size={18} color="white" weight="bold" />
         </LinearGradient>
         <View style={{ flex: 1 }}>
@@ -127,15 +133,14 @@ export default function ExplainSheet() {
               setError(null);
               setAttempt((n) => n + 1);
             }}
-            style={styles.retry}>
+            style={styles.retry}
+          >
             <Text style={styles.retryText}>Try again</Text>
           </Pressable>
         </View>
       ) : null}
 
-      {result && phase === 'done' ? (
-        <Result result={result} groupId={groupId} onJump={jump} onCatchup={openCatchup} />
-      ) : null}
+      {result && phase === 'done' ? <Result result={result} groupId={groupId} onJump={jump} onCatchup={openCatchup} /> : null}
 
       <View style={styles.footer}>
         <Text style={styles.footerNote}>
@@ -162,8 +167,7 @@ function Result({
   const asks = useAsks();
   const live = result.term ? asks.findOutgoing(groupId, result.term) : undefined;
   // A live answer that arrived after this explanation was built.
-  const lateAnswer =
-    live?.status === 'answered' && !result.human_sources.some((h) => h.ask_id === live.id) ? live : undefined;
+  const lateAnswer = live?.status === 'answered' && !result.human_sources.some((h) => h.ask_id === live.id) ? live : undefined;
 
   return (
     <View>
@@ -197,7 +201,13 @@ function Result({
           {result.human_sources.map((h) => (
             <HumanCard key={h.ask_id} user={h.user} answer={h.answer} at={h.answered_at} />
           ))}
-          {lateAnswer ? <HumanCard user={lateAnswer.asked_user} answer={lateAnswer.answer ?? ''} at={lateAnswer.answered_at ?? lateAnswer.created_at} /> : null}
+          {lateAnswer ? (
+            <HumanCard
+              user={lateAnswer.asked_user}
+              answer={lateAnswer.answer ?? ''}
+              at={lateAnswer.answered_at ?? lateAnswer.created_at}
+            />
+          ) : null}
         </View>
       ) : null}
 
@@ -213,7 +223,10 @@ function Result({
         </View>
       ) : null}
 
-      {(result.status === 'unknown' || result.status === 'general') && result.ask && !result.human_sources.length && !lateAnswer ? (
+      {(result.status === 'unknown' || result.status === 'general') &&
+      result.ask &&
+      !result.human_sources.length &&
+      !lateAnswer ? (
         <AskCard result={result} groupId={groupId} ask={live ?? result.ask.existing ?? undefined} />
       ) : null}
 
@@ -256,7 +269,10 @@ function LoreRow({ lore }: { lore: Lore }) {
 function SourceRow({ message, sender, meId, onPress }: { message: Message; sender?: User; meId: string; onPress: () => void }) {
   const name = message.sender_id === meId ? 'You' : sender ? firstName(sender.display_name) : 'Someone';
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.source, pressed && { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.source, pressed && { backgroundColor: 'rgba(255,255,255,0.06)' }]}
+    >
       <Avatar uri={sender?.avatar_url} size={28} />
       <View style={{ flex: 1 }}>
         <Text style={styles.sourceMeta}>
@@ -345,7 +361,11 @@ function AskCard({ result, groupId, ask }: { result: Explanation; groupId: numbe
       {!ask ? (
         <>
           <Text style={styles.askText}>Want me to ask {name} what this means, without making it a thing?</Text>
-          <Pressable onPress={send} disabled={busy} style={({ pressed }) => [styles.action, (pressed || busy) && { opacity: 0.7 }]}>
+          <Pressable
+            onPress={send}
+            disabled={busy}
+            style={({ pressed }) => [styles.action, (pressed || busy) && { opacity: 0.7 }]}
+          >
             {busy ? <ActivityIndicator size="small" color="white" /> : <Icon name="paperplane.fill" size={13} color="white" />}
             <Text style={styles.actionText}>Ask {name}</Text>
           </Pressable>
@@ -407,11 +427,15 @@ function FollowUp({ result, groupId }: { result: Explanation; groupId: number })
           style={styles.askInput}
           returnKeyType="send"
           onSubmitEditing={submit}
-          keyboardAppearance="dark"
+          keyboardAppearance="light"
           editable={!busy}
         />
         <Pressable onPress={submit} disabled={!q.trim() || busy} style={[styles.askGo, (!q.trim() || busy) && { opacity: 0.4 }]}>
-          {busy ? <ActivityIndicator size="small" color="white" /> : <Icon name="arrow.up" size={15} weight="bold" color="white" />}
+          {busy ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Icon name="arrow.up" size={15} weight="bold" color="white" />
+          )}
         </Pressable>
       </View>
       {err ? <Text style={styles.errorText}>{err}</Text> : null}
@@ -444,7 +468,7 @@ const styles = StyleSheet.create({
   sheet: { flex: 1, backgroundColor: colors.sheetBg },
   content: { paddingTop: 26, paddingHorizontal: 18, paddingBottom: 72 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  headerIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  headerIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   title: { color: colors.text, fontSize: 20, fontWeight: '700' },
   subtitle: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
   quote: { borderLeftWidth: 3, borderLeftColor: colors.sparkle, paddingLeft: 12, paddingVertical: 2, marginBottom: 6 },
@@ -453,7 +477,15 @@ const styles = StyleSheet.create({
   photoThumb: { width: 72, height: 72, borderRadius: 12, backgroundColor: colors.surface },
   sourcePhoto: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   sourceThumb: { width: 40, height: 40, borderRadius: 8, backgroundColor: colors.surface },
-  meaningCard: { marginTop: 10, gap: 10 },
+  meaningCard: {
+    marginTop: 10,
+    gap: 12,
+    padding: 18,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.separator,
+  },
   label: { color: colors.sparkle, fontSize: 13, fontWeight: '600' },
   meaning: { color: colors.text, fontSize: 17, lineHeight: 24 },
   section: { marginTop: 18 },
@@ -487,9 +519,9 @@ const styles = StyleSheet.create({
     marginTop: 18,
     borderRadius: 16,
     padding: 14,
-    backgroundColor: 'rgba(124, 92, 255, 0.12)',
+    backgroundColor: 'rgba(0,122,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(160, 130, 255, 0.3)',
+    borderColor: 'rgba(0,122,255,0.16)',
     gap: 10,
   },
   askText: { color: colors.text, fontSize: 15, lineHeight: 21 },
@@ -498,7 +530,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.blue,
+    backgroundColor: colors.action,
     paddingHorizontal: 14,
     height: 34,
     borderRadius: 17,
@@ -517,8 +549,15 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
   },
-  askGo: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
-  skel: { height: 12, borderRadius: 6, backgroundColor: '#3A3D44' },
+  askGo: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.action,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skel: { height: 12, borderRadius: 6, backgroundColor: colors.separator },
   footer: { marginTop: 28, alignItems: 'center' },
   footerNote: { color: colors.textTertiary, fontSize: 12 },
   errorBox: { marginTop: 16, alignItems: 'flex-start', gap: 10 },

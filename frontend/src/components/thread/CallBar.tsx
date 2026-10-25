@@ -44,11 +44,19 @@ export function CallBar({ call, top, meId, onJoin }: { call: Call; top: number; 
 
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 12, right: 12, zIndex: 9 },
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 50, paddingHorizontal: 12, borderRadius: 18, overflow: 'hidden' },
-  tint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(30,30,36,0.82)' },
-  icon: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#30D158', alignItems: 'center', justifyContent: 'center' },
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 50,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  tint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(250,250,252,0.94)' },
+  icon: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
   title: { color: colors.text, fontSize: 14, fontWeight: '600' },
   sub: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
   faces: { flexDirection: 'row' },
-  join: { color: '#30D158', fontSize: 15, fontWeight: '700', marginLeft: 4 },
+  join: { color: colors.mint, fontSize: 15, fontWeight: '700', marginLeft: 4 },
 });
