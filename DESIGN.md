@@ -81,7 +81,7 @@ The newcomer long-presses any message and gets the shortest possible explanation
 
 **What the AI gets as input**
 
-- The pressed message, its sender, timestamp, and the 20 messages around it.
+- The pressed message, its sender, timestamp, and up to 100 messages on either side.
 - Retrieval results for the candidate terms in the message (see AI context pipeline).
 - The group's member list and the newcomer's join date (so it knows what was said before they arrived).
 
@@ -196,15 +196,15 @@ The decision in the middle is the whole product: a confident, sourced answer whe
 
 - Store every message as `{id, group_id, sender_id, ts, text, reply_to}`.
 - Keyword index (BM25/Postgres full-text) over message text.
-- Embedding index over windows of \~10 consecutive messages (not single messages, so a definition and its usage land in the same chunk).
+- Bedrock Titan embeddings stored and searched with pgvector in the existing RDS PostgreSQL database. Index individual messages as search anchors; expand each retained search hit to 100 consecutive messages before and 100 after it, including the hit itself (up to 201 messages). Merge overlapping windows without truncating them.
 - **Auto-glossary pass:** one LLM sweep over the history in chunks that extracts recurring non-literal terms — nicknames, place aliases, event names, slang — with `{term, aliases, meaning, confidence, first_seen_ts, source_message_ids}`. This table is what feature 2 uses to detect inside references in a draft, and it is the first thing feature 1 checks.
 
 **2. Query-time, per ? (feature 1 and feature 4)**
 
 1. Extract candidate terms from the pressed message or transcript window: one small LLM call that returns terms that look non-literal, plus proper nouns. Fallback heuristic: capitalized words, quoted words, tokens absent from a common-English list.
 2. For each term: glossary lookup → exact keyword hits → semantic hits. Take the top \~8 windows, preferring (a) glossary entries, (b) the earliest occurrences, (c) messages containing definitional language ("X means", "we call it", "aka"), (d) messages from before the newcomer's join date.
-3. Generate with Claude: inputs are the pressed message with its 20 neighbours, the retrieved windows, member list and join date. Output is JSON: `{term, meaning, confidence (0–1), source_message_ids, kind: nickname|place|event|slang|person|plain}`. Prompt rules: lead with the meaning, ≤ 3 sentences, cite only retrieved messages, return `confidence < 0.4` rather than guessing.
-4. Budget: ≤ \~4k tokens of context per request so the answer comes back in \~2–3 s.
+3. Generate with Claude through Amazon Bedrock: inputs are the pressed message, the retrieved 201-message windows, member list and join date. Output includes meaning, confidence (0–1), source message IDs, private answer IDs, and kind. Lead with meaning in ≤ 3 sentences; cite only supplied evidence; return `confidence < 0.4` rather than guessing. Follow-ups reuse a stored context snapshot scoped to the requesting user.
+4. Budget: default to 3 retrieved hits and 240,000 serialized context characters. Retain fewer complete windows when needed; never crop the 100-message radius. These larger windows replace the original 4k-token target; latency depends on model and context size.
 
 **3. Not-found fallback (feature 1 and the second case of feature 2)**
 
@@ -293,7 +293,7 @@ The demo group chat is seeded from a real group chat export, so every explanatio
 1. Read `message_1.json` … `message_N.json` for the chosen thread; Messenger splits long threads across files, newest first.
 2. Normalize: `sender_name → user_id`, `timestamp_ms → ts`, `content → text`; drop reactions, stickers and empty media-only messages; fix Messenger's mojibake (decode `content.encode('latin1').decode('utf8')`).
 3. Insert into `messages`; build the full-text column.
-4. Window into chunks of 10 messages → embed → `message_windows`.
+4. Generate Titan embeddings for individual messages → store in RDS PostgreSQL `messages.embedding` with pgvector. At query time expand each hit by 100 messages on each side.
 5. Run the glossary sweep (Haiku, \~3k-token chunks) → `glossary`. Review the output once by hand before the demo and fix anything wrong; a human-corrected glossary row is marked `source: human`.
 6. Create the demo users and memberships. Set one user's `joined_at` to "today" so they are the newcomer.
 
@@ -427,6 +427,6 @@ Two short skits, split-screen where it helps, then the real product. Keep it und
 | Judges see it as semantic search | Demo the join-date awareness, the cross-gap resolution, and the human fallback live; say the limitation out loud |
 | STT latency or venue Wi-Fi breaks the call demo | Pre-recorded fallback video; mocked transcript mode behind a flag |
 | Nudge fires too often and annoys the sender | Only fire when a newcomer exists; per-term dismissal memory; never block send |
-| Token cost / latency on long histories | Retrieval capped at \~8 windows and \~4k tokens; catch-up is chunked and only on demand |
+| Token cost / latency on long histories | Default to 3 search hits with complete 201-message windows; merge overlaps and limit hit count by context size; catch-up is chunked and only on demand |
 | Privacy of the real chat | Strip last names and numbers at import; never commit the export; use a sanitized sample in the repo |
 | Scope creep from feature 3 and 5 | Both are after C5; cut without discussion if time is short |

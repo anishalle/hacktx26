@@ -1,4 +1,11 @@
 .venv/
+.venv-app/
+.uv-cache/
+.test-tools/
+data/
+aws-stack.local.json
+.env.*
+!.env.example
 __pycache__/
 *.py[cod]
 .env

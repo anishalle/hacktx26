@@ -1,5 +1,12 @@
-"""Shared FastAPI dependencies.
+from fastapi import Header, HTTPException
 
-Add database session and authenticated-user dependencies here when needed.
-Routes should consume them using Depends rather than manage resources directly.
-"""
+from app.core.config import settings
+
+
+def current_user(x_demo_user: str = Header(default="priya")) -> str:
+    # Accounts are outside demo scope. This identity selector is NOT authentication.
+    if not settings.DEMO_MODE:
+        raise HTTPException(503, "Configure authentication before disabling demo mode.")
+    if x_demo_user not in {"priya", "swayam", "alex"}:
+        raise HTTPException(403, "Unknown demo user")
+    return x_demo_user

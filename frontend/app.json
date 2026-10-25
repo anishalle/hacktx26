@@ -2,6 +2,8 @@
   "expo": {
     "name": "hacktx26",
     "slug": "hacktx26",
+    "scheme": "hacktx26",
+    "plugins": ["expo-router"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
