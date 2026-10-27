@@ -1,4 +1,5 @@
 import { ContentUnavailableView, Host } from '@expo/ui/swift-ui';
+import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
@@ -130,6 +131,9 @@ export default function InboxScreen() {
       <Stack.Title large>Messages</Stack.Title>
       <Stack.SearchBar placement="stacked" placeholder="Search" onChangeText={(e) => setQuery(e.nativeEvent.text)} />
       <Stack.Toolbar placement="left">
+        <Stack.Toolbar.View hidesSharedBackground>
+          <Image source={require('../../../../assets/logo.png')} style={styles.logo} accessibilityLabel="Closer" />
+        </Stack.Toolbar.View>
         <Stack.Toolbar.Menu accessibilityLabel="Edit">
           <Stack.Toolbar.Label>Edit</Stack.Toolbar.Label>
           <Stack.Toolbar.MenuAction
@@ -218,6 +222,7 @@ export default function InboxScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
+  logo: { width: 81, height: 22 },
   pressed: { backgroundColor: 'rgba(0,0,0,0.05)' },
   requests: { minHeight: 60, flexDirection: 'row', alignItems: 'center', paddingRight: 16, gap: 8 },
   requestsIcon: { width: 72, paddingLeft: 20, marginRight: 4, alignItems: 'center', justifyContent: 'center' },
